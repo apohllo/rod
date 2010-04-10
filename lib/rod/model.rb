@@ -195,7 +195,7 @@ module Rod
 
     # Used for building the C code.
     def self.inherited(subclass)
-      @subclasses ||= [JoinElement]
+      @subclasses ||= [JoinElement, StringElement]
       @subclasses << subclass
     end
 
@@ -267,9 +267,17 @@ module Rod
     def self.typedef_struct
       result = <<-END
           |typedef struct {
-          |  #{@fields.map do |field,type| 
-            "#{TYPE_MAPPING[type]} #{field};"
-          end.join("\n|  ") }
+          |  \n#{@fields.map do |field,type| 
+            if type != :string
+              "|  #{TYPE_MAPPING[type]} #{field};"
+            else
+            <<-SUBEND
+            |  unsigned long _#{field}_length;
+            |  unsigned long _#{field}_offset;
+            |  unsigned long _#{field}_page;
+            SUBEND
+            end
+          end.join("\n|  \n") }
           |  #{@singular_associations.map do |name, options|
             "unsigned long #{name};"
           end.join("\n|  ")}
@@ -283,12 +291,19 @@ module Rod
     end
 
     def self.join_indices(offset, count)
+      service_class.
+        _join_indices(offset, count, self.superclass.handler)
+    end
+
+    def self.read_string(length, offset, page)
+      service_class._read_string(length, offset, page, self.superclass.handler)
+    end
+
+    def self.service_class
       if self.superclass.readonly_data
-        loader_class.
-          _join_indices(offset, count, self.superclass.handler)
+        loader_class
       else
-        exporter_class.
-          _join_indices(offset, count, self.superclass.handler)
+        exporter_class
       end
     end
 
@@ -303,9 +318,20 @@ module Rod
         str =<<-END
         |VALUE _initialize(){
         |  #{struct_name()} * result = ALLOC(#{struct_name()});
-        |  result->rod_id = 0;
-        |  \n#{(@fields.map{|f,t| f} + 
-          @singular_associations.map{|n,o| n}).map do |name|
+        |  \n#{@fields.map do |field, type|
+          if type != :string
+          <<-SUBEND
+          |  result->#{field} = 0;
+          SUBEND
+          else
+          <<-SUBEND
+          |  result->_#{field}_length = 0;
+          |  result->_#{field}_offset = 0;
+          |  result->_#{field}_page = 0;
+          SUBEND
+          end
+        end.join("\n")}
+        |  \n#{@singular_associations.map do |name,options|
         <<-SUBEND
         |  result->#{name} = 0;
         SUBEND
@@ -323,22 +349,49 @@ module Rod
         builder.c(str.margin)
 
         @fields.each do |field_name, type|
-          str =<<-END
-          |VALUE _#{field_name}(VALUE struct_value){
-          |#{struct_p}
-          |  return #{C_TO_RUBY_MAPPING[type]}(struct_p->#{field_name});
-          |}
-          END
-          builder.c(str.margin)
-            
-          str =<<-END
-          |void _#{field_name}_equals(VALUE struct_value, VALUE value){
-          |#{struct_p}
-          |  struct_p->#{field_name} = #{RUBY_TO_C_MAPPING[type]}(value);
-          |}
-          END
-          builder.c(str.margin)
+          if type != :string
+            str =<<-END
+            |VALUE _#{field_name}(VALUE struct_value){
+            |#{struct_p}
+            |  return #{C_TO_RUBY_MAPPING[type]}(struct_p->#{field_name});
+            |}
+            END
+            builder.c(str.margin)
+              
+            str =<<-END
+            |void _#{field_name}_equals(VALUE struct_value, VALUE value){
+            |#{struct_p}
+            |  struct_p->#{field_name} = #{RUBY_TO_C_MAPPING[type]}(value);
+            |}
+            END
+            builder.c(str.margin)
+          else
+            str =<<-END
+            |VALUE _#{field_name}_length(VALUE struct_value){
+            |#{struct_p}
+            |  return INT2NUM(struct_p->_#{field_name}_length);
+            |}
+            END
+            builder.c(str.margin)
+
+            str =<<-END
+            |VALUE _#{field_name}_offset(VALUE struct_value){
+            |#{struct_p}
+            |  return INT2NUM(struct_p->_#{field_name}_offset);
+            |}
+            END
+            builder.c(str.margin)
+
+            str =<<-END
+            |VALUE _#{field_name}_page(VALUE struct_value){
+            |#{struct_p}
+            |  return INT2NUM(struct_p->_#{field_name}_page);
+            |}
+            END
+            builder.c(str.margin)
+          end
         end
+          
 
         @singular_associations.each do |name, options|
           str =<<-END
@@ -394,18 +447,42 @@ module Rod
       end
 
       @fields.each do |field, type|
-        private "_#{field}".to_sym, "_#{field}=".to_sym 
-
-        define_method(field) do 
-          send("_#{field}",@struct)
+        if type != :string
+          private "_#{field}".to_sym, "_#{field}=".to_sym 
+        else
+          private "_#{field}_length".to_sym, "_#{field}_offset".to_sym,
+            "_#{field}_page".to_sym
         end
 
-        define_method("#{field}=") do |value|
-          send("_#{field}=",@struct,value)
+        if type != :string
+          define_method(field) do 
+            send("_#{field}",@struct)
+          end
+
+          define_method("#{field}=") do |value|
+            send("_#{field}=",@struct,value)
+          end
+        else
+          define_method(field) do
+            value = instance_variable_get(("@" + field.to_s).to_sym)
+            if value.nil?
+              length = send("_#{field}_length", @struct)
+              offset = send("_#{field}_offset", @struct)
+              page = send("_#{field}_page", @struct)
+              value = self.class.read_string(length, offset, page)
+              send("#{field}=",value)
+            end
+            value
+          end
+
+          define_method("#{field}=") do |value|
+            instance_variable_set("@#{field}".to_sym,value)
+          end
         end
       end
 
       @singular_associations.each do |name, options|
+        private "_#{name}".to_sym, "_#{name}=".to_sym
         class_name = 
           if options[:class_name]
             options[:class_name]
@@ -423,7 +500,7 @@ module Rod
             else
               value = constant("::" + class_name).get(index-1)
             end
-            instance_variable_set(("@" + name.to_s).to_sym, value)
+            send("#{name}=",value)
           end
           value
         end
