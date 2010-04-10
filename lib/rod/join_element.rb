@@ -13,5 +13,11 @@ module Rod
     def self.struct_name
       "_join_element"
     end
+
+    def self.page_offsets
+      # the join element class is takes the second page 
+      # (the first is left for class stats)
+      @page_offsets ||= [1]
+    end
   end
 end

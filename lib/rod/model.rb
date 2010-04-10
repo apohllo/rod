@@ -52,7 +52,10 @@ module Rod
     # instance of this class.
     def self.store(object)
       raise "Incompatible object class #{object.class}" unless object.is_a?(self)
-      exporter_class.send("_store_" + self.struct_name,object,self.superclass.handler)
+      @offsets ||= []
+      new_offset = exporter_class.send("_store_" + self.struct_name,
+                                       object,self.superclass.handler)
+      @offsets << new_offset if @offsets.last != new_offset 
 
       referenced_objects ||= self.superclass.referenced_objects 
       @singular_associations.each do |name, options|
@@ -149,15 +152,10 @@ module Rod
     # for Model#store calls to be performed.
     #
     # By default the database is created for all subclasses.
-    def self.create_database(path, joins_count)
+    def self.create_database(path)
       raise "Database already opened." unless @handler.nil?
       @readonly = false
-      classes = {}
-      if @subclasses
-        @subclasses.each{|c| classes[c] = c.instances_count}
-      end
-      classes[JoinElement] = joins_count 
-      @handler = exporter_class.create(path,classes)
+      @handler = exporter_class.create(path,@subclasses)
     end
 
     # Opens the database at +path+ for reading. This allows
@@ -167,56 +165,41 @@ module Rod
     def self.open_database(path)
       raise "Database already opened." unless @handler.nil?
       @readonly = true
-      classes = {}
-      if @subclasses
-        @subclasses.each{|c| classes[c] = 0}
-      end
-      classes[JoinElement] = 0 
-      @handler = loader_class.open(path,classes)
+      @handler = loader_class.open(path,@subclasses)
     end
 
     def self.readonly_data
       @readonly
     end
 
+    def self.page_offsets
+      @offsets || []
+    end
+
     # Closes the database.
     def self.close_database
       raise "Database not opened." if @handler.nil?
       if @readonly
-        loader_class.close(@handler)
+        loader_class.close(@handler, nil)
       else
-        exporter_class.close(@handler)
+        exporter_class.close(@handler, self.subclasses)
       end
       @handler = nil
+      @offsets = nil
     end
-    
-    # Explicitly sets the number of instances to be stored
-    # in the database.
-    def self.instances_count=(value)
-      @instances_count = value
+
+    # Returns collected subclasses
+    def self.subclasses
+      @subclasses
     end
-    
+
     # Used for building the C code.
     def self.inherited(subclass)
-      @subclasses ||= []
+      @subclasses ||= [JoinElement]
       @subclasses << subclass
     end
 
   protected
-    # Returns the number of instances of this class
-    # which are to be stored in the database.
-    #
-    # In most cases it should be set by call to +instances_count=+, since
-    # the basic implementation count the number of objects in the object 
-    # space.
-    def self.instances_count
-      if @instances_count
-        @instances_count
-      else
-        ObjectSpace.each_object(self).to_a.size
-      end
-    end
-
     # Returns the class which is used to export the data
     # in to the database.
     #
@@ -321,6 +304,18 @@ module Rod
         |VALUE _initialize(){
         |  #{struct_name()} * result = ALLOC(#{struct_name()});
         |  result->rod_id = 0;
+        |  \n#{(@fields.map{|f,t| f} + 
+          @singular_associations.map{|n,o| n}).map do |name|
+        <<-SUBEND
+        |  result->#{name} = 0;
+        SUBEND
+        end.join("\n")}
+        |  \n#{@plural_associations.map do |name, options|
+        <<-SUBEND
+        |  result->#{name}_count = 0;
+        |  result->#{name}_offset = 0;
+        SUBEND
+        end.join("\n")}
         |  VALUE cClass = rb_define_class("#{struct_class_name()}",rb_cObject);
         |  return Data_Wrap_Struct(cClass, 0, free, result);
         |}
@@ -450,9 +445,10 @@ module Rod
           values = instance_variable_get(("@" + name.to_s).to_sym)
           klass = constant("::" + class_name)
           if values.nil?
+            count = self.send("_#{name}_count",@struct)
+            return [] if count == 0
             indices = self.class.
-              join_indices(self.send("_#{name}_offset",@struct),
-                           self.send("_#{name}_count",@struct))
+              join_indices(self.send("_#{name}_offset",@struct),count)
             # the indices are shifted by 1, to leave 0 for nil
             values = 
               indices.map do |index|
