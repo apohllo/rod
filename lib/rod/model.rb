@@ -48,16 +48,47 @@ module Rod
              element_index, referenced_id, self.superclass.handler)
     end
 
+    # Returns marshalled index for given field
+    def self.field_index(field)
+      if @indices.nil?
+        raise "Indices not build for '#{self.name}'"
+      end
+      field = field.to_sym
+      if @indices[field].nil?
+        raise "Index for field '#{field}' not build in '#{self.name}'"
+      end
+      [Marshal.dump(@indices[field])].pack("m")
+    end
+
     # Stores given +object+ in the database. The object must be an 
     # instance of this class.
     def self.store(object)
       raise "Incompatible object class #{object.class}" unless object.is_a?(self)
       @offsets ||= []
+      @indices ||= {}
       new_offset = exporter_class.send("_store_" + self.struct_name,
                                        object,self.superclass.handler)
+      # register new page offset
       @offsets << new_offset if @offsets.last != new_offset 
 
+      # update indices
+      self.fields.each do |field,options|
+        if options[:index]
+          if @indices[field].nil?
+            @indices[field] = {}
+          end
+          if @indices[field][object.send(field)].nil?
+            # We don't use the hash default value approach,
+            # since it forces the rebuild of the array
+            @indices[field][object.send(field)] = []
+          end
+           @indices[field][object.send(field)] << object.rod_id
+        end
+      end
+
+      # update object wich reference the stored object
       referenced_objects ||= self.superclass.referenced_objects 
+      # ... via singular associations
       @singular_associations.each do |name, options|
         referenced = object.send(name)
         unless referenced.nil?
@@ -71,6 +102,7 @@ module Rod
         end
       end
 
+      # ... via plural associations
       @plural_associations.each do |name, options|
         referenced = object.send(name)
         unless referenced.nil?
@@ -135,7 +167,7 @@ module Rod
 
     # Returns the fields of this class.
     def self.fields
-      @fields
+      @fields ||= {"rod_id" => {:type => :ulong}}
     end
 
     # Returns singular associations of this class.
@@ -240,10 +272,9 @@ module Rod
     # * +:ulong+
     # * +:float+
     # * +:string+
-    def self.field(name, type)
+    def self.field(name, type, options={})
       # rod_id is a predefined field
-      @fields ||= {"rod_id" => :ulong}
-      @fields[name] = type
+      self.fields[name] = options.merge({:type => type})
     end
 
     def self.has_many(name, options={})
@@ -267,15 +298,15 @@ module Rod
     def self.typedef_struct
       result = <<-END
           |typedef struct {
-          |  \n#{@fields.map do |field,type| 
-            if type != :string
-              "|  #{TYPE_MAPPING[type]} #{field};"
+          |  \n#{self.fields.map do |field,options| 
+            if options[:type] != :string
+              "|  #{TYPE_MAPPING[options[:type]]} #{field};"
             else
-            <<-SUBEND
-            |  unsigned long _#{field}_length;
-            |  unsigned long _#{field}_offset;
-            |  unsigned long _#{field}_page;
-            SUBEND
+              <<-SUBEND
+              |  unsigned long #{field}_length;
+              |  unsigned long #{field}_offset;
+              |  unsigned long #{field}_page;
+              SUBEND
             end
           end.join("\n|  \n") }
           |  #{@singular_associations.map do |name, options|
@@ -288,6 +319,26 @@ module Rod
           |} #{struct_name()};
       END
       result.margin
+    end
+
+    def self.field_reader(name,result_type,builder)
+      str =<<-END
+      |#{result_type} _#{name}(VALUE struct_value){
+      |#{struct_p}
+      |  return struct_p->#{name};
+      |}
+      END
+      builder.c(str.margin)
+    end
+
+    def self.field_writer(name,arg_type,builder)
+      str =<<-END
+      |void _#{name}_equals(VALUE struct_value,#{arg_type} value){
+      |#{struct_p}
+      |  struct_p->#{name} = value;
+      |}
+      END
+      builder.c(str.margin)
     end
 
     def self.join_indices(offset, count)
@@ -308,7 +359,6 @@ module Rod
     end
 
     def self.build_structure
-      @fields ||= {"rod_id" => :ulong}
       @plural_associations ||= {}
       @singular_associations ||= {}
 
@@ -318,17 +368,17 @@ module Rod
         str =<<-END
         |VALUE _initialize(){
         |  #{struct_name()} * result = ALLOC(#{struct_name()});
-        |  \n#{@fields.map do |field, type|
-          if type != :string
-          <<-SUBEND
-          |  result->#{field} = 0;
-          SUBEND
+        |  \n#{fields.map do |field, options|
+          if options[:type] != :string
+            <<-SUBEND
+            |  result->#{field} = 0;
+            SUBEND
           else
-          <<-SUBEND
-          |  result->_#{field}_length = 0;
-          |  result->_#{field}_offset = 0;
-          |  result->_#{field}_page = 0;
-          SUBEND
+            <<-SUBEND
+            |  result->#{field}_length = 0;
+            |  result->#{field}_offset = 0;
+            |  result->#{field}_page = 0;
+            SUBEND
           end
         end.join("\n")}
         |  \n#{@singular_associations.map do |name,options|
@@ -348,113 +398,39 @@ module Rod
         END
         builder.c(str.margin)
 
-        @fields.each do |field_name, type|
-          if type != :string
-            str =<<-END
-            |VALUE _#{field_name}(VALUE struct_value){
-            |#{struct_p}
-            |  return #{C_TO_RUBY_MAPPING[type]}(struct_p->#{field_name});
-            |}
-            END
-            builder.c(str.margin)
-              
-            str =<<-END
-            |void _#{field_name}_equals(VALUE struct_value, VALUE value){
-            |#{struct_p}
-            |  struct_p->#{field_name} = #{RUBY_TO_C_MAPPING[type]}(value);
-            |}
-            END
-            builder.c(str.margin)
+        self.fields.each do |name, options|
+          if options[:type] != :string
+            field_reader(name,TYPE_MAPPING[options[:type]],builder)
+            field_writer(name,TYPE_MAPPING[options[:type]],builder)  
           else
-            str =<<-END
-            |VALUE _#{field_name}_length(VALUE struct_value){
-            |#{struct_p}
-            |  return INT2NUM(struct_p->_#{field_name}_length);
-            |}
-            END
-            builder.c(str.margin)
-
-            str =<<-END
-            |VALUE _#{field_name}_offset(VALUE struct_value){
-            |#{struct_p}
-            |  return INT2NUM(struct_p->_#{field_name}_offset);
-            |}
-            END
-            builder.c(str.margin)
-
-            str =<<-END
-            |VALUE _#{field_name}_page(VALUE struct_value){
-            |#{struct_p}
-            |  return INT2NUM(struct_p->_#{field_name}_page);
-            |}
-            END
-            builder.c(str.margin)
+            field_reader("#{name}_length","unsigned long",builder)
+            field_reader("#{name}_offset","unsigned long",builder)
+            field_reader("#{name}_page","unsigned long",builder)
           end
         end
-          
 
         @singular_associations.each do |name, options|
-          str =<<-END
-          |unsigned long _#{name}(VALUE struct_value){
-          |#{struct_p}
-          |  return struct_p->#{name};
-          |}
-          END
-          builder.c(str.margin)
-
-          str =<<-END
-          |void _#{name}_equals(VALUE struct_value, unsigned long value){
-          |#{struct_p}
-          |  struct_p->#{name} = value;
-          |}
-          END
-          builder.c(str.margin)
+          field_reader(name,"unsigned long",builder)
+          field_writer(name,"unsigned long",builder)
         end
 
         @plural_associations.each do |name, options|
-          str =<<-END
-          |unsigned long _#{name}_count(VALUE struct_value){
-          |#{struct_p}
-          |  return struct_p->#{name}_count;
-          |}
-          END
-          builder.c(str.margin)
-
-          str =<<-END
-          |unsigned long _#{name}_offset(VALUE struct_value){
-          |#{struct_p}
-          |  return struct_p->#{name}_offset;
-          |}
-          END
-          builder.c(str.margin)
-
-          str =<<-END
-          |void _#{name}_count_equals(VALUE struct_value, unsigned long value){
-          |#{struct_p}
-          |  struct_p->#{name}_count = value;
-          |}
-          END
-          builder.c(str.margin)
-
-          str =<<-END
-          |void _#{name}_offset_equals(VALUE struct_value, unsigned long value){
-          |#{struct_p}
-          |  struct_p->#{name}_count = value;
-          |}
-          END
-          builder.c(str.margin)
+          field_reader("#{name}_count","unsigned long",builder)
+          field_reader("#{name}_offset","unsigned long",builder)
+          field_writer("#{name}_count","unsigned long",builder)
+          field_writer("#{name}_offset","unsigned long",builder)
         end
       end
 
-      @fields.each do |field, type|
-        if type != :string
+      self.fields.each do |field, options|
+        if options[:type] != :string
           private "_#{field}".to_sym, "_#{field}=".to_sym 
         else
           private "_#{field}_length".to_sym, "_#{field}_offset".to_sym,
             "_#{field}_page".to_sym
         end
 
-        if type != :string
+        if options[:type] != :string
           define_method(field) do 
             send("_#{field}",@struct)
           end
@@ -477,6 +453,26 @@ module Rod
 
           define_method("#{field}=") do |value|
             instance_variable_set("@#{field}".to_sym,value)
+          end
+        end
+
+        if options[:index]
+          meta_def("find_all_by_#{field}".to_sym) do |value|
+            index = instance_variable_get("@#{field}_index".to_sym)
+            if index.nil?
+              values = %w{length offset page}.map do |type|
+                  service_class.
+                    send("_read_#{struct_name}_#{field}_index_#{type}", 
+                         superclass.handler)
+                end
+              marshalled = self.read_string(*values).unpack("m").first
+              index = Marshal.load(marshalled)
+            end
+            index[value] || []
+          end
+
+          meta_def("find_by_#{field}".to_sym) do |value|
+            send("find_all_by_#{field}",value).first
           end
         end
       end

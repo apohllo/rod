@@ -141,15 +141,25 @@ module Rod
           str = <<-END
             |typedef struct {
             |#{classes.map do |klass|
-                substruct = <<-SUBEND
-                |  #{klass.struct_name} * #{klass.struct_name}_table;
-                |  unsigned long last_#{klass.struct_name};
-                |  unsigned long #{klass.struct_name}_offset;
-                |  unsigned long #{klass.struct_name}_size;
-                |  unsigned long #{klass.struct_name}_count;
-                SUBEND
-                substruct.margin
-              end.join("\n")}
+              substruct = <<-SUBEND
+              |  #{klass.struct_name} * #{klass.struct_name}_table;
+              |  unsigned long last_#{klass.struct_name};
+              |  unsigned long #{klass.struct_name}_offset;
+              |  unsigned long #{klass.struct_name}_size;
+              |  unsigned long #{klass.struct_name}_count;
+              SUBEND
+              indices = 
+                klass.fields.map do |field,options|
+                  if options[:index]
+                    str =<<-SUBEND
+                    |  unsigned long #{klass.struct_name}_#{field}_index_length;
+                    |  unsigned long #{klass.struct_name}_#{field}_index_offset;
+                    |  unsigned long #{klass.struct_name}_#{field}_index_page;
+                    SUBEND
+                  end
+                end.join("\n")
+              (substruct + indices).margin
+            end.join("\n")}
             |  unsigned long _elements_pages_count;
             |  _join_element ** _elements_tables_table;
             |  int lib_file;
@@ -255,6 +265,7 @@ module Rod
           |  unsigned int page_size = sysconf(_SC_PAGE_SIZE);
           |  char * str = model_p->#{StringElement.struct_name}_table + 
           |    page * page_size + offset;
+          |  printf("%lu\\n",length);
           |  return rb_str_new(str, length);
           |}
           END
@@ -311,6 +322,23 @@ module Rod
 
           classes.each do |klass|
             next if klass == JoinElement or klass == StringElement
+            klass.fields.each do |field,options|
+              next unless options[:index]
+              %w{length offset page}.each do |type|
+                str =<<-END
+                |unsigned long _read_#{klass.struct_name}_#{field}_index_#{type}(VALUE handler){
+                |  #{model_struct} * model_p;
+                |  Data_Get_Struct(handler,#{model_struct},model_p);
+                |  return model_p->#{klass.struct_name}_#{field}_index_#{type};
+                |}
+                END
+                builder.c_singleton(str.margin)
+              end
+            end
+          end
+
+          classes.each do |klass|
+            next if klass == JoinElement or klass == StringElement
             str =<<-END
             |// Store the object in the database.
             |// The value returned is the index of the page
@@ -334,7 +362,7 @@ module Rod
             |  VALUE sClass = rb_funcall(object, rb_intern("class"),0);
             |  VALUE struct_object = Data_Wrap_Struct(sClass, 0, 0, struct_p);
             |
-            |  \n#{klass.fields.map do |field, type|
+            |  \n#{klass.fields.map do |field, options|
                if field == "rod_id"
                  # the number is incresed by 1, because 0 indicates that the 
                  # (refered) object is nil
@@ -342,16 +370,17 @@ module Rod
                  |  struct_p->rod_id = model_p->#{klass.struct_name}_count;
                  |  rb_iv_set(object, \"@rod_id\",INT2NUM(struct_p->rod_id));
                  SUBEND
-               elsif type == :string
+               elsif options[:type] == :string
                  <<-SUBEND
                  |  VALUE string_data = rb_funcall(self,rb_intern("_set_string"),2,
                  |    rb_funcall(object,rb_intern("#{field}"),0), handler);
-                 |  struct_p->_#{field}_length = NUM2ULONG(rb_ary_entry(string_data,0));
-                 |  struct_p->_#{field}_offset = NUM2ULONG(rb_ary_entry(string_data,1));
-                 |  struct_p->_#{field}_page = NUM2ULONG(rb_ary_entry(string_data,2));
+                 |  struct_p->#{field}_length = NUM2ULONG(rb_ary_entry(string_data,0));
+                 |  struct_p->#{field}_offset = NUM2ULONG(rb_ary_entry(string_data,1));
+                 |  struct_p->#{field}_page = NUM2ULONG(rb_ary_entry(string_data,2));
                  SUBEND
                else
-                 "|  struct_p->#{field} = #{RUBY_TO_C_MAPPING[type]}(rb_funcall(object, rb_intern(\"#{field}\"),0));"
+                 "|  struct_p->#{field} = #{RUBY_TO_C_MAPPING[options[:type]]}("+
+                   "rb_funcall(object, rb_intern(\"#{field}\"),0));"
                end
             end.join("\n")}
             |  \n#{klass.singular_associations.map do |name, options|
@@ -443,25 +472,48 @@ module Rod
           |  VALUE cException = #{EXCEPTION_CLASS};
           |  VALUE klass, klass_offsets;
           |  unsigned int page_size = sysconf(_SC_PAGE_SIZE);
-          |  /*unsigned long classes_index, classes_count, offsets_index, offsets_count;
-          |  classes_count = NUM2ULONG(rb_funcall(classes,rb_intern("size"),0));
-          |  for(classes_index = 0; classes_index < classes_count; classes_index++){
-          |     klass = rb_ary_entry(classes, classes_index);
-          |     klass_offsets = rb_funcall(klass,rb_intern("offsets"),0);
-          |     offsets_count = NUM2ULONG(rb_funcall(klass_offsets,rb_intern("size"),0));
-          |     for(offsets_index; offsets_index < offsets_count; offsets_index++){
-          |       NUM2ULONG(rb_ary_entry(klass_offsets,offsets_index));
-          |       //TODO
-          |     }
-          |  }*/
+          |
+          |  if(classes != Qnil){
+          |  \n#{classes.map.with_index do |klass,index|
+            <<-SUBEND
+            |    klass = rb_ary_entry(classes, #{index});
+            |    // store indices
+            |    \n#{klass.fields.map do |field, options|
+              if options[:index]
+                str =<<-SUBSUBEND
+                |    VALUE index_#{klass.struct_name}_#{field} = 
+                |      rb_funcall(klass,rb_intern("field_index"),1,rb_str_new2("#{field}"));
+                |    VALUE index_data_#{klass.struct_name}_#{field} = 
+                |      rb_funcall(self,rb_intern("_set_string"),2,
+                |      index_#{klass.struct_name}_#{field},handler);
+                |    model_p->#{klass.struct_name}_#{field}_index_length =
+                |      NUM2ULONG(rb_ary_entry(index_data_#{klass.struct_name}_#{field},0));
+                |    model_p->#{klass.struct_name}_#{field}_index_offset =
+                |      NUM2ULONG(rb_ary_entry(index_data_#{klass.struct_name}_#{field},1));
+                |    model_p->#{klass.struct_name}_#{field}_index_page =
+                |      NUM2ULONG(rb_ary_entry(index_data_#{klass.struct_name}_#{field},2));
+                SUBSUBEND
+              end
+            end.join("\n|\n")}
+            SUBEND
+          end.join("\n|\n")}
+          |  }
           |  \n#{classes.map do |klass|
-               <<-SUBEND
-               |  if(munmap(model_p->#{klass.struct_name}_table,
-               |    model_p->#{klass.struct_name}_size) == -1){
-               |    rb_raise(cException,"Could not unmap #{klass.struct_name}."); 
-               |  }
-               SUBEND
+            <<-SUBEND
+            |  if(munmap(model_p->#{klass.struct_name}_table,
+            |    model_p->#{klass.struct_name}_size) == -1){
+            |    rb_raise(cException,"Could not unmap #{klass.struct_name}."); 
+            |  }
+            SUBEND
           end.join("\n")}
+          |  // unmap all mmaped regions TODO!!!
+          |  /*klass_offsets = rb_funcall(klass,rb_intern("offsets"),0);
+          |  offsets_count = NUM2ULONG(rb_funcall(klass_offsets,rb_intern("size"),0));
+          |  for(offsets_index; offsets_index < offsets_count; offsets_index++){
+          |    NUM2ULONG(rb_ary_entry(klass_offsets,offsets_index));
+          |    //TODO
+          |  }*/
+          |
           |  if(classes != Qnil){
           |    VALUE pages, other_offsets, new_offsets;
           |    FILE * file;
@@ -525,7 +577,7 @@ module Rod
           end.join("\n")}
           |  fseek(file,0,SEEK_SET);
           |  \n#{classes.map do |klass|
-          <<-SUBEND
+            main_part =<<-SUBEND
             |\n#{if klass == StringElement
               <<-SUBSUBEND
               |  unsigned long string_element_size = 
@@ -546,7 +598,22 @@ module Rod
             |    sizeof(unsigned long)) == -1){
             |    rb_raise(cException,"Could not write #{klass.struct_name} offset.");
             |  }\n
-          SUBEND
+            SUBEND
+            fields_part = klass.fields.map do |field,options|
+              if options[:index]
+                %w{length offset page}.map do |type|
+                  str =<<-SUBEND
+                  |  if(write(model_p->lib_file,
+                  |    &(model_p->#{klass.struct_name}_#{field}_index_#{type}),
+                  |    sizeof(unsigned long)) == -1){
+                  |    rb_raise(cException,
+                  |      "Could not write '#{klass.struct_name}' '#{field}' index #{type}.");
+                  |  }
+                  SUBEND
+                end.join("\n")
+              end
+            end.join("\n")
+            main_part + fields_part
           end.join("\n")}
           |  }
           |  if(close(model_p->lib_file) == -1){
@@ -579,6 +646,19 @@ module Rod
              |  if(read(lib_file, &#{klass.struct_name}_offset, sizeof(unsigned long)) == -1){
              |    rb_raise(cException,"Could not read #{klass.struct_name} count."); 
              |  }
+             #{klass.fields.map do |field,options|
+               if options[:index]
+                 %w{length offset page}.map do |type|
+                   str =<<-SUBSUBEND
+                   |  if(read(lib_file,&(model_p->#{klass.struct_name}_#{field}_index_#{type}),
+                   |    sizeof(unsigned long)) == -1){
+                   |    rb_raise(cException,
+                   |      "Could not read '#{klass.struct_name}' '#{field}' index #{type}.");
+                   |  }
+                   SUBSUBEND
+                 end.join("\n")
+               end
+             end.join("\n")}
              |  model_p->#{klass.struct_name}_size =  
              |    (sizeof(#{klass.struct_name}) * #{klass.struct_name}_count / page_size) 
              |      * page_size + 

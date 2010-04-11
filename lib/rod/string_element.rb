@@ -15,5 +15,9 @@ module Rod
       #"_string_element"
       "char"
     end
+
+    def self.fields
+      []
+    end
   end
 end
