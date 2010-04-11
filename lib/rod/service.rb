@@ -502,7 +502,8 @@ module Rod
             <<-SUBEND
             |  if(munmap(model_p->#{klass.struct_name}_table,
             |    model_p->#{klass.struct_name}_size) == -1){
-            |    rb_raise(cException,"Could not unmap #{klass.struct_name}."); 
+            |    printf("Warn: failed to unmap #{klass.struct_name}\\n");
+            |    //rb_raise(cException,"Could not unmap #{klass.struct_name}."); 
             |  }
             SUBEND
           end.join("\n")}

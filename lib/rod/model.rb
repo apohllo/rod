@@ -467,8 +467,9 @@ module Rod
                 end
               marshalled = self.read_string(*values).unpack("m").first
               index = Marshal.load(marshalled)
+              instance_variable_set("@#{field}_index".to_sym,index)
             end
-            index[value] || []
+            (index[value] || []).map{|i| self.get(i-1)}
           end
 
           meta_def("find_by_#{field}".to_sym) do |value|
