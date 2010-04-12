@@ -495,7 +495,7 @@ module Rod
             if index == 0
               value = nil
             else
-              value = constant("::" + class_name).get(index-1)
+              value = constant(class_name).get(index-1)
             end
             send("#{name}=",value)
           end
@@ -517,7 +517,7 @@ module Rod
 
         define_method("#{name}") do
           values = instance_variable_get(("@" + name.to_s).to_sym)
-          klass = constant("::" + class_name)
+          klass = constant(class_name)
           if values.nil?
             count = self.send("_#{name}_count",@struct)
             return [] if count == 0
