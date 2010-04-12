@@ -315,7 +315,7 @@ module Rod
           |  \n#{@plural_associations.map do |name, options|
          "|  unsigned long #{name}_offset;\n"+
          "|  unsigned long #{name}_count;"
-          end.join("\n|  ")}
+          end.join("\n|  \n")}
           |} #{struct_name()};
       END
       result.margin
