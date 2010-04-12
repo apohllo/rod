@@ -357,6 +357,14 @@ module Rod
         exporter_class
       end
     end
+    
+    def self.scope_name
+      if self.modspace == Object
+        ""
+      else
+        self.modspace.to_s
+      end
+    end
 
     def self.build_structure
       @plural_associations ||= {}
@@ -484,7 +492,7 @@ module Rod
           if options[:class_name]
             options[:class_name]
           else
-            name.to_s.camelcase(true)
+            "#{self.scope_name}::#{name.to_s.camelcase(true)}"
           end
 
         define_method(name) do
@@ -512,7 +520,8 @@ module Rod
           if options[:class_name]
             options[:class_name]
           else
-            ::English::Inflect.singular(name.to_s).camelcase(true)
+            "#{self.scope_name}::#{::English::Inflect.
+              singular(name.to_s).camelcase(true)}"
           end
 
         define_method("#{name}") do
