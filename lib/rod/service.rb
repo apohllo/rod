@@ -265,7 +265,6 @@ module Rod
           |  unsigned int page_size = sysconf(_SC_PAGE_SIZE);
           |  char * str = model_p->#{StringElement.struct_name}_table + 
           |    page * page_size + offset;
-          |  printf("%lu\\n",length);
           |  return rb_str_new(str, length);
           |}
           END
@@ -277,7 +276,8 @@ module Rod
           |  Data_Get_Struct(handler,#{model_struct},model_p);
           |  unsigned int page_size = sysconf(_SC_PAGE_SIZE);
           |  unsigned long length = strlen(value);
-          |  unsigned long offset; 
+          |  unsigned long offset, page;
+          |  char * dest;
           |  // table:
           |  // - during write - current page
           |  // - durign read - first page
@@ -290,31 +290,40 @@ module Rod
           |  // - during write - number of pages - 1
           |  // count:
           |  // - total number of bytes
-          |  if(length > page_size){
-          |    VALUE runtime_exception = #{EXCEPTION_CLASS};
-          |    rb_raise(runtime_exception, "String longer than the system page size!\\n%s",value);
-          |  }
           |  if(length + model_p->last_#{StringElement.struct_name} > page_size){
-          |    \n#{extend_data_file(StringElement)}
-          |    \n#{mmap_class(StringElement)}
-          |    model_p->#{StringElement.struct_name}_size++;
+          |    long length_left = length;
           |    VALUE rodModule = rb_const_get(rb_cObject, rb_intern("Rod"));
           |    VALUE element_class = rb_const_get(rodModule,rb_intern("StringElement")); 
           |    VALUE element_page_offsets = rb_funcall(element_class,
           |          rb_intern("page_offsets"),0);
-          |    rb_ary_push(element_page_offsets,INT2NUM(model_p->_last_offset));
-          |  }
-          |  offset = model_p->last_#{StringElement.struct_name};
-          |  char * dest = model_p->#{StringElement.struct_name}_table + offset;
-          |  strcpy(dest, value);
+          |    page = model_p->#{StringElement.struct_name}_size + 1;
+          |    offset = 0;
+          | 
+          |    while(length_left > 0){
+          |      \n#{extend_data_file(StringElement)}
+          |      \n#{mmap_class(StringElement)}
+          |      dest = model_p->#{StringElement.struct_name}_table;
+          |      strncpy(dest,value,page_size);
+          |      value += page_size; 
           |
-          |  model_p->last_#{StringElement.struct_name} += length + 1;
+          |      model_p->#{StringElement.struct_name}_size++;
+          |      rb_ary_push(element_page_offsets,INT2NUM(model_p->_last_offset));
+          |      length_left -= page_size;
+          |    }
+          |  } else {
+          |    offset = model_p->last_#{StringElement.struct_name};
+          |    dest = model_p->#{StringElement.struct_name}_table + offset;
+          |    page = model_p->#{StringElement.struct_name}_size;
+          |    strcpy(dest, value);
+          |  }
+          |
+          |  model_p->last_#{StringElement.struct_name} += (length + 1) % page_size;
           |  model_p->#{StringElement.struct_name}_count += length + 1;
           |
           |  VALUE result = rb_ary_new();
           |  rb_ary_push(result, INT2NUM(length));
           |  rb_ary_push(result, INT2NUM(offset));
-          |  rb_ary_push(result, INT2NUM(model_p->#{StringElement.struct_name}_size));
+          |  rb_ary_push(result, INT2NUM(page));
           |  return result;
           |}
           END
@@ -672,10 +681,10 @@ module Rod
              |  model_p->#{klass.struct_name}_count = #{klass.struct_name}_count;
              |  model_p->#{klass.struct_name}_offset = #{klass.struct_name}_offset;
              |
-             |printf("size: #{klass.struct_name} %lu\\n",
-             |  model_p->#{klass.struct_name}_size/page_size);
-             |printf("offs: #{klass.struct_name} %lu\\n",
-             |  model_p->#{klass.struct_name}_offset/page_size);
+             |//printf("size: #{klass.struct_name} %lu\\n",
+             |//  model_p->#{klass.struct_name}_size/page_size);
+             |//printf("offs: #{klass.struct_name} %lu\\n",
+             |//  model_p->#{klass.struct_name}_offset/page_size);
              |
              |  model_p->#{klass.struct_name}_table = mmap(NULL, 
              |    model_p->#{klass.struct_name}_size, PROT_READ, MAP_SHARED, 
