@@ -509,10 +509,11 @@ module Rod
           |  }
           |  \n#{classes.map do |klass|
             <<-SUBEND
-            |  if(munmap(model_p->#{klass.struct_name}_table,
-            |    model_p->#{klass.struct_name}_size) == -1){
-            |    printf("Warn: failed to unmap #{klass.struct_name}\\n");
-            |    //rb_raise(cException,"Could not unmap #{klass.struct_name}."); 
+            |  if(model_p->#{klass.struct_name}_table != NULL){
+            |    if(munmap(model_p->#{klass.struct_name}_table,page_size) == -1){
+            |      //printf("Warn: failed to unmap #{klass.struct_name}\\n");
+            |      rb_raise(cException,"Could not unmap #{klass.struct_name}."); 
+            |    }
             |  }
             SUBEND
           end.join("\n")}
@@ -674,10 +675,6 @@ module Rod
              |      * page_size + 
              |    (sizeof(#{klass.struct_name}) * #{klass.struct_name}_count % page_size == 
              |      0 ? 0 : page_size);
-             |  if(model_p->#{klass.struct_name}_size == 0){
-             |    // at least one page is reserved for every model
-             |    model_p->#{klass.struct_name}_size = page_size;
-             |  }
              |  model_p->#{klass.struct_name}_count = #{klass.struct_name}_count;
              |  model_p->#{klass.struct_name}_offset = #{klass.struct_name}_offset;
              |
@@ -686,9 +683,13 @@ module Rod
              |//printf("offs: #{klass.struct_name} %lu\\n",
              |//  model_p->#{klass.struct_name}_offset/page_size);
              |
-             |  model_p->#{klass.struct_name}_table = mmap(NULL, 
-             |    model_p->#{klass.struct_name}_size, PROT_READ, MAP_SHARED, 
-             |    lib_file, model_p->#{klass.struct_name}_offset);
+             |  if(model_p->#{klass.struct_name}_size > 0){
+             |    model_p->#{klass.struct_name}_table = mmap(NULL, 
+             |      model_p->#{klass.struct_name}_size, PROT_READ, MAP_SHARED, 
+             |      lib_file, model_p->#{klass.struct_name}_offset);
+             |  } else {
+             |    model_p->#{klass.struct_name}_table = NULL;
+             |  }
              |  model_p->last_#{klass.struct_name} = #{klass.struct_name}_count; 
              SUBEND
           end.join("\n")}
