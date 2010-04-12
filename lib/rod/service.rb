@@ -381,11 +381,11 @@ module Rod
                  SUBEND
                elsif options[:type] == :string
                  <<-SUBEND
-                 |  VALUE string_data = rb_funcall(self,rb_intern("_set_string"),2,
+                 |  VALUE #{field}_string_data = rb_funcall(self,rb_intern("_set_string"),2,
                  |    rb_funcall(object,rb_intern("#{field}"),0), handler);
-                 |  struct_p->#{field}_length = NUM2ULONG(rb_ary_entry(string_data,0));
-                 |  struct_p->#{field}_offset = NUM2ULONG(rb_ary_entry(string_data,1));
-                 |  struct_p->#{field}_page = NUM2ULONG(rb_ary_entry(string_data,2));
+                 |  struct_p->#{field}_length = NUM2ULONG(rb_ary_entry(#{field}_string_data,0));
+                 |  struct_p->#{field}_offset = NUM2ULONG(rb_ary_entry(#{field}_string_data,1));
+                 |  struct_p->#{field}_page = NUM2ULONG(rb_ary_entry(#{field}_string_data,2));
                  SUBEND
                else
                  "|  struct_p->#{field} = #{RUBY_TO_C_MAPPING[options[:type]]}("+
