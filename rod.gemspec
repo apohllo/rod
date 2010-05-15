@@ -1,7 +1,7 @@
 Gem::Specification.new do |s|
   s.name = "rod"
-  s.version = "0.0.1"
-  s.date = "2010-04-11"
+  s.version = "0.0.2"
+  s.date = "2010-05-15"
   s.summary = "Ruby read-only object database"
   s.email = "apohllo@o2.pl"
   #s.homepage = "http://wierzba.wzks.uj.edu.pl/~mag/dilp"

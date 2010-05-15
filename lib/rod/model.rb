@@ -347,7 +347,10 @@ module Rod
     end
 
     def self.read_string(length, offset, page)
-      service_class._read_string(length, offset, page, self.superclass.handler)
+      # TODO the encoding should be stored in the DB
+      # or configured globally
+      service_class._read_string(length, offset, page, self.superclass.handler).
+        force_encoding("utf-8")
     end
 
     def self.service_class
