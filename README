@@ -1,0 +1,75 @@
+= ROD -- Read-only Data(base) 
+
+* http://github.com/apohllo/rod
+
+== DESCRIPTION
+
+ROD (Read-only Data(base)) is library which aims at providing very fast
+access for data, which rarely changes. 
+
+== FEATURES/PROBLEMS:
+
+* written mostly in C
+* optimized for speed
+* has nice Ruby interface which mimicks Active Record
+* uses mmap for maximum speed (doesn't work on Windows)
+
+== SYNOPSIS:
+
+ROD is designed for storing and accessing data which rarely changes.
+It is a opposite of RDBMS as the data is not normalized
+It is a opposite of in-memory databases, since it is designed to cover 
+out of core data sets (10 GB and more).
+
+The primary reason for designing it was to create storage facility for
+natural language dictionaries. The data in a fully fledged dictionary
+is interconnected in many ways, thus the relational model (joins) introduces
+unacceptable performance hit. The in-memory data bases, on the other hand,
+would require the data to be kept mostly in the operational memory,
+which is not needed, while processing text (in most cases only a friction
+of the data is needed). That's why a storage facility which minimizes the
+number of memory look-ups was designed. The Ruby interface facilitates it's
+usage.
+
+== REQUIREMENTS:
+
+* RubyInline gem
+* facets gem
+* english gem
+
+== INSTALL
+
+TODO (pull from github, will push to gemcutter shortly).
+
+== BASIC USAGE:
+
+(see tests)
+
+== LICENSE:
+ 
+(The MIT License)
+
+Copyright (c) 2008-2010 Aleksander Pohl
+
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the
+'Software'), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+== FEEDBACK
+
+* mailto:apohllo@o2.pl
