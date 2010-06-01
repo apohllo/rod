@@ -532,7 +532,7 @@ module Rod
           klass = constant(class_name)
           if values.nil?
             count = self.send("_#{name}_count",@struct)
-            return [] if count == 0
+            return instance_variable_set(("@" + name.to_s).to_sym,[]) if count == 0
             indices = self.class.
               join_indices(self.send("_#{name}_offset",@struct),count)
             # the indices are shifted by 1, to leave 0 for nil
