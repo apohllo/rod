@@ -734,7 +734,7 @@ module Rod
             builder.c_singleton("void __unused_method_#{rand(1000)}(){}")
           end
         end
-      @code_generated = true
+        @code_generated = true
       end
     end
   end
