@@ -2,6 +2,18 @@ require File.join(File.dirname(__FILE__),'constants')
 
 module Rod
   class Model
+    include ActiveModel::Validations
+
+    class ValidationException < Exception
+      def initialize(message)
+        @message = message
+      end
+
+      def to_s
+        @message.join("\n")
+      end
+    end
+
     def _initialize
       raise "Method _initialize should not be called for abstract Model class"
     end
@@ -22,7 +34,11 @@ module Rod
     # Stores the instance in the database. This might be called
     # only if the database is openede for writing (see +create+).
     def store
-      self.class.store(self)
+      if valid?
+        self.class.store(self)
+      else
+        raise ValidationException.new([self.to_s,self.errors.full_messages])
+      end
     end
 
     def referenced_id(name)
@@ -380,6 +396,11 @@ module Rod
         exporter_class
       end
     end
+
+    def self.modspace
+      space = name[ 0...(name.rindex( '::' ) || 0)]
+      space.empty? ? Object : eval(space)
+    end
     
     def self.scope_name
       if self.modspace == Object
@@ -488,23 +509,27 @@ module Rod
         end
 
         if options[:index]
-          meta_def("find_all_by_#{field}".to_sym) do |value|
-            index = instance_variable_get("@#{field}_index".to_sym)
-            if index.nil?
-              values = %w{length offset page}.map do |type|
-                  service_class.
-                    send("_read_#{struct_name}_#{field}_index_#{type}", 
-                         superclass.handler)
-                end
-              marshalled = self.read_string(*values).unpack("m").first
-              index = Marshal.load(marshalled)
-              instance_variable_set("@#{field}_index".to_sym,index)
+          (class << self; self; end).class_eval do
+            define_method("find_all_by_#{field}".to_sym) do |value|
+              index = instance_variable_get("@#{field}_index".to_sym)
+              if index.nil?
+                values = %w{length offset page}.map do |type|
+                    service_class.
+                      send("_read_#{struct_name}_#{field}_index_#{type}", 
+                           superclass.handler)
+                  end
+                marshalled = self.read_string(*values).unpack("m").first
+                index = Marshal.load(marshalled)
+                instance_variable_set("@#{field}_index".to_sym,index)
+              end
+              (index[value] || []).map{|i| self.get(i-1)}
             end
-            (index[value] || []).map{|i| self.get(i-1)}
           end
 
-          meta_def("find_by_#{field}".to_sym) do |value|
-            send("find_all_by_#{field}",value).first
+          (class << self; self; end).class_eval do
+            define_method("find_by_#{field}".to_sym) do |value|
+              send("find_all_by_#{field}",value).first
+            end
           end
         end
       end
@@ -515,7 +540,7 @@ module Rod
           if options[:class_name]
             options[:class_name]
           else
-            "#{self.scope_name}::#{name.to_s.camelcase(true)}"
+            "#{self.scope_name}::#{name.to_s.camelcase}"
           end
 
         define_method(name) do
@@ -526,7 +551,7 @@ module Rod
             if index == 0
               value = nil
             else
-              value = constant(class_name).get(index-1)
+              value = class_name.constantize.get(index-1)
             end
             send("#{name}=",value)
           end
@@ -544,12 +569,12 @@ module Rod
             options[:class_name]
           else
             "#{self.scope_name}::#{::English::Inflect.
-              singular(name.to_s).camelcase(true)}"
+              singular(name.to_s).camelcase}"
           end
 
         define_method("#{name}") do
           values = instance_variable_get(("@" + name.to_s).to_sym)
-          klass = constant(class_name)
+          klass = class_name.constantize
           if values.nil?
             count = self.send("_#{name}_count",@struct)
             return instance_variable_set(("@" + name.to_s).to_sym,[]) if count == 0
