@@ -1,4 +1,4 @@
-re 'structures'
+require 'tests/structures'
 
 Test::Model.open_database("tmp/abc.dat")
 puts Test::MyStruct.count

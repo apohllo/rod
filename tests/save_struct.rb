@@ -1,4 +1,4 @@
-require 'structures'
+require './tests/structures'
 
 #MAGNITUDE = 100000
 MAGNITUDE = 50
@@ -24,13 +24,19 @@ ms = []
   ms[i].identifier = i
   ms[i].your_struct = ys[i]
   ms[i].title = "title_#{i}"
+  ms[i].title2 = "title2_#{i}"
   ms[i].body = "body_#{i}"
 end
 
 Test::Model.create_database("tmp/abc.dat")
 ms.each_with_index{|s,i| 
-  puts i if i % 1000 == 0
-  s.store
+  begin 
+    puts i if i % 1000 == 0
+    s.store
+  rescue Exception => e
+    puts e
+    raise
+  end
 }
 ys.each{|y| y.store}
 his.each{|h| h.store}
