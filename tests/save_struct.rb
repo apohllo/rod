@@ -1,5 +1,7 @@
 require './tests/structures'
 
+puts "-- Save sample structures test --"
+
 #MAGNITUDE = 100000
 MAGNITUDE = 50
 

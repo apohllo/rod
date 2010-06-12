@@ -1,5 +1,7 @@
 require 'tests/structures'
 
+puts "-- Load sample structures test --"
+
 Test::Model.open_database("tmp/abc.dat")
 puts Test::MyStruct.count
 puts Test::YourStruct.count

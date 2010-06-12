@@ -19,9 +19,8 @@ end
 
 desc "Run tests and spec"
 task :test do
-#  sh "ruby test/*"
-#  puts "\n---- Specs ----"
-#  sh "spec --color spec/*"
+  sh "ruby tests/save_struct.rb"
+  sh "ruby tests/load_struct.rb"
 end
 
 desc "Clean"
