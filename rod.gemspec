@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name = "rod"
-  s.version = "0.0.2.#{Time.now.strftime("%s")}"
+  s.version = "0.1.0.#{Time.now.strftime("%s")}"
   s.date = "#{Time.now}"
   s.summary = "Ruby read-only object database"
   s.email = "apohllo@o2.pl"

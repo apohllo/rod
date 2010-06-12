@@ -271,11 +271,12 @@ module Rod
           builder.c_singleton(str.margin)
 
           str =<<-END
-          |VALUE _set_string(char * value, VALUE handler){
+          |VALUE _set_string(VALUE ruby_value, VALUE handler){
           |  #{model_struct} * model_p;
           |  Data_Get_Struct(handler,#{model_struct},model_p);
           |  unsigned int page_size = sysconf(_SC_PAGE_SIZE);
-          |  unsigned long length = strlen(value);
+          |  unsigned long length = RSTRING_LEN(ruby_value);
+          |  char * value = RSTRING_PTR(ruby_value);
           |  unsigned long offset, page;
           |  char * dest;
           |  // table:
@@ -303,7 +304,11 @@ module Rod
           |      \n#{extend_data_file(StringElement)}
           |      \n#{mmap_class(StringElement)}
           |      dest = model_p->#{StringElement.struct_name}_table;
-          |      strncpy(dest,value,page_size);
+          |      if(length_left > page_size){
+          |        memcpy(dest,value,page_size);
+          |      } else {
+          |        memcpy(dest,value,length_left);
+          |      }
           |      value += page_size; 
           |
           |      model_p->#{StringElement.struct_name}_size++;
@@ -314,7 +319,7 @@ module Rod
           |    offset = model_p->last_#{StringElement.struct_name};
           |    dest = model_p->#{StringElement.struct_name}_table + offset;
           |    page = model_p->#{StringElement.struct_name}_size;
-          |    strcpy(dest, value);
+          |    memcpy(dest, value,length);
           |  }
           |
           |  model_p->last_#{StringElement.struct_name} += (length + 1) % page_size;
@@ -729,8 +734,8 @@ module Rod
             builder.c_singleton("void __unused_method_#{rand(1000)}(){}")
           end
         end
-      end
       @code_generated = true
+      end
     end
   end
 end
