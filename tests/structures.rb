@@ -29,6 +29,7 @@ module Test
     field :precision, :float
     field :identifier, :ulong
     field :title, :string, :index => true
+    field :title2, :string
     field :body, :string
     has_one :your_struct
 
