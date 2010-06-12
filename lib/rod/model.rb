@@ -595,11 +595,7 @@ module Rod
           if options[:class_name]
             options[:class_name]
           else
-<<<<<<< HEAD
-            "#{self.scope_name}::#{name.to_s.camelcase(true)}"  
-=======
             "#{self.scope_name}::#{name.to_s.camelcase}"
->>>>>>> - Remove dependency on facets
           end
 
         #getter
