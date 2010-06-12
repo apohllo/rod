@@ -64,6 +64,7 @@ module Rod
     # instance of this class.
     def self.store(object)
       raise "Incompatible object class #{object.class}" unless object.is_a?(self)
+      raise "The object #{object} is allready stored" unless object.rod_id == 0
       @offsets ||= []
       @indices ||= {}
       new_offset = exporter_class.send("_store_" + self.struct_name,
