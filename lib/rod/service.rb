@@ -394,16 +394,20 @@ module Rod
             |     //if(munmap(model_p->#{klass.struct_name}_table, page_size) == -1){
             |     //  rb_raise(cException,"Could not unmap #{klass.struct_name} (during store)."); 
             |     //}
+            |     //printf("extending file\\n");
             |     \n#{extend_data_file(klass)}
+            |     //printf("mmaping new file fragment\\n");
             |     \n#{mmap_class(klass)}
             |  } 
             |  VALUE result = INT2NUM(model_p->#{klass.struct_name}_offset);
             |  #{klass.struct_name} * struct_p = model_p->#{klass.struct_name}_table +
             |    model_p->last_#{klass.struct_name}++;
+            |  //printf("struct assigned\\n");
             |  model_p->#{klass.struct_name}_count++;
             |  VALUE sClass = rb_funcall(object, rb_intern("class"),0);
             |  VALUE struct_object = Data_Wrap_Struct(sClass, 0, 0, struct_p);
             |
+            |  //printf("fields\\n");
             |  \n#{klass.fields.map do |field, options|
                if field == "rod_id"
                  # the number is incresed by 1, because 0 indicates that the 
@@ -425,6 +429,7 @@ module Rod
                    "rb_funcall(object, rb_intern(\"#{field}\"),0));"
                end
             end.join("\n")}
+            |  //printf("singular assocs\\n");
             |  \n#{klass.singular_associations.map do |name, options|
               <<-SUBEND
               |  VALUE referenced_#{name} = rb_funcall(object, rb_intern("#{name}"),0);
