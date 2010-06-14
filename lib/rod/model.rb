@@ -160,10 +160,14 @@ module Rod
 
     # Returns object of this class stored in the DB at given +position+.
     def self.get(position)
-      struct = loader_class.send("_#{self.struct_name}_get",
-                                 self.superclass.handler,position)
-      # TODO cache results
-      self.new(struct)
+      object = cache[position]
+      if object.nil?
+        struct = loader_class.send("_#{self.struct_name}_get",
+                                   self.superclass.handler,position)
+        object = self.new(struct)
+        cache[position] = object
+      end
+      object
     end
 
     # Returns the fields of this class.
@@ -297,6 +301,10 @@ module Rod
     def self.has_one(name, options={})
       @singular_associations ||= {}
       @singular_associations[name] = options
+    end
+
+    def self.cache
+      @cache ||= WeakHash.new
     end
 
     def self.struct_p
