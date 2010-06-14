@@ -201,6 +201,17 @@ module Rod
       @handler = loader_class.open(path,@subclasses)
     end
 
+    # Prints the layout of the pages in memory and other
+    # internal data of the model.
+    def self.print_layout
+      raise "Database not opened." if @handler.nil?
+      if @readonly
+        loader_class.print_layout(@handler)
+      else
+        exporter_class.print_layout(@handler)
+      end
+    end
+
     def self.readonly_data
       @readonly
     end

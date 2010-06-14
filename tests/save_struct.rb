@@ -31,6 +31,7 @@ ms = []
 end
 
 Test::Model.create_database("tmp/abc.dat")
+Test::Model.print_layout
 ms.each_with_index{|s,i| 
   begin 
     puts i if i % 1000 == 0
@@ -42,4 +43,5 @@ ms.each_with_index{|s,i|
 }
 ys.each{|y| y.store}
 his.each{|h| h.store}
+Test::Model.print_layout
 Test::Model.close_database

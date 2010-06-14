@@ -11,10 +11,14 @@ module Rod
       "model_" + path.gsub(/\W/,"_").squeeze("_")
     end
 
+    def self.print_layout(handler)
+      self._print_layout(handler)
+    end
+
     def self.init_structs(classes)
       index = 0 
       classes.map do |klass|
-        # leav one segment for stats - index _is_ incremented
+        # leave one segment for stats - index _is_ incremented
         # before evaluation
         index += 1
         <<-END
@@ -160,9 +164,15 @@ module Rod
                 end.join("\n")
               (substruct + indices).margin
             end.join("\n")}
+            |  // number of pages of join elements
             |  unsigned long _elements_pages_count;
+            |  // the pointer to join elements table
             |  _join_element ** _elements_tables_table;
+            |
+            |  // the handler to the file containing the data
             |  int lib_file;
+            |
+            |  // the offset of the last page
             |  unsigned long _last_offset;
             |} #{model_struct};
           END
@@ -728,11 +738,35 @@ module Rod
             |}
             END
             builder.c_singleton(str.margin)
-
-            # This method is created to force rebuild of the C code, since
-            # it is rebuild on the basis of methods' signatures change.
-            builder.c_singleton("void __unused_method_#{rand(1000)}(){}")
           end
+          str = <<-END
+          |void _print_layout(VALUE handler){
+          |  #{model_struct} * model_p;
+          |  Data_Get_Struct(handler,#{model_struct},model_p);
+          |  printf("-- Data layout START --\\n");
+          |  printf("File handler %d\\n",model_p->lib_file);
+          |  printf("Offset of the last page %lu\\n",model_p->_last_offset);
+          |  \n#{classes.map do |klass|
+               str =<<-SUBEND
+          |  printf("- #{klass} -\\n");
+          |  printf("Element size: %lu, offset: %lu, count %lu, last: %lu, pointer: %lx\\n",
+          |    model_p->#{klass.struct_name}_size, model_p->#{klass.struct_name}_offset,
+          |    model_p->#{klass.struct_name}_count, model_p->last_#{klass.struct_name},
+          |    (unsigned long)model_p->#{klass.struct_name}_table);
+               SUBEND
+               str.margin
+             end.join("\n")}
+          |  printf("Number of pages of join elements: %lu, "
+          |    "pointer to join elements %lx\\n",
+          |    model_p->_elements_pages_count,(unsigned long)model_p->_elements_tables_table);
+          |  printf("-- Data layout END --\\n");
+          |}
+          END
+          builder.c_singleton(str.margin)
+
+          # This method is created to force rebuild of the C code, since
+          # it is rebuild on the basis of methods' signatures change.
+          builder.c_singleton("void __unused_method_#{rand(1000)}(){}")
         end
         @code_generated = true
       end
