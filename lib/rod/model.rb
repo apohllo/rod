@@ -217,7 +217,8 @@ module Rod
       @handler = loader_class.open(path,@subclasses)
     end
 
-    def self.readonly_data
+    # The DB open mode.
+    def self.readonly_data?
       @readonly
     end
 
