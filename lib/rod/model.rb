@@ -233,6 +233,9 @@ module Rod
       if @readonly
         loader_class.close(@handler, nil)
       else
+        unless referenced_objects.select {|k, v| not v.empty?}.size == 0
+          raise "Not all associations have been stored: #{referenced_objects}"
+        end
         exporter_class.close(@handler, self.subclasses)
       end
       @handler = nil
