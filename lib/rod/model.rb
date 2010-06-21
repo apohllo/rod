@@ -192,6 +192,11 @@ module Rod
       @plural_associations
     end
 
+    # Returns whether db is opened.
+    def self.opened?
+      not @handler.nil?
+    end
+
     # Creates the database at specified +path+, which allows 
     # for Model#store calls to be performed.
     #
