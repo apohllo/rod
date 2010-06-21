@@ -1,6 +1,8 @@
 require File.join(File.dirname(__FILE__),'constants')
 
 module Rod
+
+  # Abstract class representing a model entity. Each storable class has to derieve from +Model+.
   class Model
     def _initialize
       raise "Method _initialize should not be called for abstract Model class"
@@ -11,6 +13,9 @@ module Rod
     # Initializes instance of the model. If +struct+ is given,
     # it is used as source of the data. Otherwise, a new struct
     # is created.
+    #
+    # NOTE that for a time being, this method should be considered FINAL.
+    # You should not override it in any subclass.
     def initialize(struct=nil)
       if struct
         @struct = struct
@@ -86,7 +91,7 @@ module Rod
         end
       end
 
-      # update object wich reference the stored object
+      # update object that references the stored object
       referenced_objects ||= self.superclass.referenced_objects 
       # ... via singular associations
       @singular_associations.each do |name, options|
@@ -146,12 +151,14 @@ module Rod
     # Returns the number of objects of this class stored in the 
     # database. The database must be opened for reading (see +open+).
     def self.count
+      #TODO an exception if in wrong state?
       loader_class.send("_#{self.struct_name}_count",self.superclass.handler)
     end
 
     # Iterates over object of this class stored in the database. 
     # The database must be opened for reading (see +open+).
     def self.each 
+      #TODO an exception if in wrong state?
       self.count.times do |index|
         yield self.get(index)
       end
@@ -204,6 +211,7 @@ module Rod
       @readonly
     end
 
+    # The array of pages on which this class's data is stored.
     def self.page_offsets
       @offsets || []
     end
@@ -211,6 +219,7 @@ module Rod
     # Closes the database.
     def self.close_database
       raise "Database not opened." if @handler.nil?
+
       if @readonly
         loader_class.close(@handler, nil)
       else
@@ -220,7 +229,7 @@ module Rod
       @offsets = nil
     end
 
-    # Returns collected subclasses
+    # Returns collected subclasses.
     def self.subclasses
       @subclasses
     end
@@ -260,7 +269,6 @@ module Rod
 
     # "Stack" of objects which are referenced by other objects during store, 
     # but are not yet stored.
-    # TODO Check if empty on #close
     def self.referenced_objects
       @referenced_objects ||= {}
     end
@@ -341,23 +349,27 @@ module Rod
       builder.c(str.margin)
     end
 
+    # Propagates the call to the underlying service class
     def self.join_indices(offset, count)
       service_class.
         _join_indices(offset, count, self.superclass.handler)
     end
 
+    # Propagates the call to the underlying service class
     def self.read_string(length, offset, page)
       service_class._read_string(length, offset, page, self.superclass.handler)
     end
 
+    # Returns the exporter or loader class depending on the mode that db is open in
     def self.service_class
-      if self.superclass.readonly_data
+      if self.superclass.readonly_data?
         loader_class
       else
         exporter_class
       end
     end
     
+    # Returns a scope of the class
     def self.scope_name
       if self.modspace == Object
         ""
@@ -366,6 +378,7 @@ module Rod
       end
     end
 
+    # adds C routines and dynamic Ruby accessors for a model class
     def self.build_structure
       @plural_associations ||= {}
       @singular_associations ||= {}
@@ -430,7 +443,10 @@ module Rod
         end
       end
 
+      ## accessors for fields, plural and singular relationships follow
       self.fields.each do |field, options|
+        # adding new private fields visible from Ruby
+        # they are lazily initialized based on the C representation
         if options[:type] != :string
           private "_#{field}".to_sym, "_#{field}=".to_sym 
         else
@@ -439,26 +455,31 @@ module Rod
         end
 
         if options[:type] != :string
-          define_method(field) do 
+          # getter
+          define_method(field) do
             send("_#{field}",@struct)
           end
-
+  
+          # setter
           define_method("#{field}=") do |value|
             send("_#{field}=",@struct,value)
           end
-        else
+        else #strings
+          # getter
           define_method(field) do
             value = instance_variable_get(("@" + field.to_s).to_sym)
-            if value.nil?
+            if value.nil? # first call
               length = send("_#{field}_length", @struct)
               offset = send("_#{field}_offset", @struct)
               page = send("_#{field}_page", @struct)
               value = self.class.read_string(length, offset, page)
+              # caching Ruby representation
               send("#{field}=",value)
             end
             value
           end
 
+          # setter
           define_method("#{field}=") do |value|
             instance_variable_set("@#{field}".to_sym,value)
           end
@@ -480,7 +501,8 @@ module Rod
             (index[value] || []).map{|i| self.get(i-1)}
           end
 
-          meta_def("find_by_#{field}".to_sym) do |value|
+          #TODO could be more effective if didn't use find_all_by_field
+          meta_def("find_by_#{field}".to_sym) do |value| 
             send("find_all_by_#{field}",value).first
           end
         end
@@ -492,9 +514,10 @@ module Rod
           if options[:class_name]
             options[:class_name]
           else
-            "#{self.scope_name}::#{name.to_s.camelcase(true)}"
+            "#{self.scope_name}::#{name.to_s.camelcase(true)}"  
           end
 
+        #getter
         define_method(name) do
           value = instance_variable_get(("@" + name.to_s).to_sym)
           if value.nil?
@@ -510,6 +533,7 @@ module Rod
           value
         end
 
+        #setter
         define_method("#{name}=") do |value|
           instance_variable_set(("@" + name.to_s).to_sym, value)
         end
@@ -524,6 +548,7 @@ module Rod
               singular(name.to_s).camelcase(true)}"
           end
 
+        # getter
         define_method("#{name}") do
           values = instance_variable_get(("@" + name.to_s).to_sym)
           klass = constant(class_name)
@@ -546,10 +571,16 @@ module Rod
           values
         end
 
+        # count getter
         define_method("#{name}_count") do
-          send("_#{name}_count",@struct)
+          if (instance_variable_get(("@" + name.to_s).to_sym) != nil)
+            return instance_variable_get(("@" + name.to_s).to_sym).count
+          else
+            return send("_#{name}_count",@struct)
+          end
         end
 
+        # setter
         define_method("#{name}=") do |value|
           instance_variable_set(("@" + name.to_s).to_sym, value)
         end
