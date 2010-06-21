@@ -7,6 +7,8 @@ module Rod
       _close(handler, classes) 
     end
 
+    ## Helper methods printing some generated code ##
+
     def self.model_struct_name(path)
       "model_" + path.gsub(/\W/,"_").squeeze("_")
     end
@@ -78,12 +80,23 @@ module Rod
       str.margin
     end
 
+    ####
+
+    # Computes rearrangement of pages for the +classes+ array
+    # in which +current_klass+'s instances are placed continuously on subsequent pages
+    # keeping the order of remaining classes intact
+    # returns an array containing 3 subarrays:
+    #   * current class's offsets a, such that
+    #      a[i] represents a number of page from the old order to be placed at i
+    #   * other classes' offsets b
+    #   * new other classes' offsets c, such that b[i] in old order should be placed at c[i]
     def self.arrange_pages(current_klass, classes)
       klass_offsets = current_klass.page_offsets.dup
       if klass_offsets.empty?
         return [[],[],[]]
       end
-      offset_map = {}
+
+      offset_map = {}	#contains a class for each page offset
       classes.each do |klass| 
         klass.page_offsets.each do |offset| 
           if offset_map.has_key?(offset)
@@ -92,16 +105,20 @@ module Rod
           offset_map[offset] = klass
         end
       end
+      # changes are going to have place in this range
       range = (klass_offsets.first..klass_offsets.last)
 
       offsets = []
-      other_offsets = []
+      other_offsets = []  #offsets of pages used for other classes than current_klass
       range.each do |offset|
         offsets << [offset, offset_map[offset]]
+        # offset inside the range, but different class on this page
         if offset_map[offset] != current_klass 
           other_offsets << offset
         end
       end
+
+      #stable sort
       offsets.sort! do |e1, e2|
         offset1, klass1 = *e1
         offset2, klass2 = *e2
@@ -128,6 +145,7 @@ module Rod
       [klass_offsets, other_offsets, new_offsets]
     end
 
+    # Generates the code in C responsible for management of the database.
     def self.generate_c_code(path, classes)
       unless @code_generated
         inline(:C) do |builder|
@@ -574,10 +592,11 @@ module Rod
           |    for(j=0; j < size; j++){
           |      offset = NUM2ULONG(rb_ary_entry(klass_offsets,j));
           |      if(j == 0){
-          |        model_p->#{klass.struct_name}_offset = offset * page_size;
+          |        //TODO: no need to do it in loop
+          |        model_p->#{klass.struct_name}_offset = offset * page_size; 
           |      }
           |      fseek(file, page_size * offset, SEEK_SET);
-          |      if(read(model_p->lib_file, one_page, page_size) == -1){
+          |      if(read(model_p->lib_file, one_page, page_size) == -1){ //MS: why we read page_size while writing size_of_page(klass) below?
           |        rb_raise(cException,"Could not read file during re-arrangement (class data)."); 
           |      }
           |      fseek(file, model_p->#{klass.struct_name}_offset + #{size_of_page(klass)} 
