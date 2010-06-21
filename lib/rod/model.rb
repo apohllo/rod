@@ -172,6 +172,11 @@ module Rod
       self.new(struct)
     end
 
+    def self.find_by_rod_id(rod_id)
+      raise "Requested id does not represent any object stored in the database!" unless rod_id != 0
+      get(rod_id - 1)
+    end
+
     # Returns the fields of this class.
     def self.fields
       @fields ||= {"rod_id" => {:type => :ulong}}
