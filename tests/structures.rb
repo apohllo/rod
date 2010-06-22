@@ -1,6 +1,6 @@
 require 'lib/rod'
 
-module Test
+module RodTest
   class Exporter < Rod::Exporter
     def self.create(path,classes)
       `touch #{__FILE__}` 
@@ -46,7 +46,7 @@ module Test
   class YourStruct < Model
     field :counter, :integer
     has_many :his_structs
-    has_many :her_structs, :class_name => "Test::HisStruct"
+    has_many :her_structs, :class_name => "RodTest::HisStruct"
 
     build_structure
 
