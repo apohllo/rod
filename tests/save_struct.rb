@@ -7,20 +7,20 @@ MAGNITUDE = 50
 
 his = []
 (MAGNITUDE * 10).times do |i|
-  his[i] = Test::HisStruct.new
+  his[i] = RodTest::HisStruct.new
   his[i].inde = i
 end
 
 ys = []
 (MAGNITUDE * 1).times do |i|
-  ys[i] = Test::YourStruct.new
+  ys[i] = RodTest::YourStruct.new
   ys[i].counter = 10
   ys[i].his_structs = his[i*10...(i+1)*10] 
 end
 
 ms = []
 (MAGNITUDE * 1).times do |i|
-  ms[i] = Test::MyStruct.new
+  ms[i] = RodTest::MyStruct.new
   ms[i].count = 10 * i
   ms[i].precision = 0.1 * i
   ms[i].identifier = i
@@ -30,8 +30,8 @@ ms = []
   ms[i].body = "body_#{i}"
 end
 
-Test::Model.create_database("tmp/abc.dat")
-Test::Model.print_layout
+RodTest::Model.create_database("tmp/abc.dat")
+RodTest::Model.print_layout
 ms.each_with_index{|s,i| 
   begin 
     puts i if i % 1000 == 0
@@ -43,5 +43,5 @@ ms.each_with_index{|s,i|
 }
 ys.each{|y| y.store}
 his.each{|h| h.store}
-Test::Model.print_layout
-Test::Model.close_database
+RodTest::Model.print_layout
+RodTest::Model.close_database
