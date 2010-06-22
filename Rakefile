@@ -24,6 +24,7 @@ task :test do
   sh "ruby tests/save_zero_string.rb"
   sh "ruby tests/load_zero_string.rb"
   sh "ruby tests/full_runs.rb"
+  sh "ruby tests/unit/*.rb"
 end
 
 desc "Clean"
