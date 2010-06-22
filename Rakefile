@@ -17,14 +17,17 @@ task :uninstall do
   sh "sudo gem uninstall #$gem_name"
 end
 
-desc "Run tests and spec"
+desc "Run tests and specs"
 task :test do
+  sh "ruby tests/unit/*.rb"
   sh "ruby tests/save_struct.rb"
   sh "ruby tests/load_struct.rb"
   sh "ruby tests/save_zero_string.rb"
   sh "ruby tests/load_zero_string.rb"
   sh "ruby tests/full_runs.rb"
-  sh "ruby tests/unit/*.rb"
+  sh "ruby tests/eff1_test.rb"
+  sh "ruby tests/eff2_test.rb"
+  sh "cucumber features/*"
 end
 
 desc "Clean"
