@@ -1,4 +1,4 @@
-require './lib/rod'
+require 'lib/rod'
 
 module Test
   class Exporter < Rod::Exporter

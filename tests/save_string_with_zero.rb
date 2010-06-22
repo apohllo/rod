@@ -1,4 +1,4 @@
-require './tests/structures'
+require 'tests/structures'
 
 puts "-- Save structures with string containing 0 test --"
 

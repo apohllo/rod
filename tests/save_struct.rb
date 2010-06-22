@@ -1,4 +1,4 @@
-require './tests/structures'
+require 'tests/structures'
 
 puts "-- Save sample structures test --"
 
