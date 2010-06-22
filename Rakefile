@@ -21,8 +21,9 @@ desc "Run tests and spec"
 task :test do
   sh "ruby tests/save_struct.rb"
   sh "ruby tests/load_struct.rb"
-  sh "ruby tests/save_string_with_zero.rb"
-  sh "ruby tests/load_string_with_zero.rb"
+  sh "ruby tests/save_zero_string.rb"
+  sh "ruby tests/load_zero_string.rb"
+  sh "ruby tests/full_runs.rb"
 end
 
 desc "Clean"
