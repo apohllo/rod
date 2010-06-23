@@ -209,7 +209,7 @@ module Rod
     def self.create_database(path)
       raise "Database already opened." unless @handler.nil?
       @readonly = false
-      @handler = exporter_class.create(path,@subclasses)
+      @handler = exporter_class.create(path,self.subclasses)
     end
 
     # Opens the database at +path+ for reading. This allows
@@ -219,7 +219,7 @@ module Rod
     def self.open_database(path)
       raise "Database already opened." unless @handler.nil?
       @readonly = true
-      @handler = loader_class.open(path,@subclasses)
+      @handler = loader_class.open(path,self.subclasses)
     end
 
     # Prints the layout of the pages in memory and other
@@ -261,7 +261,7 @@ module Rod
 
     # Returns collected subclasses.
     def self.subclasses
-      @subclasses
+      @subclasses.sort{|c1,c2| c1.to_s <=> c2.to_s}
     end
 
     # Used for building the C code.
