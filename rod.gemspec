@@ -17,7 +17,7 @@ Gem::Specification.new do |s|
   #s.extra_rdoc_files = ["History.txt", "Manifest.txt", "README.txt"]
   s.add_dependency("RubyInline", [">= 3.8.3"])
   s.add_dependency("english", [">= 0.5.0"])
-  s.add_dependency("Mocha", [">= 0.9.8"])
+  s.add_dependency("mocha", [">= 0.9.8"])
   s.add_dependency("cucumber", [">= 0.8.1"])
   s.add_dependency("activemodel")
 end
