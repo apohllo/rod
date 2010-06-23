@@ -712,11 +712,6 @@ module Rod
              |  model_p->#{klass.struct_name}_count = #{klass.struct_name}_count;
              |  model_p->#{klass.struct_name}_offset = #{klass.struct_name}_offset;
              |
-             |//printf("size: #{klass.struct_name} %lu\\n",
-             |//  model_p->#{klass.struct_name}_size/page_size);
-             |//printf("offs: #{klass.struct_name} %lu\\n",
-             |//  model_p->#{klass.struct_name}_offset/page_size);
-             |
              |  if(model_p->#{klass.struct_name}_size > 0){
              |    model_p->#{klass.struct_name}_table = mmap(NULL, 
              |      model_p->#{klass.struct_name}_size, PROT_READ, MAP_SHARED, 
@@ -762,13 +757,15 @@ module Rod
           |void _print_layout(VALUE handler){
           |  #{model_struct} * model_p;
           |  Data_Get_Struct(handler,#{model_struct},model_p);
-          |  printf("-- Data layout START --\\n");
+          |  printf("=== Data layout START ===\\n");
           |  printf("File handler %d\\n",model_p->lib_file);
           |  printf("Offset of the last page %lu\\n",model_p->_last_offset);
           |  \n#{classes.map do |klass|
                str =<<-SUBEND
-          |  printf("- #{klass} -\\n");
-          |  printf("Element size: %lu, offset: %lu, count %lu, last: %lu, pointer: %lx\\n",
+          |  printf("-- #{klass} --\\n");
+          |  printf("Size of #{klass.struct_name} %lu\\n",(unsigned long)sizeof(#{klass.struct_name}));
+          |  \n#{klass.layout}
+          |  printf("Size: %lu, offset: %lu, count %lu, last: %lu, pointer: %lx\\n",
           |    model_p->#{klass.struct_name}_size, model_p->#{klass.struct_name}_offset,
           |    model_p->#{klass.struct_name}_count, model_p->last_#{klass.struct_name},
           |    (unsigned long)model_p->#{klass.struct_name}_table);
@@ -778,7 +775,7 @@ module Rod
           |  printf("Number of pages of join elements: %lu, "
           |    "pointer to join elements %lx\\n",
           |    model_p->_elements_pages_count,(unsigned long)model_p->_elements_tables_table);
-          |  printf("-- Data layout END --\\n");
+          |  printf("=== Data layout END ===\\n");
           |}
           END
           builder.c_singleton(str.margin)

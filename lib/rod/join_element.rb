@@ -10,6 +10,10 @@ module Rod
       str.margin
     end
 
+    def self.layout
+      '  printf("  offset: %lu, index: %lu\n",sizeof(unsigned long), sizeof(unsigned long));' + "\n"
+    end
+
     def self.struct_name
       "_join_element"
     end

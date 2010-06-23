@@ -363,6 +363,29 @@ module Rod
       result.margin
     end
 
+    def self.layout
+      result = <<-END
+        |  \n#{self.fields.map do |field,options| 
+            if options[:type] != :string
+              "|  printf(\"  size of '#{field}': %lu\\n\",sizeof(#{TYPE_MAPPING[options[:type]]}));"
+            else
+              <<-SUBEND
+              |  printf("  string '#{field}' length: %lu offset: %lu page: %lu\\n",
+              |    sizeof(unsigned long), sizeof(unsigned long), sizeof(unsigned long));
+              SUBEND
+            end
+          end.join("\n") }
+          |  \n#{@singular_associations.map do |name, options|
+            "  printf(\"  singular assoc '#{name}': %lu\\n\",sizeof(unsigned long));"
+          end.join("\n|  ")}
+          |  \n#{@plural_associations.map do |name, options|
+         "|  printf(\"  plural assoc '#{name}' offset: %lu, count %lu\\n\",\n"+
+         "|    sizeof(unsigned long),sizeof(unsigned long));"
+          end.join("\n|  \n")}
+      END
+      result.margin
+    end
+
     def self.field_reader(name,result_type,builder)
       str =<<-END
       |#{result_type} _#{name}(VALUE struct_value){

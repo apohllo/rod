@@ -16,6 +16,9 @@ module Rod
       "char"
     end
 
+    def self.layout
+    end
+
     def self.fields
       []
     end
