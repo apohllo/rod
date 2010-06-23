@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name = "rod"
-  s.version = "0.2.0.snapshot#{Time.now.strftime("%s")}"
+  s.version = "0.2.0.snapshot#{`git log -1 --format="%at"`.chomp}"
   #s.version = "0.2.0"
   s.date = "#{Time.now}"
   s.summary = "Ruby read-only object database"
