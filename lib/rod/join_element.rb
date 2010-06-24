@@ -19,9 +19,7 @@ module Rod
     end
 
     def self.page_offsets
-      # the join element class is takes the second page 
-      # (the first is left for class stats)
-      @page_offsets ||= [1]
+      @page_offsets ||= []
     end
 
     def self.fields

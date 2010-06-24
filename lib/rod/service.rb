@@ -66,6 +66,17 @@ module Rod
       |    model_p->#{klass.struct_name}_offset * page_size);
       |  model_p->last_#{klass.struct_name} = 0;
       SUBEND
+      if klass == ::Rod::StringElement || klass == ::Rod::JoinElement
+        str +=<<-SUBEND
+        |  VALUE module_#{klass.struct_name} = rb_const_get(rb_cObject, rb_intern("Rod"));
+        |  VALUE class_#{klass.struct_name} = rb_const_get(module_#{klass.struct_name},
+        |    rb_intern("#{klass.name.split("::")[-1]}")); 
+        |  VALUE offsets_#{klass.struct_name} = rb_funcall(class_#{klass.struct_name},
+        |    rb_intern("page_offsets"),0);
+        |  rb_ary_push(offsets_#{klass.struct_name},
+        |    INT2NUM(model_p->#{klass.struct_name}_offset));
+        SUBEND
+      end
       str.margin
     end
 
@@ -207,8 +218,6 @@ module Rod
            |  //TODO destroy properly
            |  model_p->_elements_tables_table = malloc(sizeof(_join_element *)*2); 
            |  
-           |  //string elements
-           |
            |  #{init_structs(classes)}
            |  model_p->#{StringElement.struct_name}_size = 0;
            |
@@ -321,10 +330,6 @@ module Rod
           |  // - total number of bytes
           |  if(length + model_p->last_#{StringElement.struct_name} > page_size){
           |    long length_left = length;
-          |    VALUE rodModule = rb_const_get(rb_cObject, rb_intern("Rod"));
-          |    VALUE element_class = rb_const_get(rodModule,rb_intern("StringElement")); 
-          |    VALUE element_page_offsets = rb_funcall(element_class,
-          |          rb_intern("page_offsets"),0);
           |    page = model_p->#{StringElement.struct_name}_size + 1;
           |    offset = 0;
           | 
@@ -340,7 +345,6 @@ module Rod
           |      value += page_size; 
           |
           |      model_p->#{StringElement.struct_name}_size++;
-          |      rb_ary_push(element_page_offsets,INT2NUM(model_p->_last_offset));
           |      length_left -= page_size;
           |    }
           |  } else {
@@ -463,12 +467,6 @@ module Rod
               |        \n#{mmap_class(JoinElement)}
               |        model_p->_elements_tables_table[model_p->_elements_pages_count-1] = 
               |          model_p->_join_element_table;
-              |        
-              |        VALUE rod_module = rb_const_get(rb_cObject, rb_intern("Rod"));
-              |        VALUE element_class = rb_const_get(rod_module, rb_intern("JoinElement"));
-              |        VALUE element_page_offsets = rb_funcall(element_class,
-              |          rb_intern("page_offsets"),0);
-              |        rb_ary_push(element_page_offsets,INT2NUM(model_p->_last_offset));
               |        
               |        // check if the tables table has to be extended
               |        unsigned long pages_count = model_p->_elements_pages_count;
@@ -772,8 +770,8 @@ module Rod
                SUBEND
                str.margin
              end.join("\n")}
-          |  printf("Number of pages of join elements: %lu, "
-          |    "pointer to join elements %lx\\n",
+          |  printf("Number of pages of join elements (only during create): %lu, \\n"
+          |    "  pointer to join elements %lx\\n",
           |    model_p->_elements_pages_count,(unsigned long)model_p->_elements_tables_table);
           |  printf("=== Data layout END ===\\n");
           |}
