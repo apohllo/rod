@@ -70,12 +70,8 @@ module Rod
     def self.store(object)
       raise "Incompatible object class #{object.class}" unless object.is_a?(self)
       raise "The object #{object} is allready stored" unless object.rod_id == 0
-      @offsets ||= []
       @indices ||= {}
-      new_offset = exporter_class.send("_store_" + self.struct_name,
-                                       object,self.superclass.handler)
-      # register new page offset
-      @offsets << new_offset if @offsets.last != new_offset 
+      exporter_class.send("_store_" + self.struct_name,object,self.superclass.handler)
 
       # update indices
       self.fields.each do |field,options|
@@ -240,7 +236,7 @@ module Rod
 
     # The array of pages on which this class's data is stored.
     def self.page_offsets
-      @offsets || []
+      @page_offsets ||= []
     end
 
     # Closes the database.

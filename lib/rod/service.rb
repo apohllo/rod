@@ -59,24 +59,26 @@ module Rod
       str.margin
     end
 
+    # Mmaps the class to its page during database creation.
+    # TODO merge with extend data file
     def self.mmap_class(klass)
       str =<<-SUBEND
       |  model_p->#{klass.struct_name}_table = mmap(NULL, page_size,
       |    PROT_WRITE | PROT_READ, MAP_SHARED, model_p->lib_file, 
       |    model_p->#{klass.struct_name}_offset * page_size);
       |  model_p->last_#{klass.struct_name} = 0;
+      |  VALUE module_#{klass.struct_name} = rb_const_get(rb_cObject, rb_intern("Kernel"));
+      |  \n#{klass.name.split("::")[0..-2].map do |mod_name|
+        "  module_#{klass.struct_name} = rb_const_get(module_#{klass.struct_name}, " +
+          "rb_intern(\"#{mod_name}\"));"
+      end.join("\n")}
+      |  VALUE class_#{klass.struct_name} = rb_const_get(module_#{klass.struct_name},
+      |    rb_intern("#{klass.name.split("::")[-1]}")); 
+      |  VALUE offsets_#{klass.struct_name} = rb_funcall(class_#{klass.struct_name},
+      |    rb_intern("page_offsets"),0);
+      |  rb_ary_push(offsets_#{klass.struct_name},
+      |    INT2NUM(model_p->#{klass.struct_name}_offset));
       SUBEND
-      if klass == ::Rod::StringElement || klass == ::Rod::JoinElement
-        str +=<<-SUBEND
-        |  VALUE module_#{klass.struct_name} = rb_const_get(rb_cObject, rb_intern("Rod"));
-        |  VALUE class_#{klass.struct_name} = rb_const_get(module_#{klass.struct_name},
-        |    rb_intern("#{klass.name.split("::")[-1]}")); 
-        |  VALUE offsets_#{klass.struct_name} = rb_funcall(class_#{klass.struct_name},
-        |    rb_intern("page_offsets"),0);
-        |  rb_ary_push(offsets_#{klass.struct_name},
-        |    INT2NUM(model_p->#{klass.struct_name}_offset));
-        SUBEND
-      end
       str.margin
     end
 
