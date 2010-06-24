@@ -558,8 +558,10 @@ module Rod
           end
 
           #TODO could be more effective if didn't use find_all_by_field
-          meta_def("find_by_#{field}".to_sym) do |value| 
-            send("find_all_by_#{field}",value).first
+          (class << self; self; end).class_eval do
+            define_method("find_by_#{field}".to_sym) do |value|
+              send("find_all_by_#{field}",value).first
+            end
           end
         end
       end
