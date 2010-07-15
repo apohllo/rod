@@ -49,7 +49,14 @@ module Rod
       |  model_p->_last_offset++;
       |  model_p->#{klass.struct_name}_offset = model_p->_last_offset;
       |  FILE * file = fdopen(model_p->lib_file,"w+");
-      |  fseek(file,0,SEEK_END);
+      |  if(file == NULL){
+      |    VALUE cException = #{EXCEPTION_CLASS};
+      |    rb_raise(cException,"Could not open file for #{klass.struct_name}.");
+      |  } 
+      |  if(fseek(file,0,SEEK_END) == -1){
+      |    VALUE cException = #{EXCEPTION_CLASS};
+      |    rb_raise(cException,"Could not seek file for #{klass.struct_name}.");
+      |  }
       |  char* empty = calloc(page_size,1);
       |  if(write(model_p->lib_file,empty,page_size) == -1){
       |    VALUE cException = #{EXCEPTION_CLASS};
@@ -66,6 +73,10 @@ module Rod
       |  model_p->#{klass.struct_name}_table = mmap(NULL, page_size,
       |    PROT_WRITE | PROT_READ, MAP_SHARED, model_p->lib_file, 
       |    model_p->#{klass.struct_name}_offset * page_size);
+      |  if(model_p->#{klass.struct_name}_table == MAP_FAILED){
+      |    VALUE cException = #{EXCEPTION_CLASS};
+      |    rb_raise(cException,"Could mmap segment for #{klass.struct_name}.");
+      |  }
       |  model_p->last_#{klass.struct_name} = 0;
       |  VALUE module_#{klass.struct_name} = rb_const_get(rb_cObject, rb_intern("Kernel"));
       |  \n#{klass.name.split("::")[0..-2].map do |mod_name|
@@ -167,6 +178,7 @@ module Rod
           builder.include '<string.h>'
           builder.include '<fcntl.h>'
           builder.include '<unistd.h>'
+          builder.include '<errno.h>'
           builder.include '<sys/mman.h>'
           classes.each do |klass|
             builder.prefix(klass.typedef_struct)
@@ -555,7 +567,7 @@ module Rod
             |  }
             SUBEND
           end.join("\n")}
-          |  // unmap all mmaped regions TODO!!!
+          |  // unmap all mmaped regions TODO !!!
           |  /*klass_offsets = rb_funcall(klass,rb_intern("offsets"),0);
           |  offsets_count = NUM2ULONG(rb_funcall(klass_offsets,rb_intern("size"),0));
           |  for(offsets_index; offsets_index < offsets_count; offsets_index++){
@@ -570,6 +582,9 @@ module Rod
           |    char * pages_copy, * one_page;
           |    //we have to reorganize pages
           |    file = fdopen(model_p->lib_file,"w+");
+          |    if(file == NULL){
+          |      rb_raise(cException,"Could not open file while closing DB.");
+          |    } 
           |    \n#{classes.map.with_index do |klass, i|
           <<-SUBEND
           |    klass = rb_ary_entry(classes,#{i});
@@ -584,7 +599,9 @@ module Rod
           |    pages_copy = malloc(page_size * size);
           |    for(j=0; j < size;j++){
           |      offset = NUM2ULONG(rb_ary_entry(other_offsets,j));
-          |      fseek(file, page_size * offset, SEEK_SET);
+          |      if(fseek(file, page_size * offset, SEEK_SET) == -1){
+          |        rb_raise(cException,"Could not seek while copying pages");
+          |      }
           |      if(read(model_p->lib_file, pages_copy + page_size * j, page_size) == -1){
           |        rb_raise(cException,"Could not read file during re-arrangement (copying)."); 
           |      }
@@ -600,12 +617,16 @@ module Rod
           |        //TODO: no need to do it in loop
           |        model_p->#{klass.struct_name}_offset = offset * page_size; 
           |      }
-          |      fseek(file, page_size * offset, SEEK_SET);
+          |      if(fseek(file, page_size * offset, SEEK_SET) == -1){
+          |        rb_raise(cException,"Could not seek while rearranging pages (1)");
+          |      }
           |      if(read(model_p->lib_file, one_page, page_size) == -1){ //MS: why we read page_size while writing size_of_page(klass) below?
           |        rb_raise(cException,"Could not read file during re-arrangement (class data)."); 
           |      }
-          |      fseek(file, model_p->#{klass.struct_name}_offset + #{size_of_page(klass)} 
-          |         * j,SEEK_SET);
+          |      if(fseek(file, model_p->#{klass.struct_name}_offset + 
+          |         #{size_of_page(klass)} * j,SEEK_SET) == -1){
+          |        rb_raise(cException,"Could not seek while copying pages (2)");
+          |      }
           |      if(write(model_p->lib_file, one_page, #{size_of_page(klass)}) == -1){
           |        rb_raise(cException,"Could not write to file during re-arrangement (class data)."); 
           |      }
@@ -616,7 +637,9 @@ module Rod
           |    size = NUM2ULONG(rb_funcall(new_offsets,rb_intern("size"),0));
           |    for(j=0; j < size; j++){ 
           |      offset = NUM2ULONG(rb_ary_entry(new_offsets,j));
-          |      fseek(file, offset * page_size, SEEK_SET);
+          |      if(fseek(file, offset * page_size, SEEK_SET) == -1){
+          |        rb_raise(cException,"Could not seek while writing data back from memory.");
+          |      } 
           |      if(write(model_p->lib_file, pages_copy + j * page_size, page_size) == -1){
           |        rb_raise(cException,"Could not write to file during re-arrangement (copy back)."); 
           |      }
@@ -625,7 +648,9 @@ module Rod
           |    free(pages_copy);
           SUBEND
           end.join("\n")}
-          |  fseek(file,0,SEEK_SET);
+          |  if(fseek(file,0,SEEK_SET) == -1){
+          |    rb_raise(cException,"Cloud not seek to the beginning of the file."); 
+          |  }
           |  \n#{classes.map do |klass|
             main_part =<<-SUBEND
             |\n#{if klass == StringElement
