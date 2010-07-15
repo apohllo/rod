@@ -251,6 +251,7 @@ module Rod
         end
         exporter_class.close(@handler, self.subclasses)
       end
+      self.subclasses.each{|subc| subc.page_offsets.clear}
       @handler = nil
       @offsets = nil
     end
