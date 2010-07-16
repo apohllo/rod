@@ -27,4 +27,8 @@ class ModelTest < Test::Unit::TestCase
       "Referential integrity not working for has_many " +
       "#{struct3.his_structs[0].object_id}:#{struct4.object_id}")
   end
+
+  def test_print_system_error
+    RodTest::MyStruct.print_system_error
+  end
 end

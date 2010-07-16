@@ -283,6 +283,11 @@ module Rod
       @subclasses << subclass
     end
 
+    # Prints the last error of system call.
+    def self.print_system_error
+      service_class._print_system_error
+    end
+
   protected
     # Returns the class which is used to export the data
     # in to the database.

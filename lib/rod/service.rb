@@ -810,6 +810,13 @@ module Rod
           END
           builder.c_singleton(str.margin)
 
+          str =<<-END
+          |void _print_system_error(){
+          |  perror(NULL);
+          |}
+          END
+          builder.c_singleton(str.margin)
+
           # This method is created to force rebuild of the C code, since
           # it is rebuild on the basis of methods' signatures change.
           builder.c_singleton("void __unused_method_#{rand(1000)}(){}")
