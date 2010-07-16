@@ -74,8 +74,9 @@ module Rod
       |    PROT_WRITE | PROT_READ, MAP_SHARED, model_p->lib_file, 
       |    model_p->#{klass.struct_name}_offset * page_size);
       |  if(model_p->#{klass.struct_name}_table == MAP_FAILED){
+      |    perror(NULL);
       |    VALUE cException = #{EXCEPTION_CLASS};
-      |    rb_raise(cException,"Could mmap segment for #{klass.struct_name}.");
+      |    rb_raise(cException,"Could not mmap segment for #{klass.struct_name}.");
       |  }
       |  model_p->last_#{klass.struct_name} = 0;
       |  VALUE module_#{klass.struct_name} = rb_const_get(rb_cObject, rb_intern("Kernel"));
