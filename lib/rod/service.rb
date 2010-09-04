@@ -32,6 +32,9 @@ module Rod
         |  
         |  // the number of allready stored structures 
         |  model_p->#{klass.struct_name}_count = 0;
+        |  
+        |  // initialize the tables with NULL to forbid unmapping
+        |  model_p->#{klass.struct_name}_table = NULL;
         END
       end.join("\n").margin
     end
