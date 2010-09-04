@@ -140,6 +140,7 @@ module Rod
 
       unless reverse_references.blank?
         reverse_references.each do |referee, method_name, index|
+          referee = referee.class.get(referee.rod_id-1)
           if index.nil?
             # singular association
             referee.set_referenced_id(method_name, object.rod_id)
@@ -181,7 +182,7 @@ module Rod
     def self.get(position)
       object = cache[position]
       if object.nil?
-        struct = loader_class.send("_#{self.struct_name}_get",
+        struct = service_class.send("_#{self.struct_name}_get",
                                    self.superclass.handler,position)
         object = self.new(struct)
         cache[position] = object
@@ -262,7 +263,7 @@ module Rod
       if @readonly
         loader_class.close(@handler, nil)
       else
-        unless referenced_objects.select {|k, v| not v.empty?}.size == 0
+        unless referenced_objects.select{|k, v| not v.empty?}.size == 0
           raise "Not all associations have been stored: #{referenced_objects}"
         end
         exporter_class.close(@handler, self.subclasses)
@@ -345,6 +346,10 @@ module Rod
 
     def self.cache
       @cache ||= WeakHash.new
+    end
+
+    def self.clear_cache
+      cache.cache.clear
     end
 
     def self.struct_p
@@ -593,6 +598,10 @@ module Rod
             end
           end
         end
+      end
+
+      define_method(:rod_id) do
+        instance_variable_get("@rod_id".to_sym) || 0
       end
 
       @singular_associations.each do |name, options|

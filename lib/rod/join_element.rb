@@ -25,5 +25,9 @@ module Rod
     def self.fields
       []
     end
+
+    def self.clear_cache
+      # does nothing, since these objects are not cached
+    end
   end
 end

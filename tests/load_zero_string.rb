@@ -6,7 +6,7 @@ RodTest::Model.open_database("tmp/string_with_zero.rod")
 structs = []
 RodTest::MyStruct.each{|e| structs << e}
 if structs[0].title != "abc\0abc"
-  raise "TestFailed: #{struct.title}" 
+  raise "TestFailed: #{structs[0].title}" 
 end
 if structs[0].title2 != "a\0" * 30000
   raise "TestFailed: 'a\\0' * 30000"

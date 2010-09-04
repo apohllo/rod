@@ -18,23 +18,23 @@ module Rod
     end
 
     def self.init_structs(classes)
-      index = 0 
       classes.map do |klass|
-        # leave one segment for stats - index _is_ incremented
-        # before evaluation
-        index += 1
         <<-END
-        |  // first page offset
-        |  model_p->#{klass.struct_name}_offset = #{index};
-        | 
+        |  // first page offset - during READ
+        |  // number of pages - during WRITE
+        |  model_p->#{klass.struct_name}_offset = 0;
+        |
         |  // maximal number of structures on one page
         |  model_p->#{klass.struct_name}_size = page_size / sizeof(#{klass.struct_name});
-        |  
-        |  // the number of allready stored structures 
+        |
+        |  // the number of allready stored structures
         |  model_p->#{klass.struct_name}_count = 0;
-        |  
+        |
         |  // initialize the tables with NULL to forbid unmapping
         |  model_p->#{klass.struct_name}_table = NULL;
+        |
+        |  // initialize the file descriptor to -1 to force its creation
+        |  model_p->#{klass.struct_name}_lib_file = -1;
         END
       end.join("\n").margin
     end
@@ -47,130 +47,82 @@ module Rod
       end
     end
 
-    def self.extend_data_file(klass)
-      str = <<-END
-      |  model_p->_last_offset++;
-      |  model_p->#{klass.struct_name}_offset = model_p->_last_offset;
-      |  FILE * file = fdopen(model_p->lib_file,"w+");
-      |  if(file == NULL){
-      |    VALUE cException = #{EXCEPTION_CLASS};
-      |    rb_raise(cException,"Could not open file for #{klass.struct_name}.");
-      |  } 
-      |  if(fseek(file,0,SEEK_END) == -1){
-      |    VALUE cException = #{EXCEPTION_CLASS};
-      |    rb_raise(cException,"Could not seek file for #{klass.struct_name}.");
-      |  }
-      |  char* empty = calloc(page_size,1);
-      |  if(write(model_p->lib_file,empty,page_size) == -1){
-      |    VALUE cException = #{EXCEPTION_CLASS};
-      |    rb_raise(cException,"Could not extend file for #{klass.struct_name}.");
-      |  }
-      END
-      str.margin
-    end
-
     # Mmaps the class to its page during database creation.
     # TODO merge with extend data file
     def self.mmap_class(klass)
       str =<<-SUBEND
-      |  model_p->#{klass.struct_name}_table = mmap(NULL, page_size,
-      |    PROT_WRITE | PROT_READ, MAP_SHARED, model_p->lib_file, 
-      |    model_p->#{klass.struct_name}_offset * page_size);
+      |  //printf("mmaping #{klass}\\n");
+      |  //unmap the segment(s) first
+      |  if(model_p->#{klass.struct_name}_table != NULL){
+      |    if(munmap(model_p->#{klass.struct_name}_table,
+      |      page_size*(model_p->#{klass.struct_name}_offset)) == -1){
+      |      perror(NULL);
+      |      VALUE cException = #{EXCEPTION_CLASS};
+      |      rb_raise(cException,"Could not unmap segment for #{klass.struct_name}.");
+      |    }
+      |  }
+      |
+      |  // increase the segments count by 1
+      |  model_p->#{klass.struct_name}_offset++;
+      |
+      |  // create the file unless it exists
+      |  if(model_p->#{klass.struct_name}_lib_file == -1){
+      |    char * path = malloc(sizeof(char) * (strlen(model_p->path) +
+      |      #{klass.struct_name.size} + 2));
+      |    strcpy(path,model_p->path);
+      |    strcat(path,".#{klass.struct_name}");
+      |    model_p->#{klass.struct_name}_lib_file =
+      |      open(path, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
+      |    if(model_p->lib_file == -1) {
+      |      VALUE cException = #{EXCEPTION_CLASS};
+      |      rb_raise(cException,"Could not open file %s for writing.",path);
+      |    }
+      |    free(path);
+      |  }
+      |
+      |  // exted the file
+      |  FILE * #{klass.struct_name}_file =
+      |    fdopen(model_p->#{klass.struct_name}_lib_file,"w+");
+      |  if(#{klass.struct_name}_file == NULL){
+      |    VALUE cException = #{EXCEPTION_CLASS};
+      |    rb_raise(cException,"Could not open file for #{klass.struct_name}.");
+      |  }
+      |  if(fseek(#{klass.struct_name}_file,0,SEEK_END) == -1){
+      |    VALUE cException = #{EXCEPTION_CLASS};
+      |    rb_raise(cException,"Could not seek to end file for #{klass.struct_name}.");
+      |  }
+      |  char* #{klass.struct_name}_empty_data = calloc(page_size,1);
+      |  if(write(model_p->#{klass.struct_name}_lib_file,#{klass.struct_name}_empty_data,
+      |    page_size) == -1){
+      |    VALUE cException = #{EXCEPTION_CLASS};
+      |    rb_raise(cException,"Could not write to file for #{klass.struct_name}.");
+      |  }
+      |  if(fseek(#{klass.struct_name}_file,0,SEEK_SET) == -1){
+      |    VALUE cException = #{EXCEPTION_CLASS};
+      |    rb_raise(cException,"Could not seek to start file for #{klass.struct_name}.");
+      |  }
+      |  model_p->#{klass.struct_name}_table = mmap(NULL,
+      |    model_p->#{klass.struct_name}_offset * page_size,
+      |    PROT_WRITE | PROT_READ, MAP_SHARED, model_p->#{klass.struct_name}_lib_file,0);
       |  if(model_p->#{klass.struct_name}_table == MAP_FAILED){
       |    perror(NULL);
       |    VALUE cException = #{EXCEPTION_CLASS};
       |    rb_raise(cException,"Could not mmap segment for #{klass.struct_name}.");
       |  }
+      |
+      |  // reset the elements counter
       |  model_p->last_#{klass.struct_name} = 0;
+      |  // reset cache
       |  VALUE module_#{klass.struct_name} = rb_const_get(rb_cObject, rb_intern("Kernel"));
       |  \n#{klass.name.split("::")[0..-2].map do |mod_name|
         "  module_#{klass.struct_name} = rb_const_get(module_#{klass.struct_name}, " +
           "rb_intern(\"#{mod_name}\"));"
       end.join("\n")}
-      |  VALUE class_#{klass.struct_name} = rb_const_get(module_#{klass.struct_name},
-      |    rb_intern("#{klass.name.split("::")[-1]}")); 
-      |  VALUE offsets_#{klass.struct_name} = rb_funcall(class_#{klass.struct_name},
-      |    rb_intern("page_offsets"),0);
-      |  rb_ary_push(offsets_#{klass.struct_name},
-      |    INT2NUM(model_p->#{klass.struct_name}_offset));
+      VALUE class_#{klass.struct_name} = rb_const_get(module_#{klass.struct_name},
+      |    rb_intern("#{klass.name.split("::")[-1]}"));
+      |  rb_funcall(class_#{klass.struct_name}, rb_intern("clear_cache"),0);
       SUBEND
       str.margin
-    end
-
-    def self.calculate_element_p
-      str =<<-END
-      |  unsigned int page_size = sysconf(_SC_PAGE_SIZE);
-      |  unsigned long per_page = page_size / sizeof(_join_element);
-      |  unsigned long page_index = (element_offset + element_index)/per_page;
-      |  element_p = model_p->_elements_tables_table[page_index] +
-      |    element_offset + element_index - page_index * per_page;
-      END
-      str.margin
-    end
-
-    ####
-
-    # Computes rearrangement of pages for the +classes+ array
-    # in which +current_klass+'s instances are placed continuously on subsequent pages
-    # keeping the order of remaining classes intact
-    # returns an array containing 3 subarrays:
-    #   * current class's offsets a, such that
-    #      a[i] represents a number of page from the old order to be placed at i
-    #   * other classes' offsets b
-    #   * new other classes' offsets c, such that b[i] in old order should be placed at c[i]
-    def self.arrange_pages(current_klass, classes)
-      klass_offsets = current_klass.page_offsets.dup
-      if klass_offsets.empty?
-        return [[],[],[]]
-      end
-
-      offset_map = {}	#contains a class for each page offset
-      classes.each do |klass| 
-        klass.page_offsets.each do |offset| 
-          if offset_map.has_key?(offset)
-            raise "Offset assignment conflict: #{offset} - #{klass} & #{offset_map[offset]}"
-          end
-          offset_map[offset] = klass
-        end
-      end
-      # changes are going to have place in this range
-      range = (klass_offsets.first..klass_offsets.last)
-
-      offsets = []
-      other_offsets = []  #offsets of pages used for other classes than current_klass
-      range.each do |offset|
-        offsets << [offset, offset_map[offset]]
-        # offset inside the range, but different class on this page
-        if offset_map[offset] != current_klass 
-          other_offsets << offset
-        end
-      end
-
-      #stable sort
-      offsets.sort! do |e1, e2|
-        offset1, klass1 = *e1
-        offset2, klass2 = *e2
-        if klass1 == klass2
-          offset1 <=> offset2
-        else
-          classes.index(klass1) <=> classes.index(klass2)
-        end
-      end
-
-      original_klass_offsets = {}
-      classes.each{|c| original_klass_offsets[c] = c.page_offsets.dup}
-      new_offsets = []
-      offsets.each_with_index do |offset_and_klass, new_offset|
-        offset, klass = *offset_and_klass
-        if klass != current_klass
-          new_offsets[other_offsets.index(offset)] = 
-            offsets.first[0] + new_offset
-        end
-        offset_index = original_klass_offsets[klass].index(offset)
-        klass.page_offsets[offset_index] = offsets.first[0] + new_offset
-      end
-
-      [klass_offsets, other_offsets, new_offsets]
     end
 
     # Generates the code in C responsible for management of the database.
@@ -198,6 +150,7 @@ module Rod
               |  unsigned long #{klass.struct_name}_offset;
               |  unsigned long #{klass.struct_name}_size;
               |  unsigned long #{klass.struct_name}_count;
+              |  int #{klass.struct_name}_lib_file;
               SUBEND
               indices = 
                 klass.fields.map do |field,options|
@@ -213,14 +166,12 @@ module Rod
             end.join("\n")}
             |  // number of pages of join elements
             |  unsigned long _elements_pages_count;
-            |  // the pointer to join elements table
-            |  _join_element ** _elements_tables_table;
             |
             |  // the handler to the file containing the data
             |  int lib_file;
+            |  char * path;
             |
             |  // the offset of the last page
-            |  unsigned long _last_offset;
             |} #{model_struct};
           END
           builder.prefix(str.margin)
@@ -230,42 +181,31 @@ module Rod
            |  unsigned int page_size = sysconf(_SC_PAGE_SIZE);
            |  #{model_struct} * model_p;
            |  model_p = ALLOC(#{model_struct});
-           | 
+           |
            |  //join elements
            |  model_p->_elements_pages_count = 1;
-           |  //TODO destroy properly
-           |  model_p->_elements_tables_table = malloc(sizeof(_join_element *)*2); 
-           |  
+           |
            |  #{init_structs(classes)}
            |  model_p->#{StringElement.struct_name}_size = 0;
            |
            |//prepare the file
            |  char* empty = calloc(page_size,1);
-           |  int index;
            |  VALUE cException = #{EXCEPTION_CLASS};
+           |  model_p->path = malloc(sizeof(char)*(strlen(path)+1));
+           |  strcpy(model_p->path,path);
+           |
            |  model_p->lib_file = open(path, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
            |  if(model_p->lib_file == -1) {
-           |    rb_raise(cException,"Could not open file %s for writing.",path); 
+           |    rb_raise(cException,"Could not open file %s for writing.",path);
            |  }
-           |  
+           |
            |  if(write(model_p->lib_file,empty,page_size) == -1){
            |    rb_raise(cException,"Could not fill stats with empty data.");
            |  }
-           |  
-           |  // fill data space with empty data
-           |  unsigned long file_size = page_size * #{classes.size + 1};
-           | 
-           |  for(index = 1; index < file_size / page_size;index++){
-           |    if(write(model_p->lib_file, empty, page_size) == -1){
-           |      rb_raise(cException,"Could not fill data space with empty data.");
-           |    }
-           |  }
-           |  
+           |
            |  //mmap the structures
            |  \n#{classes.map{|klass| mmap_class(klass)}.join("\n|\n")}
-           |  model_p->_last_offset = model_p->#{classes.last.struct_name}_offset;
-           |  model_p->_elements_tables_table[0] = model_p->_join_element_table;
-           |   
+           |
            |//create the wrapping object
            |  VALUE cClass = rb_define_class("#{model_struct_name(path).camelcase(true)}",
            |    rb_cObject);
@@ -282,11 +222,7 @@ module Rod
           |  unsigned long element_index;
           |  VALUE result = rb_ary_new();
           |  for(element_index = 0; element_index < count; element_index++){
-          |    if(model_p->_elements_tables_table == NULL){
-          |      element_p = model_p->_join_element_table + element_offset + element_index;
-          |    } else {
-          |      #{calculate_element_p}
-          |    }
+          |    element_p = model_p->_join_element_table + element_offset + element_index;
           |    rb_ary_push(result,INT2NUM(element_p->offset));
           |  }
           |  return result;
@@ -296,17 +232,17 @@ module Rod
 
           str =<<-END
           |void _set_join_element_offset(unsigned long element_offset,
-          |  unsigned long element_index, unsigned long offset, 
+          |  unsigned long element_index, unsigned long offset,
           |  VALUE handler){
           |  #{model_struct} * model_p;
           |  Data_Get_Struct(handler,#{model_struct},model_p);
           |  _join_element * element_p;
-          |  #{calculate_element_p}
+          |  element_p = model_p->_join_element_table + element_offset + element_index;
           |  if(element_p->index != element_index){
           |      VALUE eClass = rb_const_get(rb_cObject, rb_intern("Exception"));
           |      rb_raise(eClass, "Join element indices are inconsistent: %lu %lu!",
           |        element_index, element_p->index);
-          |  } 
+          |  }
           |  element_p->offset = offset;
           |}
           END
@@ -318,7 +254,7 @@ module Rod
           |  #{model_struct} * model_p;
           |  Data_Get_Struct(handler,#{model_struct},model_p);
           |  unsigned int page_size = sysconf(_SC_PAGE_SIZE);
-          |  char * str = model_p->#{StringElement.struct_name}_table + 
+          |  char * str = model_p->#{StringElement.struct_name}_table +
           |    page * page_size + offset;
           |  return rb_str_new(str, length);
           |}
@@ -335,39 +271,39 @@ module Rod
           |  unsigned long offset, page;
           |  char * dest;
           |  // table:
-          |  // - during write - current page
-          |  // - durign read - first page
+          |  // - first page
           |  // last:
           |  // - during write - first free byte in current page
           |  // offset:
-          |  // - during write - offset of current page
+          |  // - during write - number of pages
           |  // - during read - offset in file
           |  // size:
-          |  // - during write - number of pages - 1
+          |  // - during write - number of pages - 1 (?)
           |  // count:
           |  // - total number of bytes
           |  if(length + model_p->last_#{StringElement.struct_name} > page_size){
           |    long length_left = length;
           |    page = model_p->#{StringElement.struct_name}_size + 1;
           |    offset = 0;
-          | 
+          |
           |    while(length_left > 0){
-          |      \n#{extend_data_file(StringElement)}
           |      \n#{mmap_class(StringElement)}
-          |      dest = model_p->#{StringElement.struct_name}_table;
+          |      dest = model_p->#{StringElement.struct_name}_table +
+          |        model_p->#{StringElement.struct_name}_size * page_size;
           |      if(length_left > page_size){
           |        memcpy(dest,value,page_size);
           |      } else {
           |        memcpy(dest,value,length_left);
           |      }
-          |      value += page_size; 
+          |      value += page_size;
           |
           |      model_p->#{StringElement.struct_name}_size++;
           |      length_left -= page_size;
           |    }
           |  } else {
           |    offset = model_p->last_#{StringElement.struct_name};
-          |    dest = model_p->#{StringElement.struct_name}_table + offset;
+          |    dest = model_p->#{StringElement.struct_name}_table + offset +
+          |      model_p->#{StringElement.struct_name}_size * page_size;
           |    page = model_p->#{StringElement.struct_name}_size;
           |    memcpy(dest, value,length);
           |  }
@@ -408,22 +344,16 @@ module Rod
             |// The value returned is the index of the page
             |VALUE _store_#{klass.struct_name}(VALUE object, VALUE handler){
             |  unsigned int page_size = sysconf(_SC_PAGE_SIZE);
-            | 
+            |
             |  #{model_struct} * model_p;
             |  Data_Get_Struct(handler,#{model_struct},model_p);
-            |  if(model_p->last_#{klass.struct_name} >= model_p->#{klass.struct_name}_size){
-            |     //VALUE cException = #{EXCEPTION_CLASS};
-            |     //if(munmap(model_p->#{klass.struct_name}_table, page_size) == -1){
-            |     //  rb_raise(cException,"Could not unmap #{klass.struct_name} (during store)."); 
-            |     //}
-            |     //printf("extending file\\n");
-            |     \n#{extend_data_file(klass)}
-            |     //printf("mmaping new file fragment\\n");
+            |  if((model_p->#{klass.struct_name}_count+1) * sizeof(#{klass.struct_name}) >=
+            |    model_p->#{klass.struct_name}_offset * page_size){
             |     \n#{mmap_class(klass)}
-            |  } 
-            |  VALUE result = INT2NUM(model_p->#{klass.struct_name}_offset);
+            |  }
+            |  VALUE result = INT2NUM(model_p->#{klass.struct_name}_offset - 1);
             |  #{klass.struct_name} * struct_p = model_p->#{klass.struct_name}_table +
-            |    model_p->last_#{klass.struct_name}++;
+            |    model_p->#{klass.struct_name}_count;
             |  //printf("struct assigned\\n");
             |  model_p->#{klass.struct_name}_count++;
             |  VALUE sClass = rb_funcall(object, rb_intern("class"),0);
@@ -458,13 +388,11 @@ module Rod
               |  if(referenced_#{name} == Qnil){
               |    struct_p->#{name} = 0;
               |  } else {
-              |    struct_p->#{name} = NUM2ULONG(rb_funcall(referenced_#{name}, rb_intern("rod_id"),0));
+              |    struct_p->#{name} = NUM2ULONG(rb_funcall(referenced_#{name}, 
+              |      rb_intern("rod_id"),0));
               |  }
               SUBEND
             end.join("\n")}
-            |  #{unless klass.plural_associations.empty?
-              "unsigned long per_page = page_size / sizeof(_join_element);"
-            end}
             |  \n#{klass.plural_associations.map do |name, options|
               <<-SUBEND
               |  VALUE referenced_#{name} = rb_funcall(object, rb_intern("#{name}"),0);
@@ -483,41 +411,16 @@ module Rod
               |    struct_p->#{name}_count = size;
               |    unsigned long index;
               |    for(index = 0; index < size; index++){
-              |      if(model_p->last__join_element >= per_page){
-              |        model_p->last__join_element = 0;
-              |        model_p->_elements_pages_count++;
-              |        \n#{extend_data_file(JoinElement)} 
+              |      if(model_p->_join_element_count * sizeof(_join_element) >=
+              |        page_size * model_p->_join_element_offset){
               |        \n#{mmap_class(JoinElement)}
-              |        model_p->_elements_tables_table[model_p->_elements_pages_count-1] = 
-              |          model_p->_join_element_table;
-              |        
-              |        // check if the tables table has to be extended
-              |        unsigned long pages_count = model_p->_elements_pages_count;
-              |        int power_of_2 = 1;
-              |        while(pages_count > 0){
-              |          if(pages_count % 2 != 0 && pages_count != 1){
-              |            power_of_2 = 0;
-              |          }
-              |          pages_count /= 2;
-              |        }
-              |        if(power_of_2 == 1){
-              |          // we have to double the size of elements tables table
-              |          _join_element ** old_table = model_p->_elements_tables_table;
-              |          model_p->_elements_tables_table = malloc(sizeof(_join_element)* 2 * 
-              |            model_p->_elements_pages_count);
-              |          int i;
-              |          for(i=0;i<model_p->_elements_pages_count;i++){
-              |            model_p->_elements_tables_table[i] = old_table[i];
-              |          } 
-              |          free(old_table);
-              |        }
               |      }
-              |      element = model_p->_join_element_table + model_p->last__join_element++;
+              |      element = model_p->_join_element_table + model_p->_join_element_count;
               |      model_p->_join_element_count++;
               |      element->offset = NUM2ULONG(rb_funcall(rb_ary_entry(referenced_#{name},index),
               |        rb_intern("rod_id"),0));
               |      element->index = index;
-              |    } 
+              |    }
               |  }
               SUBEND
             end.join("\n")}
@@ -533,7 +436,7 @@ module Rod
           |  #{model_struct} * model_p;
           |  Data_Get_Struct(handler,#{model_struct},model_p);
           |  VALUE cException = #{EXCEPTION_CLASS};
-          |  VALUE klass, klass_offsets;
+          |  VALUE klass;
           |  unsigned int page_size = sysconf(_SC_PAGE_SIZE);
           |
           |  if(classes != Qnil){
@@ -544,9 +447,9 @@ module Rod
             |    \n#{klass.fields.map do |field, options|
               if options[:index]
                 str =<<-SUBSUBEND
-                |    VALUE index_#{klass.struct_name}_#{field} = 
+                |    VALUE index_#{klass.struct_name}_#{field} =
                 |      rb_funcall(klass,rb_intern("field_index"),1,rb_str_new2("#{field}"));
-                |    VALUE index_data_#{klass.struct_name}_#{field} = 
+                |    VALUE index_data_#{klass.struct_name}_#{field} =
                 |      rb_funcall(self,rb_intern("_set_string"),2,
                 |      index_#{klass.struct_name}_#{field},handler);
                 |    model_p->#{klass.struct_name}_#{field}_index_length =
@@ -565,101 +468,56 @@ module Rod
             <<-SUBEND
             |  if(model_p->#{klass.struct_name}_table != NULL){
             |    if(munmap(model_p->#{klass.struct_name}_table,page_size) == -1){
-            |      //printf("Warn: failed to unmap #{klass.struct_name}\\n");
-            |      rb_raise(cException,"Could not unmap #{klass.struct_name}."); 
+            |      rb_raise(cException,"Could not unmap #{klass.struct_name}.");
             |    }
             |  }
             SUBEND
           end.join("\n")}
-          |  // unmap all mmaped regions TODO !!!
-          |  /*klass_offsets = rb_funcall(klass,rb_intern("offsets"),0);
-          |  offsets_count = NUM2ULONG(rb_funcall(klass_offsets,rb_intern("size"),0));
-          |  for(offsets_index; offsets_index < offsets_count; offsets_index++){
-          |    NUM2ULONG(rb_ary_entry(klass_offsets,offsets_index));
-          |    //TODO
-          |  }*/
-          |
           |  if(classes != Qnil){
-          |    VALUE pages, other_offsets, new_offsets;
-          |    FILE * file;
-          |    unsigned long size, offset, per_page, j;
-          |    char * pages_copy, * one_page;
-          |    //we have to reorganize pages
-          |    file = fdopen(model_p->lib_file,"w+");
-          |    if(file == NULL){
+          |    FILE * main_file, * class_file;
+          |    unsigned long index;
+          |    unsigned long last_offset = 1;
+          |    unsigned long new_offset;
+          |    char * buffer;
+          |    //we have concatenate files
+          |    main_file = fdopen(model_p->lib_file,"w+");
+          |    buffer = malloc(sizeof(char)*page_size);
+          |    if(main_file == NULL){
           |      rb_raise(cException,"Could not open file while closing DB.");
-          |    } 
+          |    }
           |    \n#{classes.map.with_index do |klass, i|
           <<-SUBEND
-          |    klass = rb_ary_entry(classes,#{i});
-          |    pages = rb_funcall(self,
-          |      rb_intern("arrange_pages"),2,klass,classes);
-          |    klass_offsets = rb_ary_entry(pages,0);
-          |    other_offsets = rb_ary_entry(pages,1);
-          |    new_offsets = rb_ary_entry(pages,2);
-          |    
-          |    // copy pages of other classes to the memory
-          |    size = NUM2ULONG(rb_funcall(other_offsets,rb_intern("size"),0));
-          |    pages_copy = malloc(page_size * size);
-          |    for(j=0; j < size;j++){
-          |      offset = NUM2ULONG(rb_ary_entry(other_offsets,j));
-          |      if(fseek(file, page_size * offset, SEEK_SET) == -1){
-          |        rb_raise(cException,"Could not seek while copying pages");
+          |    class_file = fdopen(model_p->#{klass.struct_name}_lib_file,"w+");
+          |    if(class_file == NULL){
+          |      rb_raise(cException,"Could not open file for class #{klass} while closing DB.");
+          |    }
+          |    if(fseek(class_file,0,SEEK_SET) == -1){
+          |      rb_raise(cException,"Could not seek file for class #{klass} while copying pages");
+          |    }
+          |    for(index = 0; index < model_p->#{klass.struct_name}_offset;index++){
+          |      if(read(model_p->#{klass.struct_name}_lib_file,buffer,page_size) == -1){
+          |        rb_raise(cException,"Could not read file for #{klass}");
           |      }
-          |      if(read(model_p->lib_file, pages_copy + page_size * j, page_size) == -1){
-          |        rb_raise(cException,"Could not read file during re-arrangement (copying)."); 
+          |      if(write(model_p->lib_file,buffer,page_size) == -1){
+          |        rb_raise(cException,"Could not write to main file for #{klass}");
           |      }
           |    }
-          |    
-          |    // rearrange data of current class
-          |    one_page = malloc(page_size);
-          |    per_page = page_size / sizeof(#{klass.struct_name});
-          |    size = NUM2ULONG(rb_funcall(klass_offsets,rb_intern("size"),0));
-          |    for(j=0; j < size; j++){
-          |      offset = NUM2ULONG(rb_ary_entry(klass_offsets,j));
-          |      if(j == 0){
-          |        //TODO: no need to do it in loop
-          |        model_p->#{klass.struct_name}_offset = offset * page_size; 
-          |      }
-          |      if(fseek(file, page_size * offset, SEEK_SET) == -1){
-          |        rb_raise(cException,"Could not seek while rearranging pages (1)");
-          |      }
-          |      if(read(model_p->lib_file, one_page, page_size) == -1){ //MS: why we read page_size while writing size_of_page(klass) below?
-          |        rb_raise(cException,"Could not read file during re-arrangement (class data)."); 
-          |      }
-          |      if(fseek(file, model_p->#{klass.struct_name}_offset + 
-          |         #{size_of_page(klass)} * j,SEEK_SET) == -1){
-          |        rb_raise(cException,"Could not seek while copying pages (2)");
-          |      }
-          |      if(write(model_p->lib_file, one_page, #{size_of_page(klass)}) == -1){
-          |        rb_raise(cException,"Could not write to file during re-arrangement (class data)."); 
-          |      }
-          |    }
-          |    free(one_page);
-          | 
-          |    // write back data from the memory    
-          |    size = NUM2ULONG(rb_funcall(new_offsets,rb_intern("size"),0));
-          |    for(j=0; j < size; j++){ 
-          |      offset = NUM2ULONG(rb_ary_entry(new_offsets,j));
-          |      if(fseek(file, offset * page_size, SEEK_SET) == -1){
-          |        rb_raise(cException,"Could not seek while writing data back from memory.");
-          |      } 
-          |      if(write(model_p->lib_file, pages_copy + j * page_size, page_size) == -1){
-          |        rb_raise(cException,"Could not write to file during re-arrangement (copy back)."); 
-          |      }
-          |    }
-          |     
-          |    free(pages_copy);
+          |    // update offset
+          |    new_offset = last_offset + model_p->#{klass.struct_name}_offset;
+          |    model_p->#{klass.struct_name}_offset = last_offset * page_size;
+          |    last_offset = new_offset;
+          |    fclose(class_file); //TODO delete this file
           SUBEND
           end.join("\n")}
-          |  if(fseek(file,0,SEEK_SET) == -1){
-          |    rb_raise(cException,"Cloud not seek to the beginning of the file."); 
+          |  free(buffer);
+          |  if(fseek(main_file,0,SEEK_SET) == -1){
+          |    rb_raise(cException,"Cloud not seek to the beginning of the file.");
           |  }
           |  \n#{classes.map do |klass|
             main_part =<<-SUBEND
             |\n#{if klass == StringElement
               <<-SUBSUBEND
-              |  unsigned long string_element_size = 
+              |  unsigned long string_element_size =
               |    (model_p->#{StringElement.struct_name}_size + 1) * page_size;
               |  if(write(model_p->lib_file,&string_element_size,
               SUBSUBEND
@@ -712,7 +570,6 @@ module Rod
           |  }
           |  unsigned int page_size = sysconf(_SC_PAGE_SIZE);
           |  model_p = ALLOC(#{model_struct});
-          |  model_p->_elements_tables_table = NULL;
           |
           |  \n#{last_struct = nil
           classes.map do |klass|
@@ -738,22 +595,25 @@ module Rod
                  end.join("\n")
                end
              end.join("\n")}
-             |  model_p->#{klass.struct_name}_size =  
-             |    (sizeof(#{klass.struct_name}) * #{klass.struct_name}_count / page_size) 
-             |      * page_size + 
-             |    (sizeof(#{klass.struct_name}) * #{klass.struct_name}_count % page_size == 
+             |  model_p->#{klass.struct_name}_size =
+             |    (sizeof(#{klass.struct_name}) * #{klass.struct_name}_count / page_size)
+             |      * page_size +
+             |    (sizeof(#{klass.struct_name}) * #{klass.struct_name}_count % page_size ==
              |      0 ? 0 : page_size);
              |  model_p->#{klass.struct_name}_count = #{klass.struct_name}_count;
              |  model_p->#{klass.struct_name}_offset = #{klass.struct_name}_offset;
              |
              |  if(model_p->#{klass.struct_name}_size > 0){
-             |    model_p->#{klass.struct_name}_table = mmap(NULL, 
-             |      model_p->#{klass.struct_name}_size, PROT_READ, MAP_SHARED, 
-             |      lib_file, model_p->#{klass.struct_name}_offset);
+             |    if((model_p->#{klass.struct_name}_table = mmap(NULL,
+             |      model_p->#{klass.struct_name}_size, PROT_READ, MAP_SHARED,
+             |      lib_file, model_p->#{klass.struct_name}_offset)) == MAP_FAILED){
+             |      perror(NULL);
+             |      rb_raise(cException,"Could not mmap class '#{klass}'.");
+             |    }
              |  } else {
              |    model_p->#{klass.struct_name}_table = NULL;
              |  }
-             |  model_p->last_#{klass.struct_name} = #{klass.struct_name}_count; 
+             |  model_p->last_#{klass.struct_name} = #{klass.struct_name}_count;
              SUBEND
           end.join("\n")}
           |  model_p->lib_file = lib_file;
@@ -793,7 +653,6 @@ module Rod
           |  Data_Get_Struct(handler,#{model_struct},model_p);
           |  printf("=== Data layout START ===\\n");
           |  printf("File handler %d\\n",model_p->lib_file);
-          |  printf("Offset of the last page %lu\\n",model_p->_last_offset);
           |  \n#{classes.map do |klass|
                str =<<-SUBEND
           |  printf("-- #{klass} --\\n");
@@ -806,9 +665,6 @@ module Rod
                SUBEND
                str.margin
              end.join("\n")}
-          |  printf("Number of pages of join elements (only during create): %lu, \\n"
-          |    "  pointer to join elements %lx\\n",
-          |    model_p->_elements_pages_count,(unsigned long)model_p->_elements_tables_table);
           |  printf("=== Data layout END ===\\n");
           |}
           END
