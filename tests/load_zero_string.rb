@@ -3,12 +3,13 @@ require 'tests/structures'
 puts "-- Load structures with string containing 0 test --"
 
 RodTest::Model.open_database("tmp/string_with_zero.rod")
-structs = []
-RodTest::MyStruct.each{|e| structs << e}
-if structs[0].title != "abc\0abc"
-  raise "TestFailed: #{structs[0].title}" 
+element = RodTest::MyStruct[0]
+if element.title != "abc\0abc"
+  raise "TestFailed: #{element.title}" 
 end
-if structs[0].title2 != "a\0" * 30000
+if element.title2 != "a\0" * 30000
+  puts "#{element.title2.size} 0..5:'#{element.title2[0..5]}' "
+  puts "-5..-1:'#{element.title2[-5..-1]}'"
   raise "TestFailed: 'a\\0' * 30000"
 end
 puts "Test passed."
