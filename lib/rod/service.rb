@@ -32,6 +32,9 @@ module Rod
         |
         |  // initialize the tables with NULL to forbid unmapping
         |  model_p->#{klass.struct_name}_table = NULL;
+
+        |  // initialize the last element end
+        |  model_p->last_#{klass.struct_name} = 0;
         |
         |  // initialize the file descriptor to -1 to force its creation
         |  model_p->#{klass.struct_name}_lib_file = -1;
@@ -111,7 +114,7 @@ module Rod
       |  }
       |
       |  // reset the elements counter
-      |  model_p->last_#{klass.struct_name} = 0;
+      |  #{klass != Rod::StringElement ? "model_p->last_#{klass.struct_name} = 0;" : ""}
       |  // reset cache
       |  VALUE module_#{klass.struct_name} = rb_const_get(rb_cObject, rb_intern("Kernel"));
       |  \n#{klass.name.split("::")[0..-2].map do |mod_name|
@@ -268,7 +271,7 @@ module Rod
           |  unsigned int page_size = sysconf(_SC_PAGE_SIZE);
           |  unsigned long length = RSTRING_LEN(ruby_value);
           |  char * value = RSTRING_PTR(ruby_value);
-          |  unsigned long offset, page;
+          |  unsigned long offset, page, current_page;
           |  char * dest;
           |  // table:
           |  // - first page
@@ -281,34 +284,29 @@ module Rod
           |  // - during write - number of pages - 1 (?)
           |  // count:
           |  // - total number of bytes
-          |  if(length + model_p->last_#{StringElement.struct_name} > page_size){
-          |    long length_left = length;
-          |    page = model_p->#{StringElement.struct_name}_size + 1;
-          |    offset = 0;
-          |
-          |    while(length_left > 0){
+          |  long length_left = length;
+          |  offset = model_p->last_#{StringElement.struct_name};
+          |  page = model_p->#{StringElement.struct_name}_size;
+          |  current_page = page;
+          |  while(length_left > 0){
+          |    if(length_left + model_p->last_#{StringElement.struct_name} > page_size){
           |      \n#{mmap_class(StringElement)}
-          |      dest = model_p->#{StringElement.struct_name}_table +
-          |        model_p->#{StringElement.struct_name}_size * page_size;
-          |      if(length_left > page_size){
-          |        memcpy(dest,value,page_size);
-          |      } else {
-          |        memcpy(dest,value,length_left);
-          |      }
-          |      value += page_size;
-          |
           |      model_p->#{StringElement.struct_name}_size++;
-          |      length_left -= page_size;
           |    }
-          |  } else {
-          |    offset = model_p->last_#{StringElement.struct_name};
-          |    dest = model_p->#{StringElement.struct_name}_table + offset +
-          |      model_p->#{StringElement.struct_name}_size * page_size;
-          |    page = model_p->#{StringElement.struct_name}_size;
-          |    memcpy(dest, value,length);
+          |    dest = model_p->#{StringElement.struct_name}_table +
+          |      current_page * page_size + offset;
+          |    if(length_left > page_size){
+          |      memcpy(dest,value,page_size);
+          |    } else {
+          |      memcpy(dest,value,length_left);
+          |    }
+          |    value += page_size;
+          |    current_page++;
+          |    length_left -= page_size;
           |  }
           |
-          |  model_p->last_#{StringElement.struct_name} += (length + 1) % page_size;
+          |  model_p->last_#{StringElement.struct_name} =
+          |    (length + 1 + model_p->last_#{StringElement.struct_name}) % page_size;
           |  model_p->#{StringElement.struct_name}_count += length + 1;
           |
           |  VALUE result = rb_ary_new();
@@ -489,10 +487,10 @@ module Rod
           <<-SUBEND
           |    class_file = fdopen(model_p->#{klass.struct_name}_lib_file,"w+");
           |    if(class_file == NULL){
-          |      rb_raise(cException,"Could not open file for class #{klass} while closing DB.");
+          |      rb_raise(cException,"Could not open file for #{klass} while closing DB.");
           |    }
           |    if(fseek(class_file,0,SEEK_SET) == -1){
-          |      rb_raise(cException,"Could not seek file for class #{klass} while copying pages");
+          |      rb_raise(cException,"Could not seek file for #{klass} while copying pages");
           |    }
           |    for(index = 0; index < model_p->#{klass.struct_name}_offset;index++){
           |      if(read(model_p->#{klass.struct_name}_lib_file,buffer,page_size) == -1){
