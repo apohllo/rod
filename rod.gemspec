@@ -1,7 +1,7 @@
 Gem::Specification.new do |s|
   s.name = "rod"
-  s.version = "0.2.1.snapshot#{`git log -1 --pretty="format:%at"`.chomp}"
-  #s.version = "0.2.0"
+  #s.version = "0.2.1.snapshot#{`git log -1 --pretty="format:%at"`.chomp}"
+  s.version = "0.2.1"
   s.date = "#{Time.now}"
   s.summary = "Ruby read-only object database"
   s.email = "apohllo@o2.pl"
