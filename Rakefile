@@ -17,6 +17,12 @@ task :uninstall do
   sh "sudo gem uninstall #$gem_name"
 end
 
+desc "Run performence tests"
+task :perf do
+  sh "ruby tests/eff1_test.rb"
+  sh "ruby tests/eff2_test.rb"
+end
+
 desc "Run tests and specs"
 task :test do
   sh "ruby tests/unit/*.rb"
@@ -25,8 +31,6 @@ task :test do
   sh "ruby tests/save_zero_string.rb"
   sh "ruby tests/load_zero_string.rb"
   sh "ruby tests/full_runs.rb"
-  sh "ruby tests/eff1_test.rb"
-  sh "ruby tests/eff2_test.rb"
   sh "cucumber features/*"
 end
 
