@@ -478,7 +478,7 @@ module Rod
           |    unsigned long index;
           |    unsigned long last_offset = 1;
           |    unsigned long new_offset;
-          |    char * buffer;
+          |    char * buffer, * cmd;
           |    //we have concatenate files
           |    main_file = fdopen(model_p->lib_file,"w+");
           |    buffer = malloc(sizeof(char)*page_size);
@@ -507,6 +507,15 @@ module Rod
           |    model_p->#{klass.struct_name}_offset = last_offset * page_size;
           |    last_offset = new_offset;
           |    fclose(class_file); //TODO delete this file
+          |    cmd = malloc(sizeof(char) * (strlen(model_p->path) +
+          |      #{klass.struct_name.size} + 8));
+          |    strcpy(cmd,"rm -f ");
+          |    strcat(cmd,model_p->path);
+          |    strcat(cmd,".#{klass.struct_name}");
+          |    if(system(cmd) == -1){
+          |      // dont raise exception, since it is not a major bug
+          |      perror(NULL);
+          |    }
           SUBEND
           end.join("\n")}
           |  free(buffer);
