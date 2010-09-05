@@ -1,0 +1,4 @@
+0.3.0
+- data is stored in separated files during creation
+0.2.0
+- uses ActiveModel for validation
