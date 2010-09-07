@@ -1,6 +1,7 @@
 require 'tests/structures'
 
 puts "-- Save sample structures test --"
+RodTest::Model.create_database("tmp/abc.dat")
 
 #MAGNITUDE = 100000
 MAGNITUDE = 50
@@ -30,7 +31,6 @@ ms = []
   ms[i].body = "body_#{i}"
 end
 
-RodTest::Model.create_database("tmp/abc.dat")
 RodTest::Model.print_layout
 ms.each_with_index{|s,i| 
   begin 

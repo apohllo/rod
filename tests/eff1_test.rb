@@ -21,6 +21,7 @@ module RodTest
     FILENAME = "tmp/eff1.dat"
 
 		def setup
+			Model.create_database(FILENAME)
       @structs = {}
       %w{A B C D E}.each do |letter|
         @structs[letter.to_sym] = []
@@ -35,7 +36,6 @@ module RodTest
 
 		def main
       start_t = Time.now.to_f
-			Model.create_database(FILENAME)
       %w{A B C D E}.each do |letter|
         (MAGNITUDE / 2).times {|i| @structs[letter.to_sym][i].store }
       end

@@ -7,6 +7,8 @@ module RodTest
 
 		MAGNITUDE = 10000
 		def setup
+			@test_filename = "tmp/noncontinuous_pages.dat"
+			Model.create_database(@test_filename)
 			@hs = []
 			(MAGNITUDE).times do |i|
 			  @hs[i] = HisStruct.new
@@ -34,10 +36,8 @@ module RodTest
 
 
 		def test_noncontinuous_pages
-			test_filename = "tmp/noncontinuous_pages.dat"
 
 			#creation
-			Model.create_database(test_filename)
 			(0..2).each do |j|
 				@ms.each_index do |i|
 					@ms[i].store if i % 3 == j
@@ -52,7 +52,7 @@ module RodTest
 			Model.close_database
 
 			# verification
-			Model.open_database(test_filename)
+			Model.open_database(@test_filename)
 			assert MyStruct.count == @ms.count, 
         "MyStruct: should be #{@ms.count}, was #{MyStruct.count}!"
 			assert YourStruct.count == @ys.count, 

@@ -33,8 +33,6 @@ module RodTest
     field :body, :string
     has_one :your_struct
 
-    build_structure
-
     def to_s
       "#{self.title} #{self.body} " + 
         "count #{self.count}, precision #{self.precision}, " + 
@@ -48,8 +46,6 @@ module RodTest
     has_many :his_structs
     has_many :her_structs, :class_name => "RodTest::HisStruct"
 
-    build_structure
-
     def to_s
       "counter #{self.counter}, his structs " +
         "#{self.his_structs.map{|e| e.inde}.join("")}"
@@ -58,8 +54,6 @@ module RodTest
 
   class HisStruct < Model
     field :inde, :integer
-
-    build_structure
 
     def to_s
       "inde #{self.inde}"
