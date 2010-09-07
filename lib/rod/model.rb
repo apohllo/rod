@@ -226,6 +226,7 @@ module Rod
     def self.create_database(path)
       raise "Database already opened." unless @handler.nil?
       @readonly = false
+      self.subclasses.each{|s| s.send(:build_structure)}
       @handler = exporter_class.create(path,self.subclasses)
     end
 
@@ -236,6 +237,7 @@ module Rod
     def self.open_database(path)
       raise "Database already opened." unless @handler.nil?
       @readonly = true
+      self.subclasses.each{|s| s.send(:build_structure)}
       @handler = loader_class.open(path,self.subclasses)
     end
 

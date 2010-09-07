@@ -587,7 +587,7 @@ module Rod
              |  }
              |  unsigned long #{klass.struct_name}_offset;
              |  if(read(lib_file, &#{klass.struct_name}_offset, sizeof(unsigned long)) == -1){
-             |    rb_raise(cException,"Could not read #{klass.struct_name} count."); 
+             |    rb_raise(cException,"Could not read #{klass.struct_name} offset."); 
              |  }
              #{klass.fields.map do |field,options|
                if options[:index]

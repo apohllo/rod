@@ -24,5 +24,9 @@ module Rod
     def self.clear_cache
       # does nothing, since these objects are not cached
     end
+
+    def self.build_structure
+      # does nothing, the structure is not needed
+    end
   end
 end
