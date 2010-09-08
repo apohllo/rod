@@ -476,6 +476,7 @@ module Rod
     def self.build_structure
       @plural_associations ||= {}
       @singular_associations ||= {}
+      return if @structure_build
 
       inline(:C) do |builder|
         builder.prefix(typedef_struct)
@@ -687,6 +688,7 @@ module Rod
           instance_variable_set(("@" + name.to_s).to_sym, value)
         end
       end
+      @structure_build = true
     end
   end
 end
