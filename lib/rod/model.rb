@@ -551,13 +551,28 @@ module Rod
 
         if options[:type] != :string
           # getter
-          define_method(field) do
-            send("_#{field}",@struct)
+          if self.superclass.readonly_data?
+            define_method(field) do
+              send("_#{field}",@struct)
+            end
+          else
+            # check if the strcut is not out of sync with the memory
+            define_method(field) do
+              # XXX should be done this way -- prevent memory inconsitencies
+              #@struct = self.class.service_class.send("_#{self.class.struct_name}_get",
+              #                     self.class.superclass.handler,@rod_id-1)
+
+              value = instance_variable_get("@#{field}") || send("_#{field}",@struct)
+              instance_variable_set("@#{field}".to_sym,value)
+              value
+            end
           end
-  
+
           # setter
           define_method("#{field}=") do |value|
             send("_#{field}=",@struct,value)
+            instance_variable_set("@#{field}".to_sym,value)
+            value
           end
         else #strings
           # getter
@@ -607,13 +622,9 @@ module Rod
         end
       end
 
-      define_method(:rod_id) do
-        instance_variable_get("@rod_id".to_sym) || 0
-      end
-
       @singular_associations.each do |name, options|
         private "_#{name}".to_sym, "_#{name}=".to_sym
-        class_name = 
+        class_name =
           if options[:class_name]
             options[:class_name]
           else
