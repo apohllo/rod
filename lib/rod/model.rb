@@ -358,14 +358,6 @@ module Rod
       cache.cache.clear
     end
 
-    def self.struct_p
-      str =<<-END
-      |  #{struct_name()} * struct_p;
-      |  Data_Get_Struct(struct_value,#{struct_name()},struct_p);
-      END
-      str.margin
-    end
-
     def self.typedef_struct
       result = <<-END
           |typedef struct {
@@ -418,7 +410,8 @@ module Rod
     def self.field_reader(name,result_type,builder)
       str =<<-END
       |#{result_type} _#{name}(VALUE struct_value){
-      |#{struct_p}
+      |  #{struct_name()} * struct_p;
+      |  Data_Get_Struct(struct_value,#{struct_name()},struct_p);
       |  return struct_p->#{name};
       |}
       END
@@ -428,7 +421,8 @@ module Rod
     def self.field_writer(name,arg_type,builder)
       str =<<-END
       |void _#{name}_equals(VALUE struct_value,#{arg_type} value){
-      |#{struct_p}
+      |  #{struct_name()} * struct_p;
+      |  Data_Get_Struct(struct_value,#{struct_name()},struct_p);
       |  struct_p->#{name} = value;
       |}
       END
