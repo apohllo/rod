@@ -354,10 +354,6 @@ module Rod
       @cache ||= WeakHash.new
     end
 
-    def self.clear_cache
-      cache.cache.clear
-    end
-
     def self.typedef_struct
       result = <<-END
           |typedef struct {
