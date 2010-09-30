@@ -1,34 +1,38 @@
 require 'tests/structures'
+require 'tests/validate_read_on_create'
 
 puts "-- Read data while creating DB --"
 
-def validate(index,struct)
-  raise "Invalid MyStruct#count #{struct.count}, should be #{index}" if struct.count != index
-  raise "Missing MyStruct#your_struct" if struct.your_struct.nil?
-  raise "Invalid YourStruct#counter" if struct.your_struct.counter != index
-end
 
 RodTest::Model.create_database("tmp/read_write.dat")
 my_structures = []
-1000.times do |index| 
+MAGNITUDO.times do |index| 
   your_struct = RodTest::YourStruct.new
   your_struct.counter = index
+  your_struct.title = "Title_#{index}"
   your_struct.store
 
   my_struct = RodTest::MyStruct.new
   my_struct.count = index
   my_struct.your_struct = your_struct
+  my_struct.title = "Title_#{index}"
+  my_struct.title2 = "Title2_#{index}"
 
   my_struct.store
   my_structures << my_struct
 end
 
-1000.times do |index|
+MAGNITUDO.times do |index|
   # validate object fetched from cache
   struct = RodTest::MyStruct[index]
   validate(index,struct)
   # validate object referenced previously
   validate(index,my_structures[index])
+  # validate referential integrity
+  if struct.object_id != my_structures[index].object_id
+    raise "Object stored and recived are different #{struct.object_id} " + 
+      "#{my_structures[index].object_id}"
+  end
 end
 
 

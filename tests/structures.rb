@@ -43,11 +43,12 @@ module RodTest
 
   class YourStruct < Model
     field :counter, :integer
+    field :title, :string
     has_many :his_structs
     has_many :her_structs, :class_name => "RodTest::HisStruct"
 
     def to_s
-      "counter #{self.counter}, his structs " +
+      "counter #{self.counter}, title #{self.title} his structs " +
         "#{self.his_structs.map{|e| e.inde}.join("")}"
     end
   end
