@@ -46,17 +46,15 @@ module Rod
       end
     end
 
-    def referenced_id(name)
-      send("_#{name}", @struct)
-    end
-
     # Set id of the object referenced via singular association
     def set_referenced_id(name, value)
+      sync_struct
       send("_#{name}=", @struct, value)
     end
 
     # Set id of the object referenced via plural association
     def set_element_referenced_id(name, value, index)
+      sync_struct
       offset = send("_#{name}_offset",@struct)
       self.class.set_element_referenced_id(offset, index, value)
     end
@@ -355,10 +353,6 @@ module Rod
       @cache ||= WeakHash.new
     end
 
-    def self.clear_cache
-      cache.cache.clear
-    end
-
     def self.typedef_struct
       result = <<-END
           |typedef struct {
@@ -543,25 +537,18 @@ module Rod
 
         if options[:type] != :string
           # getter
-          if self.superclass.readonly_data?
-            define_method(field) do
-              send("_#{field}",@struct)
-            end
-          else
-            # check if the strcut is not out of sync with the memory
-            define_method(field) do
-              # XXX should be done this way -- prevent memory inconsitencies
-              #@struct = self.class.service_class.send("_#{self.class.struct_name}_get",
-              #                     self.class.superclass.handler,@rod_id-1)
-
-              value = instance_variable_get("@#{field}") || send("_#{field}",@struct)
+          define_method(field) do
+            value = instance_variable_get("@#{field}") 
+            if value.nil?
+              value = send("_#{field}",@struct)
               instance_variable_set("@#{field}".to_sym,value)
-              value
             end
+            value
           end
 
           # setter
           define_method("#{field}=") do |value|
+            sync_struct
             send("_#{field}=",@struct,value)
             instance_variable_set("@#{field}".to_sym,value)
             value
