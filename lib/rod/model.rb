@@ -81,13 +81,14 @@ module Rod
       [Marshal.dump(@indices[field])].pack("m")
     end
 
-    # Stores given +object+ in the database. The object must be an 
+    # Stores given +object+ in the database. The object must be an
     # instance of this class.
     def self.store(object)
       raise "Incompatible object class #{object.class}" unless object.is_a?(self)
       raise "The object #{object} is allready stored" unless object.rod_id == 0
       @indices ||= {}
       exporter_class.send("_store_" + self.struct_name,object,self.superclass.handler)
+      cache[object.rod_id-1] = object
 
       # update indices
       self.fields.each do |field,options|
