@@ -121,9 +121,9 @@ module Rod
         "  module_#{klass.struct_name} = rb_const_get(module_#{klass.struct_name}, " +
           "rb_intern(\"#{mod_name}\"));"
       end.join("\n")}
-      VALUE class_#{klass.struct_name} = rb_const_get(module_#{klass.struct_name},
-      |    rb_intern("#{klass.name.split("::")[-1]}"));
-      |  rb_funcall(class_#{klass.struct_name}, rb_intern("clear_cache"),0);
+      |  //VALUE class_#{klass.struct_name} = rb_const_get(module_#{klass.struct_name},
+      |  //  rb_intern("#{klass.name.split("::")[-1]}"));
+      |  //rb_funcall(class_#{klass.struct_name}, rb_intern("clear_cache"),0);
       SUBEND
       str.margin
     end
