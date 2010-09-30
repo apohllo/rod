@@ -349,6 +349,13 @@ module Rod
       @singular_associations[name] = options
     end
 
+    def sync_struct
+      unless @rod_id.nil?
+        @struct = self.class.service_class.
+          send("_#{self.class.struct_name}_get", self.class.superclass.handler,@rod_id-1) 
+      end
+    end
+
     def self.cache
       @cache ||= WeakHash.new
     end
