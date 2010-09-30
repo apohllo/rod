@@ -161,7 +161,6 @@ module Rod
                     str =<<-SUBEND
                     |  unsigned long #{klass.struct_name}_#{field}_index_length;
                     |  unsigned long #{klass.struct_name}_#{field}_index_offset;
-                    |  unsigned long #{klass.struct_name}_#{field}_index_page;
                     SUBEND
                   end
                 end.join("\n")
@@ -252,13 +251,10 @@ module Rod
           builder.c_singleton(str.margin)
 
           str =<<-END
-          |VALUE _read_string(unsigned long length, unsigned long offset,
-          |  unsigned long page, VALUE handler){
+          |VALUE _read_string(unsigned long length, unsigned long offset, VALUE handler){
           |  #{model_struct} * model_p;
           |  Data_Get_Struct(handler,#{model_struct},model_p);
-          |  unsigned int page_size = sysconf(_SC_PAGE_SIZE);
-          |  char * str = model_p->#{StringElement.struct_name}_table +
-          |    page * page_size + offset;
+          |  char * str = model_p->#{StringElement.struct_name}_table + offset;
           |  return rb_str_new(str, length);
           |}
           END
@@ -279,7 +275,7 @@ module Rod
           |  // - during write - first free byte in current page
           |  // offset:
           |  // - during write - number of pages
-          |  // - during read - offset in file
+          |  // - during read - offset from the first page
           |  // size:
           |  // - during write - number of pages - 1 (?)
           |  // count:
@@ -289,7 +285,7 @@ module Rod
           |  page = model_p->#{StringElement.struct_name}_size;
           |  current_page = page;
           |  while(length_left > 0){
-          |    if(length_left + model_p->last_#{StringElement.struct_name} > page_size){
+          |    if(length_left + offset >= page_size){
           |      \n#{mmap_class(StringElement)}
           |      model_p->#{StringElement.struct_name}_size++;
           |    }
@@ -305,14 +301,12 @@ module Rod
           |    length_left -= page_size;
           |  }
           |
-          |  model_p->last_#{StringElement.struct_name} =
-          |    (length + 1 + model_p->last_#{StringElement.struct_name}) % page_size;
-          |  model_p->#{StringElement.struct_name}_count += length + 1;
+          |  model_p->last_#{StringElement.struct_name} = (length + offset) % page_size;
+          |  model_p->#{StringElement.struct_name}_count += length;
           |
           |  VALUE result = rb_ary_new();
           |  rb_ary_push(result, INT2NUM(length));
-          |  rb_ary_push(result, INT2NUM(offset));
-          |  rb_ary_push(result, INT2NUM(page));
+          |  rb_ary_push(result, INT2NUM(offset + page * page_size));
           |  return result;
           |}
           END
@@ -322,7 +316,7 @@ module Rod
             next if klass == JoinElement or klass == StringElement
             klass.fields.each do |field,options|
               next unless options[:index]
-              %w{length offset page}.each do |type|
+              %w{length offset}.each do |type|
                 str =<<-END
                 |unsigned long _read_#{klass.struct_name}_#{field}_index_#{type}(VALUE handler){
                 |  #{model_struct} * model_p;
@@ -372,7 +366,6 @@ module Rod
                  |    rb_funcall(object,rb_intern("#{field}"),0), handler);
                  |  struct_p->#{field}_length = NUM2ULONG(rb_ary_entry(#{field}_string_data,0));
                  |  struct_p->#{field}_offset = NUM2ULONG(rb_ary_entry(#{field}_string_data,1));
-                 |  struct_p->#{field}_page = NUM2ULONG(rb_ary_entry(#{field}_string_data,2));
                  SUBEND
                else
                  "|  struct_p->#{field} = #{RUBY_TO_C_MAPPING[options[:type]]}("+
@@ -454,8 +447,6 @@ module Rod
                 |      NUM2ULONG(rb_ary_entry(index_data_#{klass.struct_name}_#{field},0));
                 |    model_p->#{klass.struct_name}_#{field}_index_offset =
                 |      NUM2ULONG(rb_ary_entry(index_data_#{klass.struct_name}_#{field},1));
-                |    model_p->#{klass.struct_name}_#{field}_index_page =
-                |      NUM2ULONG(rb_ary_entry(index_data_#{klass.struct_name}_#{field},2));
                 SUBSUBEND
               end
             end.join("\n|\n")}
@@ -545,7 +536,7 @@ module Rod
             SUBEND
             fields_part = klass.fields.map do |field,options|
               if options[:index]
-                %w{length offset page}.map do |type|
+                %w{length offset}.map do |type|
                   str =<<-SUBEND
                   |  if(write(model_p->lib_file,
                   |    &(model_p->#{klass.struct_name}_#{field}_index_#{type}),
@@ -591,7 +582,7 @@ module Rod
              |  }
              #{klass.fields.map do |field,options|
                if options[:index]
-                 %w{length offset page}.map do |type|
+                 %w{length offset}.map do |type|
                    str =<<-SUBSUBEND
                    |  if(read(lib_file,&(model_p->#{klass.struct_name}_#{field}_index_#{type}),
                    |    sizeof(unsigned long)) == -1){

@@ -437,10 +437,10 @@ module Rod
     end
 
     # Propagates the call to the underlying service class
-    def self.read_string(length, offset, page)
+    def self.read_string(length, offset)
       # TODO the encoding should be stored in the DB
       # or configured globally
-      service_class._read_string(length, offset, page, self.superclass.handler).
+      service_class._read_string(length, offset, self.superclass.handler).
         force_encoding("utf-8")
     end
 
@@ -488,7 +488,6 @@ module Rod
             <<-SUBEND
             |  result->#{field}_length = 0;
             |  result->#{field}_offset = 0;
-            |  result->#{field}_page = 0;
             SUBEND
           end
         end.join("\n")}
@@ -516,7 +515,6 @@ module Rod
           else
             field_reader("#{name}_length","unsigned long",builder)
             field_reader("#{name}_offset","unsigned long",builder)
-            field_reader("#{name}_page","unsigned long",builder)
           end
         end
 
@@ -540,8 +538,7 @@ module Rod
         if options[:type] != :string
           private "_#{field}".to_sym, "_#{field}=".to_sym 
         else
-          private "_#{field}_length".to_sym, "_#{field}_offset".to_sym,
-            "_#{field}_page".to_sym
+          private "_#{field}_length".to_sym, "_#{field}_offset".to_sym
         end
 
         if options[:type] != :string
@@ -576,8 +573,7 @@ module Rod
             if value.nil? # first call
               length = send("_#{field}_length", @struct)
               offset = send("_#{field}_offset", @struct)
-              page = send("_#{field}_page", @struct)
-              value = self.class.read_string(length, offset, page)
+              value = self.class.read_string(length, offset)
               # caching Ruby representation
               send("#{field}=",value)
             end
@@ -595,7 +591,7 @@ module Rod
             define_method("find_all_by_#{field}".to_sym) do |value|
               index = instance_variable_get("@#{field}_index".to_sym)
               if index.nil?
-                values = %w{length offset page}.map do |type|
+                values = %w{length offset}.map do |type|
                     service_class.
                       send("_read_#{struct_name}_#{field}_index_#{type}", 
                            superclass.handler)
