@@ -1,6 +1,10 @@
+0.4.0
+- page offset removed from string information (merged with string)
+- cache clearing turned off
 0.3.1
 - build_structure is called when the DB is created/opened
 - change message when not all objects are stored: only the number of objects
+- when the DB is closed only the number of not stored objects is reported
 0.3.0
 - data is stored in separated files during creation
 0.2.0
