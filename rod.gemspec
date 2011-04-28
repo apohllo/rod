@@ -1,7 +1,7 @@
 Gem::Specification.new do |s|
   s.name = "rod"
   #s.version = "0.3.1.snapshot#{`git log -1 --pretty="format:%at"`.chomp}"
-  s.version = "0.4.1"
+  s.version = "0.4.2"
   s.date = "#{Time.now}"
   s.summary = "Ruby read-only object database"
   s.email = "apohllo@o2.pl"
@@ -17,8 +17,8 @@ Gem::Specification.new do |s|
   #s.extra_rdoc_files = ["History.txt", "Manifest.txt", "README.txt"]
   s.add_dependency("RubyInline", [">= 3.8.3","< 4.0.0"])
   s.add_dependency("english", [">= 0.5.0","< 0.6.0"])
-  s.add_dependency("mocha", [">= 0.9.8","< 1.0.0"])
-  s.add_dependency("cucumber", [">= 0.8.1","< 0.9.0"])
   s.add_dependency("activemodel", [">= 3.0.7","< 3.1.0"])
+  s.add_development_dependency("mocha", [">= 0.9.8","< 1.0.0"])
+  s.add_development_dependency("cucumber", [">= 0.9.4","< 0.10.0"])
 end
 
