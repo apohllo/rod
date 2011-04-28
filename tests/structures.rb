@@ -1,9 +1,10 @@
-require 'lib/rod'
+$:.unshift("lib")
+require 'rod'
 
 module RodTest
   class Exporter < Rod::Exporter
     def self.create(path,classes)
-      `touch #{__FILE__}` 
+      `touch #{__FILE__}`
       super(path,classes)
     end
   end
@@ -34,8 +35,8 @@ module RodTest
     has_one :your_struct
 
     def to_s
-      "#{self.title} #{self.body} " + 
-        "count #{self.count}, precision #{self.precision}, " + 
+      "#{self.title} #{self.body} " +
+        "count #{self.count}, precision #{self.precision}, " +
         "identifier #{self.identifier} rod_id #{self.rod_id} " +
         "your_struct #{self.your_struct}"
     end

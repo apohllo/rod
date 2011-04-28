@@ -1,10 +1,11 @@
-require 'lib/rod'
+$:.unshift("lib")
+require 'rod'
 require 'test/unit'
 
 module RodTest
 	class Exporter < Rod::Exporter
 	  def self.create(path,classes)
-	    `touch #{__FILE__}` 
+	    `touch #{__FILE__}`
 	    super(path,classes)
 	  end
 	end
@@ -14,7 +15,7 @@ module RodTest
 	    super(path,classes)
     end
   end
- 
+
   class Model < Rod::Model
       attr_accessor :used
 
@@ -23,7 +24,7 @@ module RodTest
 		end
 
 		def self.loader_class
-			Loader 
+			Loader
 	  end
 
   end
@@ -32,7 +33,7 @@ module RodTest
 		field :a1, :integer
 		field :a2, :ulong, :index => true
     has_many :b_structs, :class_name => "RodTest::BStruct"
-		
+
 		build_structure
 
 		def to_s
@@ -80,7 +81,7 @@ module RodTest
 
       p BStruct.singular_associations
       assert BStruct.singular_associations.has_key?(:a_struct)
-      
+
       assert BStruct.fields.has_key?("rod_id")
 		end
 
@@ -99,8 +100,8 @@ module RodTest
       a1.a2 = 2000000000
       assert a1.a1 == 2
       assert a1.a2 == 2000000000
-      
-      assert a1.b_structs_count == a1.b_structs.count 
+
+      assert a1.b_structs_count == a1.b_structs.count
       a1.b_structs = [b1, b2]
       assert a1.b_structs == [b1, b2]
       assert a1.b_structs_count == a1.b_structs.count
@@ -108,7 +109,7 @@ module RodTest
       b1.b = "tead-only database"
       assert b1.b == "tead-only database"
     end
-    
+
     def test_stored_instances
       puts
 
@@ -123,13 +124,13 @@ module RodTest
       a2.b_structs = [b1]
       a3.b_structs = []
 
-      Model.create_database("tmp/test_stored_instances.dat") 
+      Model.create_database("tmp/test_stored_instances.dat")
       a1.store
       a2.store
       a3.store
 
       b1.store
- 
+
       p "AStruct.referenced_objects: #{AStruct.referenced_objects}"
       p "BStruct.referenced_objects: #{BStruct.referenced_objects}"
       assert a1.b_structs_count == a1.b_structs.count

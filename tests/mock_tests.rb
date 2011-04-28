@@ -1,4 +1,6 @@
-require 'lib/rod'
+$:.unshift("lib")
+
+require 'rod'
 require 'test/unit'
 require 'mocha'
 
@@ -6,7 +8,7 @@ module RodTest
 
 	class InnerExporter < Rod::Exporter
 	  def self.create(path, classes)
-	    `touch #{__FILE__}` 
+	    `touch #{__FILE__}`
 	    super(path,classes)
 	  end
 	end
@@ -46,7 +48,7 @@ module RodTest
 		end
 
 		def self.loader_class
-			Loader 
+			Loader
 	  end
 
  end
@@ -67,7 +69,7 @@ module RodTest
 		field :a1, :integer
 		field :a2, :ulong, :index => true
     has_many :b_structs, :class_name => "RodTest::BStruct"
-		
+
 		build_structure
 
 #	  def to_s    <- causes strange Error - see Exporter::method_missing
@@ -89,13 +91,13 @@ module RodTest
         @as[j].a1 = j
         @as[j].a2 = j * 10000
       end
-      
+
       (0..MAGNITUDE).each do |j|
         @bs[j] = BStruct.new
         @bs[j].b = "string_#{j}"
         @bs[j].a_struct = @as[j]
       end
-      
+
 #     (0..MAGNITUDE).each do |j|
 #        @as[j].b_structs = @bs[j .. ((j+1) % MAGNITUDE)]
 #      end
@@ -131,7 +133,7 @@ module RodTest
 			RodTest::Model.create_database("#{TEST_FILENAME}3")
     end
 
-    def test_close	
+    def test_close
       puts
 
       RodTest::Model.create_database("#{TEST_FILENAME}4")

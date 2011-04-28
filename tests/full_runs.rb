@@ -1,5 +1,7 @@
-require 'tests/structures'
-require 'lib/rod'
+$:.unshift("tests")
+$:.unshift("lib")
+require 'structures'
+require 'rod'
 require 'test/unit'
 
 module RodTest
@@ -19,7 +21,7 @@ module RodTest
 			(MAGNITUDE).times do |i|
 			  @ys[i] = YourStruct.new
 			  @ys[i].counter = 10
-			  @ys[i].his_structs = @hs[i*10...(i+1)*10] 
+			  @ys[i].his_structs = @hs[i*10...(i+1)*10]
 			end
 
 			@ms = []
@@ -53,13 +55,13 @@ module RodTest
 
 			# verification
 			Model.open_database(@test_filename)
-			assert MyStruct.count == @ms.count, 
+			assert MyStruct.count == @ms.count,
         "MyStruct: should be #{@ms.count}, was #{MyStruct.count}!"
-			assert YourStruct.count == @ys.count, 
+			assert YourStruct.count == @ys.count,
         "YourStruct: should be #{@ys.count}, was #{YourStruct.count}!"
-			assert HisStruct.count == @hs.count, 
+			assert HisStruct.count == @hs.count,
         "HisStruct: should be #{@hs.count}, was #{HisStruct.count}!"
-			Model.close_database	
+			Model.close_database
 		end
 	end
 end

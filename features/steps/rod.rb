@@ -1,5 +1,7 @@
-require 'features/steps/fred'
+$:.unshift "lib"
+require File.dirname(__FILE__) + '/fred'
 require 'test/unit/assertions'
+
 World(Test::Unit::Assertions)
 
 Before do

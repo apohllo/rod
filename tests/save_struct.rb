@@ -1,4 +1,5 @@
-require 'tests/structures'
+$:.unshift("tests")
+require 'structures'
 
 puts "-- Save sample structures test --"
 RodTest::Model.create_database("tmp/abc.dat")
@@ -16,7 +17,7 @@ ys = []
 (MAGNITUDE * 1).times do |i|
   ys[i] = RodTest::YourStruct.new
   ys[i].counter = 10
-  ys[i].his_structs = his[i*10...(i+1)*10] 
+  ys[i].his_structs = his[i*10...(i+1)*10]
 end
 
 ms = []
@@ -32,8 +33,8 @@ ms = []
 end
 
 RodTest::Model.print_layout
-ms.each_with_index{|s,i| 
-  begin 
+ms.each_with_index{|s,i|
+  begin
     puts i if i % 1000 == 0
     s.store
   rescue Exception => e

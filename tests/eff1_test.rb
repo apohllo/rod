@@ -1,4 +1,5 @@
-require 'lib/rod'
+$:.unshift("lib")
+require 'rod'
 
 module RodTest
   class Model < Rod::Model
@@ -9,7 +10,7 @@ module RodTest
       10.times do |i|
         field "a#{i}".to_sym, :ulong
       end
-      
+
     end
     const_set("#{letter}Struct",klass)
     klass.send(:build_structure)
@@ -27,7 +28,7 @@ module RodTest
         @structs[letter.to_sym] = []
         (MAGNITUDE).times do |i|
           @structs[letter.to_sym][i] = RodTest.const_get("#{letter}Struct").new
-          10.times do |j| 
+          10.times do |j|
             @structs[letter.to_sym][i].send("a#{j}=",j)
           end
         end

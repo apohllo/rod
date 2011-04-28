@@ -1,10 +1,11 @@
-require 'lib/rod'
+$:.unshift("lib")
+require 'rod'
 require 'test/unit'
 
 module RodTest
 	class Exporter < Rod::Exporter
 	  def self.create(path,classes)
-	    `touch #{__FILE__}` 
+	    `touch #{__FILE__}`
 	    super(path,classes)
 	  end
 	end
@@ -14,7 +15,7 @@ module RodTest
 	    super(path,classes)
     end
   end
- 
+
   class Model < Rod::Model
       attr_accessor :used
 
@@ -23,7 +24,7 @@ module RodTest
 		end
 
 		def self.loader_class
-			Loader 
+			Loader
 	  end
 
 		#for tests only
@@ -48,7 +49,7 @@ module RodTest
 
   class AStruct < Model
 		field :a, :integer
-		
+
 		build_structure
 
 		def to_s
@@ -58,7 +59,7 @@ module RodTest
 
 	  class BStruct < Model
 		field :b, :integer
-		
+
 		build_structure
 
 		def to_s
@@ -69,7 +70,7 @@ module RodTest
 
 	  class CStruct < Model
 		field :c, :integer
-		
+
 		build_structure
 
 		def to_s
@@ -103,7 +104,7 @@ module RodTest
 			AStruct.new(6)
 			BStruct.new(2)
 			BStruct.new(7)
-			CStruct.new(4)			
+			CStruct.new(4)
 			CStruct.new(5)
 			classes = [AStruct, BStruct, CStruct]
       fire_test(classes)
@@ -118,10 +119,10 @@ module RodTest
 			puts
 			p offsets
 			puts "=>"
-			
-			classes.each do |klass| 
-        #puts "beginning #{klass}..."				
-	
+
+			classes.each do |klass|
+        #puts "beginning #{klass}..."
+
 				klass_offsets, other_offsets, new_offsets = *Rod::Service.arrange_pages(klass, classes)
 				assert(other_offsets.size == new_offsets.size, 'Should be of equal length!')
         #p [klass_offsets, other_offsets, new_offsets]
@@ -131,7 +132,7 @@ module RodTest
 				klass_offsets.each_index {|i| offsets2[i+start] = offsets[klass_offsets[i]]}
 
 				other_offsets.each_index {|i| offsets2[new_offsets[i]] = offsets[other_offsets[i]]}
-			
+
         #p offsets2
 				classes.each {|c| c.clear}
 				offsets2.each_index {|i| offsets2[i].id = i if offsets2[i]}
@@ -166,7 +167,7 @@ module RodTest
         freq_initial[key] = freq_initial[key] + 1
       }
       assert(freq == freq_initial)
-			
+
       classes.each {|c| c.clear}
 		end
 	end

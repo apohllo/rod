@@ -1,10 +1,12 @@
+$:.unshift("tests")
+$:.unshift("lib")
 require 'test/unit'
-require 'lib/rod'
+require 'rod'
 
 module RodTest
   class Exporter < Rod::Exporter
     def self.create(path,classes)
-      `touch #{__FILE__}` 
+      `touch #{__FILE__}`
       super(path,classes)
     end
   end
@@ -26,7 +28,7 @@ module RodTest
     end
 
     def self.loader_class
-      Loader 
+      Loader
     end
 
     def to_s
@@ -36,7 +38,7 @@ module RodTest
 
   class Stright2 < Test::Unit::TestCase
 
-    def test_one 
+    def test_one
       Rod::Model.create_database('tmp/fred.dat')
 
       f = Fred.new

@@ -1,4 +1,5 @@
-require 'tests/structures'
+$:.unshift("tests")
+require 'structures'
 
 puts "-- Save structures with string containing 0 test --"
 RodTest::Model.create_database("tmp/string_with_zero.rod")

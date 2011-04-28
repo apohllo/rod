@@ -1,5 +1,6 @@
+$:.unshift("tests")
 require 'test/unit'
-require 'tests/structures'
+require 'structures'
 
 class ModelTest < Test::Unit::TestCase
   def setup
@@ -15,12 +16,12 @@ class ModelTest < Test::Unit::TestCase
     assert(not(struct1.nil?))
     struct2 = RodTest::MyStruct.find_by_title("title_0")
     assert(not(struct2.nil?))
-    assert(struct1.object_id == struct2.object_id, 
-      "Referential integrity not working for find_by " + 
+    assert(struct1.object_id == struct2.object_id,
+      "Referential integrity not working for find_by " +
       "#{struct1.object_id}:#{struct2.object_id}")
 
     struct3 = RodTest::YourStruct.get(0)
-    assert(not(struct3.nil?)) 
+    assert(not(struct3.nil?))
     struct4 = RodTest::HisStruct.get(0)
     assert(not(struct4.nil?))
     assert(struct3.his_structs[0].object_id == struct4.object_id,

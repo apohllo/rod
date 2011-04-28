@@ -1,5 +1,6 @@
-require 'tests/structures'
-require 'tests/validate_read_on_create'
+$:.unshift("tests")
+require 'structures'
+require 'validate_read_on_create'
 
 RodTest::Model.open_database("tmp/read_write.dat")
 MAGNITUDO.times do |index|

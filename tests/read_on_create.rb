@@ -1,12 +1,13 @@
-require 'tests/structures'
-require 'tests/validate_read_on_create'
+$:.unshift("tests")
+require 'structures'
+require 'validate_read_on_create'
 
 puts "-- Read data while creating DB --"
 
 
 RodTest::Model.create_database("tmp/read_write.dat")
 my_structures = []
-MAGNITUDO.times do |index| 
+MAGNITUDO.times do |index|
   your_struct = RodTest::YourStruct.new
   your_struct.counter = index
   your_struct.title = "Title_#{index}"
@@ -30,7 +31,7 @@ MAGNITUDO.times do |index|
   validate(index,my_structures[index])
   # validate referential integrity
   if struct.object_id != my_structures[index].object_id
-    raise "Object stored and recived are different #{struct.object_id} " + 
+    raise "Object stored and recived are different #{struct.object_id} " +
       "#{my_structures[index].object_id}"
   end
 end

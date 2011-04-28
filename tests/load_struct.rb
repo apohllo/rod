@@ -1,4 +1,5 @@
-require 'tests/structures'
+$:.unshift("tests")
+require 'structures'
 
 puts "-- Load sample structures test --"
 

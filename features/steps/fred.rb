@@ -1,9 +1,10 @@
-require 'lib/rod'
-  
+$:.unshift "lib"
+require 'rod'
+
 module RodScenario
   class Exporter < Rod::Exporter
     def self.create(path,classes)
-      `touch #{__FILE__}` 
+      `touch #{__FILE__}`
       super(path,classes)
     end
   end
@@ -13,19 +14,19 @@ module RodScenario
       super(path,classes)
     end
   end
- 
+
   class Fred < Rod::Model
     field :age, :integer
     field :sex, :string, :index => true
-    
+
     build_structure
-   
+
     def self.exporter_class
       Exporter
     end
 
     def self.loader_class
-      Loader 
+      Loader
     end
 
     def to_s
