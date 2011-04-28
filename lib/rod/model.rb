@@ -37,12 +37,17 @@ module Rod
     end
 
     # Stores the instance in the database. This might be called
-    # only if the database is openede for writing (see +create+).
-    def store
-      if valid?
-        self.class.store(self)
+    # only if the database is opened for writing (see +create+).
+    # To skip validation pass false.
+    def store(validate=true)
+      if validate
+        if valid?
+          self.class.store(self)
+        else
+          raise ValidationException.new([self.to_s,self.errors.full_messages])
+        end
       else
-        raise ValidationException.new([self.to_s,self.errors.full_messages])
+        self.class.store(self)
       end
     end
 
@@ -60,10 +65,10 @@ module Rod
     end
 
     # Set the referenced id of join element.
-    def self.set_element_referenced_id(element_offset, 
+    def self.set_element_referenced_id(element_offset,
                                        element_index, referenced_id)
       exporter_class.
-        send("_set_join_element_offset", element_offset, 
+        send("_set_join_element_offset", element_offset,
              element_index, referenced_id, self.superclass.handler)
     end
 
@@ -104,7 +109,7 @@ module Rod
       end
 
       # update object that references the stored object
-      referenced_objects ||= self.superclass.referenced_objects 
+      referenced_objects ||= self.superclass.referenced_objects
       # ... via singular associations
       @singular_associations.each do |name, options|
         referenced = object.send(name)
@@ -161,16 +166,16 @@ module Rod
       self.to_s+"::Struct"
     end
 
-    # Returns the number of objects of this class stored in the 
+    # Returns the number of objects of this class stored in the
     # database. The database must be opened for reading (see +open+).
     def self.count
       #TODO an exception if in wrong state?
       loader_class.send("_#{self.struct_name}_count",self.superclass.handler)
     end
 
-    # Iterates over object of this class stored in the database. 
+    # Iterates over object of this class stored in the database.
     # The database must be opened for reading (see +open+).
-    def self.each 
+    def self.each
       #TODO an exception if in wrong state?
       self.count.times do |index|
         yield self.get(index)
@@ -218,7 +223,7 @@ module Rod
       not @handler.nil?
     end
 
-    # Creates the database at specified +path+, which allows 
+    # Creates the database at specified +path+, which allows
     # for Model#store calls to be performed.
     #
     # By default the database is created for all subclasses.
@@ -230,7 +235,7 @@ module Rod
     end
 
     # Opens the database at +path+ for reading. This allows
-    # for Model#count, Model#each, and similar calls. 
+    # for Model#count, Model#each, and similar calls.
     #
     # By default the database is opened for all subclasses.
     def self.open_database(path)
@@ -321,14 +326,14 @@ module Rod
       @handler
     end
 
-    # "Stack" of objects which are referenced by other objects during store, 
+    # "Stack" of objects which are referenced by other objects during store,
     # but are not yet stored.
     def self.referenced_objects
       @referenced_objects ||= {}
     end
 
     # A macro-styly function used to indicate that given piece of data
-    # is stored in the database. 
+    # is stored in the database.
     # Type should be one of:
     # * +:integer+
     # * +:ulong+
@@ -352,7 +357,7 @@ module Rod
     def sync_struct
       unless @rod_id.nil?
         @struct = self.class.service_class.
-          send("_#{self.class.struct_name}_get", self.class.superclass.handler,@rod_id-1) 
+          send("_#{self.class.struct_name}_get", self.class.superclass.handler,@rod_id-1)
       end
     end
 
@@ -363,7 +368,7 @@ module Rod
     def self.typedef_struct
       result = <<-END
           |typedef struct {
-          |  \n#{self.fields.map do |field,options| 
+          |  \n#{self.fields.map do |field,options|
             if options[:type] != :string
               "|  #{TYPE_MAPPING[options[:type]]} #{field};"
             else
@@ -388,7 +393,7 @@ module Rod
 
     def self.layout
       result = <<-END
-        |  \n#{self.fields.map do |field,options| 
+        |  \n#{self.fields.map do |field,options|
             if options[:type] != :string
               "|  printf(\"  size of '#{field}': %lu\\n\",sizeof(#{TYPE_MAPPING[options[:type]]}));"
             else
@@ -458,7 +463,7 @@ module Rod
       space = name[ 0...(name.rindex( '::' ) || 0)]
       space.empty? ? Object : eval(space)
     end
-    
+
     # Returns a scope of the class
     def self.scope_name
       if self.modspace == Object
@@ -512,7 +517,7 @@ module Rod
         self.fields.each do |name, options|
           if options[:type] != :string
             field_reader(name,TYPE_MAPPING[options[:type]],builder)
-            field_writer(name,TYPE_MAPPING[options[:type]],builder)  
+            field_writer(name,TYPE_MAPPING[options[:type]],builder)
           else
             field_reader("#{name}_length","unsigned long",builder)
             field_reader("#{name}_offset","unsigned long",builder)
@@ -537,7 +542,7 @@ module Rod
         # adding new private fields visible from Ruby
         # they are lazily initialized based on the C representation
         if options[:type] != :string
-          private "_#{field}".to_sym, "_#{field}=".to_sym 
+          private "_#{field}".to_sym, "_#{field}=".to_sym
         else
           private "_#{field}_length".to_sym, "_#{field}_offset".to_sym
         end
@@ -545,7 +550,7 @@ module Rod
         if options[:type] != :string
           # getter
           define_method(field) do
-            value = instance_variable_get("@#{field}") 
+            value = instance_variable_get("@#{field}")
             if value.nil?
               value = send("_#{field}",@struct)
               instance_variable_set("@#{field}".to_sym,value)
@@ -587,7 +592,7 @@ module Rod
               if index.nil?
                 values = %w{length offset}.map do |type|
                     service_class.
-                      send("_read_#{struct_name}_#{field}_index_#{type}", 
+                      send("_read_#{struct_name}_#{field}_index_#{type}",
                            superclass.handler)
                   end
                 marshalled = self.read_string(*values).unpack("m").first
@@ -639,7 +644,7 @@ module Rod
       end
 
       @plural_associations.each do |name, options|
-        class_name = 
+        class_name =
           if options[:class_name]
             options[:class_name]
           else
@@ -657,7 +662,7 @@ module Rod
             indices = self.class.
               join_indices(self.send("_#{name}_offset",@struct),count)
             # the indices are shifted by 1, to leave 0 for nil
-            values = 
+            values =
               indices.map do |index|
                 if index == 0
                   nil
