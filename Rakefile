@@ -33,7 +33,7 @@ task :test do
   sh "ruby tests/read_on_create.rb"
   sh "ruby tests/check_strings.rb"
   sh "ruby tests/full_runs.rb"
-  sh "cucumber features/*"
+  sh "bundle exec cucumber features/*"
 end
 
 desc "Clean"
