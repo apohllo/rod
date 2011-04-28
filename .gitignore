@@ -2,3 +2,4 @@
 tmp
 work
 *.gem
+Gemfile.lock
