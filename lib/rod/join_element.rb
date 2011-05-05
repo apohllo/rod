@@ -4,7 +4,7 @@ module Rod
       str = <<-END
       |typedef struct {
       |  unsigned long offset;
-      |  unsigned long index; 
+      |  unsigned long index;
       |} _join_element;
       END
       str.margin
@@ -28,6 +28,10 @@ module Rod
 
     def self.build_structure
       # does nothing, the structure is not needed
+    end
+
+    def self.cache
+      @cache ||= WeakHash.new
     end
   end
 end

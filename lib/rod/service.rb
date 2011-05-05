@@ -152,7 +152,7 @@ module Rod
               |  unsigned long #{klass.struct_name}_count;
               |  int #{klass.struct_name}_lib_file;
               SUBEND
-              indices = 
+              indices =
                 klass.fields.map do |field,options|
                   if options[:index]
                     str =<<-SUBEND
@@ -351,7 +351,7 @@ module Rod
             |  //printf("fields\\n");
             |  \n#{klass.fields.map do |field, options|
                if field == "rod_id"
-                 # the number is incresed by 1, because 0 indicates that the 
+                 # the number is incresed by 1, because 0 indicates that the
                  # (refered) object is nil
                  <<-SUBEND
                  |  struct_p->rod_id = model_p->#{klass.struct_name}_count;
@@ -376,7 +376,7 @@ module Rod
               |  if(referenced_#{name} == Qnil){
               |    struct_p->#{name} = 0;
               |  } else {
-              |    struct_p->#{name} = NUM2ULONG(rb_funcall(referenced_#{name}, 
+              |    struct_p->#{name} = NUM2ULONG(rb_funcall(referenced_#{name},
               |      rb_intern("rod_id"),0));
               |  }
               SUBEND
@@ -549,7 +549,7 @@ module Rod
           end.join("\n")}
           |  }
           |  if(close(model_p->lib_file) == -1){
-          |    rb_raise(cException,"Could not close model file."); 
+          |    rb_raise(cException,"Could not close model file.");
           |  }
           |}
           END
@@ -561,7 +561,7 @@ module Rod
           |  int lib_file = open(path, O_RDONLY);
           |  VALUE cException = #{EXCEPTION_CLASS};
           |  if(lib_file == -1) {
-          |    rb_raise(cException,"Could not open data file %s for reading.",path); 
+          |    rb_raise(cException,"Could not open data file %s for reading.",path);
           |  }
           |  unsigned int page_size = sysconf(_SC_PAGE_SIZE);
           |  model_p = ALLOC(#{model_struct});
@@ -571,11 +571,11 @@ module Rod
              <<-SUBEND
              |  unsigned long #{klass.struct_name}_count;
              |  if(read(lib_file, &#{klass.struct_name}_count, sizeof(unsigned long)) == -1){
-             |    rb_raise(cException,"Could not read #{klass.struct_name} count."); 
+             |    rb_raise(cException,"Could not read #{klass.struct_name} count.");
              |  }
              |  unsigned long #{klass.struct_name}_offset;
              |  if(read(lib_file, &#{klass.struct_name}_offset, sizeof(unsigned long)) == -1){
-             |    rb_raise(cException,"Could not read #{klass.struct_name} offset."); 
+             |    rb_raise(cException,"Could not read #{klass.struct_name} offset.");
              |  }
              #{klass.fields.map do |field,options|
                if options[:index]
