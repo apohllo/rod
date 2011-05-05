@@ -2,9 +2,24 @@ require File.join(File.dirname(__FILE__),'constants')
 
 module Rod
   class Service
+    # This flag indicates, if Service and Model works in development
+    # mode, i.e. the dynamically loaded library has a unique, different id each time
+    # the rod library is used.
+    @@rod_development_mode = false
+
+    # Writer of the +rod_development_mode+ flag.
+    def self.development_mode=(value)
+      @@rod_development_mode = value
+    end
+
+    # Reader of the +rod_development_mode+ flag.
+    def self.development_mode
+      @@rod_development_mode
+    end
+
     # Closes the database.
     def self.close(handler, classes)
-      _close(handler, classes) 
+      _close(handler, classes)
     end
 
     ## Helper methods printing some generated code ##
@@ -127,7 +142,7 @@ module Rod
 
     # Generates the code in C responsible for management of the database.
     def self.generate_c_code(path, classes)
-      unless @code_generated
+      if !@code_generated || @@rod_development_mode
         inline(:C) do |builder|
           builder.include '<stdlib.h>'
           builder.include '<stdio.h>'
@@ -672,9 +687,11 @@ module Rod
           END
           builder.c_singleton(str.margin)
 
-          # This method is created to force rebuild of the C code, since
-          # it is rebuild on the basis of methods' signatures change.
-          builder.c_singleton("void __unused_method_#{rand(1000)}(){}")
+          if @@rod_development_mode
+            # This method is created to force rebuild of the C code, since
+            # it is rebuild on the basis of methods' signatures change.
+            builder.c_singleton("void __unused_method_#{rand(1000)}(){}")
+          end
         end
         @code_generated = true
       end

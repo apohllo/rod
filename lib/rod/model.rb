@@ -535,6 +535,12 @@ module Rod
         END
         builder.c(str.margin)
 
+        if Service.development_mode
+          # This method is created to force rebuild of the C code, since
+          # it is rebuild on the basis of methods' signatures change.
+          builder.c_singleton("void __unused_method_#{rand(1000)}(){}")
+        end
+
         self.fields.each do |name, options|
           if options[:type] != :string
             field_reader(name,TYPE_MAPPING[options[:type]],builder)
