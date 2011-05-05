@@ -1,3 +1,11 @@
+0.4.3
+- some test changed into features specification
+- default implementation of == for Model
+- scope check for []
+- allow for purging subclass information when closing database
+- cache clearing
+- unsued C methods are generated only in development mode
+- updated dependencies
 0.4.2
 - clear Gemfile
 - make clear statements about dev. dependencies
