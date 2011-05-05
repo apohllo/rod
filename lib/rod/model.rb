@@ -64,6 +64,11 @@ module Rod
       self.class.set_element_referenced_id(offset, index, value)
     end
 
+    # Default implementation of equality.
+    def ==(other)
+      self.class == other.class && self.rod_id == other.rod_id
+    end
+
     # Set the referenced id of join element.
     def self.set_element_referenced_id(element_offset,
                                        element_index, referenced_id)
