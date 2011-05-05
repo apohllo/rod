@@ -276,7 +276,11 @@ module Rod
     end
 
     # Closes the database.
-    def self.close_database
+    #
+    # If the +purge_subclasses+ flag is set to true, the information about the classes
+    # inheriting from the model, is removed. This is important for testing, when
+    # classes with the same names have different definitions.
+    def self.close_database(purge_subclasses=false)
       raise "Database not opened." if @handler.nil?
 
       if @readonly
@@ -290,6 +294,10 @@ module Rod
       self.subclasses.each{|subc| subc.page_offsets.clear}
       @handler = nil
       @offsets = nil
+      # clear subclass information
+      if purge_subclasses
+        @subclasses = [JoinElement, StringElement]
+      end
     end
 
     # Returns collected subclasses.
