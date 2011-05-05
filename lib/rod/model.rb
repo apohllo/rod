@@ -200,7 +200,11 @@ module Rod
     end
 
     def self.[](index)
-      get(index)
+      if index >= 0 && index < self.count
+        get(index)
+      else
+        raise IndexError.new("The index is out of scope [0...#{self.count}]")
+      end
     end
 
     def self.find_by_rod_id(rod_id)
