@@ -24,5 +24,9 @@ module Rod
     def self.build_structure
       # does nothing, the structure is not needed
     end
+
+    def self.cache
+      @cache ||= WeakHash.new
+    end
   end
 end
