@@ -6,6 +6,7 @@ module Rod
   class Model
     include ActiveModel::Validations
 
+    # This exceptions is raised if there is a validation error.
     class ValidationException < Exception
       def initialize(message)
         @message = message
@@ -16,6 +17,29 @@ module Rod
       end
     end
 
+    # This exception is raised if there is no database linked with the class.
+    class MissingDatabase < Exception
+      def initialize(klass)
+        @klass = klass
+      end
+
+      def to_s
+        "Database not selected for class #{@klass}!\n" +
+          "Provide the database class via call to Rod::Model.database_class."
+      end
+    end
+
+    class InvalidArgument < Exception
+      def initialize(value,type)
+        @value = value
+        @type = type
+      end
+
+      def to_s
+        "The value '#@value' of the #@type is invalid!"
+      end
+    end
+
     def _initialize
       raise "Method _initialize should not be called for abstract Model class"
     end
@@ -23,8 +47,8 @@ module Rod
     private :_initialize
 
     # Initializes instance of the model. If +struct+ is given,
-    # it is used as source of the data. Otherwise, a new struct
-    # is created.
+    # it is used as source (C-level, i.e. Rod::Model::Struct)
+    # of the data. Otherwise, a new struct is created.
     #
     # NOTE that for a time being, this method should be considered FINAL.
     # You should not override it in any subclass.
@@ -35,6 +59,10 @@ module Rod
         @struct = _initialize()
       end
     end
+
+    #########################################################################
+    # Public API
+    #########################################################################
 
     # Stores the instance in the database. This might be called
     # only if the database is opened for writing (see +create+).
@@ -51,30 +79,114 @@ module Rod
       end
     end
 
-    # Set id of the object referenced via singular association
-    def set_referenced_id(name, value)
-      sync_struct
-      send("_#{name}=", @struct, value)
-    end
-
-    # Set id of the object referenced via plural association
-    def set_element_referenced_id(name, value, index)
-      sync_struct
-      offset = send("_#{name}_offset",@struct)
-      self.class.set_element_referenced_id(offset, index, value)
-    end
-
     # Default implementation of equality.
     def ==(other)
       self.class == other.class && self.rod_id == other.rod_id
     end
 
-    # Set the referenced id of join element.
-    def self.set_element_referenced_id(element_offset,
-                                       element_index, referenced_id)
-      exporter_class.
-        send("_set_join_element_offset", element_offset,
-             element_index, referenced_id, self.superclass.handler)
+    # Returns the number of objects of this class stored in the
+    # database.
+    def self.count
+      if database.readonly_data?
+        database.count(self)
+      else
+        @object_count || 0
+      end
+    end
+
+    # Iterates over object of this class stored in the database.
+    # The database must be opened for reading (see +open+).
+    def self.each
+      #TODO an exception if in wrong state?
+      self.count.times do |index|
+        yield self.get(index)
+      end
+    end
+
+    # Returns n-th (+index+) object of this class stored in the database.
+    # This call is scope-checked.
+    def self.[](index)
+      if index >= 0 && index < self.count
+        get(index)
+      else
+        raise IndexError.new("The index is out of scope [0...#{self.count}]")
+      end
+    end
+
+    protected
+    # A macro-style function used to indicate that given piece of data
+    # is stored in the database.
+    # Type should be one of:
+    # * +:integer+
+    # * +:ulong+
+    # * +:float+
+    # * +:string+
+    # Options:
+    # * +:index+ if set to true, builds a simple hash index for the field
+    # Warning!
+    # rod_id is a predefined field
+    def self.field(name, type, options={})
+      ensure_valid_name(name)
+      ensure_valid_type(type)
+      self.fields[name] = options.merge({:type => type})
+    end
+
+    # A macro-style function used to indicate that instances of this
+    # class are associated with many instances of some other class. The
+    # name of the class is guessed from the field name, but you can
+    # change it via options.
+    # Options:
+    # * +:class_name+ - the name of the class (as String) associated
+    #   with this class
+    def self.has_many(name, options={})
+      ensure_valid_name(name)
+      @plural_associations ||= {}
+      @plural_associations[name] = options
+    end
+
+    # A macro-style function used to indicate that instances of this
+    # class are associated with one instance of some other class. The
+    # name of the class is guessed from the field name, but you can
+    # change it via options.
+    # Options:
+    # * +:class_name+ - the name of the class (as String) associated
+    #   with this class
+    def self.has_one(name, options={})
+      ensure_valid_name(name)
+      @singular_associations ||= {}
+      @singular_associations[name] = options
+    end
+
+    # A macro-style function used to link the model with specific
+    # database class. See notes on Rod::Database for further
+    # informations why this is needed.
+    def self.database_class(klass)
+      @database = klass.instance
+      if @lazy_link_with_database
+        self.add_to_database
+      end
+    end
+
+    #########################################################################
+    # 'Private' API
+    #########################################################################
+
+    public
+    # Set id of the object referenced via singular association.
+    def set_referenced_id(name, value)
+      sync_struct
+      send("_#{name}=", @struct, value)
+    end
+
+    # Set id of the object referenced via plural association.
+    #
+    # The name of the association is +name+, the referenced
+    # object id is +object_id+ and +index+ is the position
+    # of the referenced object in the association.
+    def set_element_referenced_id(name, object_id, index)
+      sync_struct
+      offset = send("_#{name}_offset",@struct)
+      database.set_join_element_id(offset, index, object_id)
     end
 
     # Returns marshalled index for given field
@@ -95,8 +207,8 @@ module Rod
       raise "Incompatible object class #{object.class}" unless object.is_a?(self)
       raise "The object #{object} is allready stored" unless object.rod_id == 0
       @indices ||= {}
+      database.store(self,object)
       @object_count += 1
-      exporter_class.send("_store_" + self.struct_name,object,self.superclass.handler)
       # XXX a sort of 'memory leak'
       cache[object.rod_id-1] = object
 
@@ -116,7 +228,7 @@ module Rod
       end
 
       # update object that references the stored object
-      referenced_objects ||= self.superclass.referenced_objects
+      referenced_objects ||= database.referenced_objects
       # ... via singular associations
       @singular_associations.each do |name, options|
         referenced = object.send(name)
@@ -173,43 +285,15 @@ module Rod
       self.to_s+"::Struct"
     end
 
-    # Returns the number of objects of this class stored in the
-    # database. The database must be opened for reading (see +open+).
-    def self.count
-      if self.superclass.readonly_data?
-        loader_class.send("_#{self.struct_name}_count",self.superclass.handler)
-      else
-        @object_count || 0
-      end
-    end
-
-    # Iterates over object of this class stored in the database.
-    # The database must be opened for reading (see +open+).
-    def self.each
-      #TODO an exception if in wrong state?
-      self.count.times do |index|
-        yield self.get(index)
-      end
-    end
-
     # Returns object of this class stored in the DB at given +position+.
     def self.get(position)
       object = cache[position]
       if object.nil?
-        struct = service_class.send("_#{self.struct_name}_get",
-                                   self.superclass.handler,position)
+        struct = database.get_structure(self,position)
         object = self.new(struct)
         cache[position] = object
       end
       object
-    end
-
-    def self.[](index)
-      if index >= 0 && index < self.count
-        get(index)
-      else
-        raise IndexError.new("The index is out of scope [0...#{self.count}]")
-      end
     end
 
     def self.find_by_rod_id(rod_id)
@@ -232,159 +316,90 @@ module Rod
       @plural_associations
     end
 
-    # Returns whether db is opened.
-    def self.opened?
-      not @handler.nil?
-    end
-
-    # Creates the database at specified +path+, which allows
-    # for Model#store calls to be performed.
-    #
-    # By default the database is created for all subclasses.
-    def self.create_database(path)
-      raise "Database already opened." unless @handler.nil?
-      @readonly = false
-      self.subclasses.each{|s| s.send(:build_structure)}
-      @handler = exporter_class.create(path,self.subclasses)
-    end
-
-    # Opens the database at +path+ for reading. This allows
-    # for Model#count, Model#each, and similar calls.
-    #
-    # By default the database is opened for all subclasses.
-    def self.open_database(path)
-      raise "Database already opened." unless @handler.nil?
-      @readonly = true
-      self.subclasses.each{|s| s.send(:build_structure)}
-      @handler = loader_class.open(path,self.subclasses)
-    end
-
-    # Prints the layout of the pages in memory and other
-    # internal data of the model.
-    def self.print_layout
-      raise "Database not opened." if @handler.nil?
-      if readonly_data?
-        loader_class.print_layout(@handler)
-      else
-        exporter_class.print_layout(@handler)
-      end
-    end
-
-    # The DB open mode.
-    def self.readonly_data?
-      @readonly
-    end
-
-    # Closes the database.
-    #
-    # If the +purge_subclasses+ flag is set to true, the information about the classes
-    # inheriting from the model, is removed. This is important for testing, when
-    # classes with the same names have different definitions.
-    def self.close_database(purge_subclasses=false)
-      raise "Database not opened." if @handler.nil?
-
-      if readonly_data?
-        loader_class.close(@handler, nil)
-      else
-        unless referenced_objects.select{|k, v| not v.empty?}.size == 0
-          raise "Not all associations have been stored: #{referenced_objects.size} objects"
-        end
-        exporter_class.close(@handler, self.subclasses)
-      end
-      @handler = nil
-      @offsets = nil
-      # clear subclass information
-      if purge_subclasses
-        @subclasses = [JoinElement, StringElement]
-      end
-    end
-
-    # Returns collected subclasses.
-    def self.subclasses
-      @subclasses.sort{|c1,c2| c1.to_s <=> c2.to_s}
-    end
+    protected
 
     # Used for building the C code.
     def self.inherited(subclass)
-      @subclasses ||= [JoinElement, StringElement]
-      @subclasses << subclass
-    end
-
-    # Prints the last error of system call.
-    def self.print_system_error
-      service_class._print_system_error
-    end
-
-  protected
-    # Returns the class which is used to export the data
-    # in to the database.
-    #
-    # If multiple models are used in one runtime, each one
-    # should define its own exporter class, which simply
-    # inherits for the Rod::Exporter class.
-    def self.exporter_class
-      Rod::Exporter
-    end
-
-    # Returns the class which is used to load the data
-    # from the database.
-    #
-    # If multiple models are used in one runtime, each one
-    # should define its own loader class, which simply
-    # inherits for the Rod::Loader class.
-    def self.loader_class
-      Rod::Loader
-    end
-
-    # The database handler (i.e. C struct which holds the data).
-    def self.handler
-      raise "Database is not opened for reading nor writing" if @handler.nil?
-      @handler
-    end
-
-    # "Stack" of objects which are referenced by other objects during store,
-    # but are not yet stored.
-    def self.referenced_objects
-      @referenced_objects ||= {}
-    end
-
-    # A macro-styly function used to indicate that given piece of data
-    # is stored in the database.
-    # Type should be one of:
-    # * +:integer+
-    # * +:ulong+
-    # * +:float+
-    # * +:string+
-    def self.field(name, type, options={})
-      # rod_id is a predefined field
-      self.fields[name] = options.merge({:type => type})
-    end
-
-    def self.has_many(name, options={})
-      @plural_associations ||= {}
-      @plural_associations[name] = options
-    end
-
-    def self.has_one(name, options={})
-      @singular_associations ||= {}
-      @singular_associations[name] = options
-    end
-
-    def sync_struct
-      unless @rod_id.nil?
-        @struct = self.class.service_class.
-          send("_#{self.class.struct_name}_get", self.class.superclass.handler,@rod_id-1)
+      begin
+        subclass.add_to_database
+      rescue MissingDatabase
+        @lazy_link_with_database = true
       end
     end
 
+    # Add self to the database it is linked to.
+    def self.add_to_database
+      self.database.add_class(self)
+    end
+
+    # Returns the database given instance belongs to (is or will be stored within).
+    def database
+      self.class.database
+    end
+
+    # Checks if the name of the field or association is valid.
+    def self.ensure_valid_name(name)
+      if name.to_s.empty? || INVALID_NAMES.has_key?(name)
+        raise InvalidArgument.new(name,"field/association name")
+      end
+    end
+
+    # Checks if the type of the field is valid.
+    def self.ensure_valid_type(type)
+      unless TYPE_MAPPING.has_key?(type)
+        raise InvalidArgument.new(type,"field type")
+      end
+    end
+
+    # Returns the database this class is linked to.
+    # The database class is configured with the call to
+    # macro-style function +database_class+. This information
+    # is inherited, so it have to be defined only for the
+    # root-class of the model (if such a class exists).
+    def self.database
+      return @database unless @database.nil?
+      if self.superclass.respond_to?(:database)
+        @database = self.superclass.database
+      else
+        raise MissingDatabase.new(self)
+      end
+      @database
+    end
+
+    # Synchronizes the structure held by the instance with the database
+    # structure.
+    def sync_struct
+      unless @rod_id.nil?
+        @struct = database.get_structure(self.class,@rod_id-1)
+      end
+    end
+
+    # The object cache of this class.
+    # XXX consider moving it to the database.
     def self.cache
       @cache ||= WeakHash.new
     end
 
-    def self.clear_cache
-      self.subclasses.each{|s| s.cache.cache.clear}
+    # The module context of the class.
+    def self.module_context
+      context = name[0...(name.rindex( '::' ) || 0)]
+      context.empty? ? Object : eval(context)
     end
 
+    # Returns the name of the scope of the class.
+    def self.scope_name
+      if self.module_context == Object
+        ""
+      else
+        self.module_context.to_s
+      end
+    end
+
+    #########################################################################
+    # C-oriented API
+    #########################################################################
+
+    # The C structure representing this class.
     def self.typedef_struct
       result = <<-END
           |typedef struct {
@@ -411,6 +426,7 @@ module Rod
       result.margin
     end
 
+    # Prints the memory layout of the structure.
     def self.layout
       result = <<-END
         |  \n#{self.fields.map do |field,options|
@@ -434,6 +450,7 @@ module Rod
       result.margin
     end
 
+    # Reads the value of a specified field of the C-structure.
     def self.field_reader(name,result_type,builder)
       str =<<-END
       |#{result_type} _#{name}(VALUE struct_value){
@@ -445,6 +462,7 @@ module Rod
       builder.c(str.margin)
     end
 
+    # Writes the value of a specified field of the C-structure.
     def self.field_writer(name,arg_type,builder)
       str =<<-END
       |void _#{name}_equals(VALUE struct_value,#{arg_type} value){
@@ -456,44 +474,7 @@ module Rod
       builder.c(str.margin)
     end
 
-    # Propagates the call to the underlying service class
-    def self.join_indices(offset, count)
-      service_class.
-        _join_indices(offset, count, self.superclass.handler)
-    end
-
-    # Propagates the call to the underlying service class
-    def self.read_string(length, offset)
-      # TODO the encoding should be stored in the DB
-      # or configured globally
-      service_class._read_string(length, offset, self.superclass.handler).
-        force_encoding("utf-8")
-    end
-
-    # Returns the exporter or loader class depending on the mode that db is open in
-    def self.service_class
-      if self.superclass.readonly_data?
-        loader_class
-      else
-        exporter_class
-      end
-    end
-
-    def self.modspace
-      space = name[ 0...(name.rindex( '::' ) || 0)]
-      space.empty? ? Object : eval(space)
-    end
-
-    # Returns a scope of the class
-    def self.scope_name
-      if self.modspace == Object
-        ""
-      else
-        self.modspace.to_s
-      end
-    end
-
-    # adds C routines and dynamic Ruby accessors for a model class
+    # Adds C routines and dynamic Ruby accessors for a model class.
     def self.build_structure
       @plural_associations ||= {}
       @singular_associations ||= {}
@@ -599,7 +580,7 @@ module Rod
             if value.nil? # first call
               length = send("_#{field}_length", @struct)
               offset = send("_#{field}_offset", @struct)
-              value = self.class.read_string(length, offset)
+              value = database.read_string(length, offset)
               # caching Ruby representation
               send("#{field}=",value)
             end
@@ -618,11 +599,9 @@ module Rod
               index = instance_variable_get("@#{field}_index".to_sym)
               if index.nil?
                 values = %w{length offset}.map do |type|
-                    service_class.
-                      send("_read_#{struct_name}_#{field}_index_#{type}",
-                           superclass.handler)
+                    database.read_index(self,field,type)
                   end
-                marshalled = self.read_string(*values).unpack("m").first
+                marshalled = database.read_string(*values).unpack("m").first
                 index = Marshal.load(marshalled)
                 instance_variable_set("@#{field}_index".to_sym,index)
               end
@@ -686,8 +665,7 @@ module Rod
           if values.nil?
             count = self.send("_#{name}_count",@struct)
             return instance_variable_set(("@" + name.to_s).to_sym,[]) if count == 0
-            indices = self.class.
-              join_indices(self.send("_#{name}_offset",@struct),count)
+            indices = database.join_indices(self.send("_#{name}_offset",@struct),count)
             # the indices are shifted by 1, to leave 0 for nil
             values =
               indices.map do |index|
