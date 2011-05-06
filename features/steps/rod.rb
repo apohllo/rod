@@ -1,8 +1,5 @@
 $:.unshift "lib"
-require File.dirname(__FILE__) + '/fred'
-require 'test/unit/assertions'
-
-World(Test::Unit::Assertions)
+require 'rod'
 
 Before do
   @freds = {}
@@ -31,43 +28,6 @@ When /^I reopen database for reading$/ do
 end
 
 Then /^database should be opened for reading$/ do
-  assert Rod::Model.opened?
-  assert Rod::Model.readonly_data?
-end
-
-Given /^Fred is (\d+) years old/ do |age_str|
-  @fred = RodScenario::Fred.new
-  @fred.age = Integer(age_str)
-end
-
-When /^I store Fred$/ do
-  @fred.store
-  @id = @fred.rod_id
-end
-
-
-When /^I restore Fred$/ do
-  @fred = RodScenario::Fred.find_by_rod_id(@id)
-end
-
-
-Then /^Fred should be (\d+) years old/ do |expected_age|
-  assert_equal Integer(expected_age), @fred.age
-end
-
-Given /^(\w+) Fred is (\w+)$/ do |name, sex|
-  @freds[name] = sex
-end
-
-When /^I store all Freds$/ do
-  @freds.each do |name, sex|
-    fred = RodScenario::Fred.new
-    fred.age = 18
-    fred.sex = sex
-    fred.store
-  end
-end
-
-Then /^database should contain (\d+) (\w+) Freds$/ do |expected_count, sex|
-  assert_equal Integer(expected_count), RodScenario::Fred.find_all_by_sex(sex).count
+  Rod::Model.opened?.should be_true
+  Rod::Model.readonly_data?.should be_true
 end
