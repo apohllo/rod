@@ -21,6 +21,7 @@ desc "Run performence tests"
 task :perf do
   sh "ruby tests/eff1_test.rb"
   sh "ruby tests/eff2_test.rb"
+  sh "ruby tests/full_runs.rb"
 end
 
 desc "Run tests and specs"
@@ -28,9 +29,15 @@ task :test do
   sh "ruby tests/save_struct.rb"
   sh "ruby tests/load_struct.rb"
   sh "ruby tests/unit/*.rb"
+end
+
+# Should be removed some time -- specs should cover all these cases
+task :regression_test do
   sh "ruby tests/read_on_create.rb"
   sh "ruby tests/check_strings.rb"
-  sh "ruby tests/full_runs.rb"
+end
+
+task :spec do
   sh "bundle exec cucumber features/*"
 end
 
