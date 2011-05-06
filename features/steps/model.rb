@@ -1,17 +1,11 @@
 require 'rspec/expectations'
-
-module RodTest
-end
-
-Before do
-  @instances = {}
-end
+require File.join(File.dirname(__FILE__),"test_helper")
 
 def get_class(class_name)
-  klass = RodTest.const_get(class_name) rescue nil
+  klass = RodTestSpace.const_get(class_name) rescue nil
   if klass.nil?
-    klass = Class.new(Rod::Model)
-    RodTest.const_set(class_name,klass)
+    klass = Class.new(RodTest::TestModel)
+    RodTestSpace.const_set(class_name,klass)
   end
   klass
 end
@@ -98,6 +92,10 @@ end
 
 When /^I store (him|her|it) in the database$/ do |ignore|
   @instance.store
+end
+
+When /^I store the (\w+) (\w+) in the database$/ do |position,class_name|
+  get_instance(class_name,position,true).store
 end
 
 Then /^there should be (\d+) (\w+)(\([^)]*\))?$/ do |count,class_name,ignore|

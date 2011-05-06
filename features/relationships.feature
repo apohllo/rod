@@ -50,3 +50,21 @@ Feature: relationships between different classes
     And the first Caveman should have 2 automobiles
     And the first of automobiles of the first Caveman should be equal to the first Automobile
     And the second of automobiles of the first Caveman should be equal to the second Automobile
+
+    # Should store in any order
+    When the database is created
+    And I create an Automobile
+    And its name is 'Prehistoric car'
+    And I create another Automobile
+    And its name is 'Modern car'
+    And I create a Caveman
+    And his name is 'Fred'
+    And his automobiles contain the first Automobile created
+    And his automobiles contain the second Automobile created
+    And I store the first Caveman in the database
+    And I store the first Automobile in the database
+    And I store the second Automobile in the database
+    And I reopen database for reading
+    Then there should be 1 Caveman
+    And there should be 2 Automobile(s)
+    And the first Caveman should have 2 automobiles

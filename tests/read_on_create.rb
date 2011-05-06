@@ -5,7 +5,7 @@ require 'validate_read_on_create'
 puts "-- Read data while creating DB --"
 
 
-RodTest::Model.create_database("tmp/read_write.dat")
+RodTest::Database.instance.create_database("tmp/read_write.dat")
 my_structures = []
 MAGNITUDO.times do |index|
   your_struct = RodTest::YourStruct.new
@@ -37,4 +37,4 @@ MAGNITUDO.times do |index|
 end
 
 
-RodTest::Model.close_database
+RodTest::Database.instance.close_database

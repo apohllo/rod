@@ -3,8 +3,8 @@ require 'structures'
 
 puts "-- Load sample structures test --"
 
-RodTest::Model.open_database("tmp/abc.dat")
-RodTest::Model.print_layout
+RodTest::Database.instance.open_database("tmp/abc.dat")
+RodTest::Database.instance.print_layout
 puts RodTest::MyStruct.count
 puts RodTest::YourStruct.count
 puts RodTest::HisStruct.count
@@ -20,4 +20,4 @@ end
 
 puts RodTest::MyStruct.find_by_title("title_10")
 
-RodTest::Model.close_database
+RodTest::Database.instance.close_database

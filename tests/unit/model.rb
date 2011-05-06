@@ -4,11 +4,11 @@ require 'structures'
 
 class ModelTest < Test::Unit::TestCase
   def setup
-    RodTest::Model.open_database("tmp/abc.dat")
+    RodTest::Database.instance.open_database("tmp/abc.dat")
   end
 
   def teardown
-    RodTest::Model.close_database()
+    RodTest::Database.instance.close_database()
   end
 
   def test_referential_integrity
@@ -30,6 +30,6 @@ class ModelTest < Test::Unit::TestCase
   end
 
   def test_print_system_error
-    RodTest::MyStruct.print_system_error
+    RodTest::Database.instance.print_system_error
   end
 end

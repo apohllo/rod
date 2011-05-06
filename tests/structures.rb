@@ -2,27 +2,11 @@ $:.unshift("lib")
 require 'rod'
 
 module RodTest
-  class Exporter < Rod::Exporter
-    def self.create(path,classes)
-      `touch #{__FILE__}`
-      super(path,classes)
-    end
-  end
-
-  class Loader < Rod::Loader
-    def self.open(path, classes)
-      super(path,classes)
-    end
+  class Database < Rod::Database
   end
 
   class Model < Rod::Model
-    def self.exporter_class
-      Exporter
-    end
-
-    def self.loader_class
-      Loader
-    end
+    database_class Database
   end
 
   class MyStruct < Model
