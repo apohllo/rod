@@ -95,7 +95,9 @@ module Rod
       raise "Incompatible object class #{object.class}" unless object.is_a?(self)
       raise "The object #{object} is allready stored" unless object.rod_id == 0
       @indices ||= {}
+      @object_count += 1
       exporter_class.send("_store_" + self.struct_name,object,self.superclass.handler)
+      # XXX a sort of 'memory leak'
       cache[object.rod_id-1] = object
 
       # update indices
@@ -174,8 +176,11 @@ module Rod
     # Returns the number of objects of this class stored in the
     # database. The database must be opened for reading (see +open+).
     def self.count
-      #TODO an exception if in wrong state?
-      loader_class.send("_#{self.struct_name}_count",self.superclass.handler)
+      if self.superclass.readonly_data?
+        loader_class.send("_#{self.struct_name}_count",self.superclass.handler)
+      else
+        @object_count || 0
+      end
     end
 
     # Iterates over object of this class stored in the database.
@@ -258,7 +263,7 @@ module Rod
     # internal data of the model.
     def self.print_layout
       raise "Database not opened." if @handler.nil?
-      if @readonly
+      if readonly_data?
         loader_class.print_layout(@handler)
       else
         exporter_class.print_layout(@handler)
@@ -283,7 +288,7 @@ module Rod
     def self.close_database(purge_subclasses=false)
       raise "Database not opened." if @handler.nil?
 
-      if @readonly
+      if readonly_data?
         loader_class.close(@handler, nil)
       else
         unless referenced_objects.select{|k, v| not v.empty?}.size == 0
@@ -498,6 +503,7 @@ module Rod
     def self.build_structure
       @plural_associations ||= {}
       @singular_associations ||= {}
+      @object_count = 0
       return if @structure_build
 
       inline(:C) do |builder|
