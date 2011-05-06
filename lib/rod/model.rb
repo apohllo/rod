@@ -275,11 +275,6 @@ module Rod
       @readonly
     end
 
-    # The array of pages on which this class's data is stored.
-    def self.page_offsets
-      @page_offsets ||= []
-    end
-
     # Closes the database.
     #
     # If the +purge_subclasses+ flag is set to true, the information about the classes
@@ -296,7 +291,6 @@ module Rod
         end
         exporter_class.close(@handler, self.subclasses)
       end
-      self.subclasses.each{|subc| subc.page_offsets.clear}
       @handler = nil
       @offsets = nil
       # clear subclass information
