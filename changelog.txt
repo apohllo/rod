@@ -1,3 +1,9 @@
+0.4.4
+- minor fix: count objects while storing
+- remove separate zero-string tests
+- Fred feature uses model step definitions
+- model step definitions refactoring
+- remove Ruby inline generated files during tests
 0.4.3
 - some test changed into features specification
 - default implementation of == for Model
