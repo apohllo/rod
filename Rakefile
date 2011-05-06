@@ -28,8 +28,6 @@ task :test do
   sh "ruby tests/save_struct.rb"
   sh "ruby tests/load_struct.rb"
   sh "ruby tests/unit/*.rb"
-  sh "ruby tests/save_zero_string.rb"
-  sh "ruby tests/load_zero_string.rb"
   sh "ruby tests/read_on_create.rb"
   sh "ruby tests/check_strings.rb"
   sh "ruby tests/full_runs.rb"
