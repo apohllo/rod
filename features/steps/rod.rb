@@ -16,6 +16,9 @@ Given /^(the )?database is created$/ do |ignore|
 end
 
 Given /^the class space is cleared$/ do
+  if Dir.glob("/home/fox/.ruby_inline/Inline_Rod*").size > 0
+    `rm /home/fox/.ruby_inline/Inline_Rod*`
+  end
   RodTest.constants.each{|c| RodTest.send(:remove_const,c.to_sym)}
   Rod::Model.close_database(true) if Rod::Model.opened?
 end
