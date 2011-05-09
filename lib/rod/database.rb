@@ -101,7 +101,15 @@ module Rod
 
     # Adds the +klass+ to the set of classes linked with this database.
     def add_class(klass)
-      @classes << klass
+      @classes << klass unless @classes.include?(klass)
+    end
+
+    # Remove the +klass+ from the set of classes linked with this database.
+    def remove_class(klass)
+      unless @classes.include?(klass)
+        raise DatabaseError.new("Class #{klass} is not linked with #{self}!")
+      end
+      @classes.delete(klass)
     end
 
     # Returns the C structure with given index for given +klass+.

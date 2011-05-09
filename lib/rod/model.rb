@@ -130,10 +130,11 @@ module Rod
     # database class. See notes on Rod::Database for further
     # informations why this is needed.
     def self.database_class(klass)
-      @database = klass.instance
-      if @lazy_link_with_database
-        self.add_to_database
+      unless @database.nil?
+        @database.remove_class(self)
       end
+      @database = klass.instance
+      self.add_to_database
     end
 
     #########################################################################
@@ -287,12 +288,16 @@ module Rod
 
     protected
 
-    # Used for building the C code.
+    # Used for establishing link with the DB.
     def self.inherited(subclass)
       begin
         subclass.add_to_database
       rescue MissingDatabase
-        @lazy_link_with_database = true
+        # this might happen for classes which inherit directly from
+        # the Rod::Model. Since the +inherited+ method is always called
+        # before the +database_class+ call, they never have the DB set-up
+        # when this is called.
+        # +add_to_database+ is called within +database_class+ for them.
       end
     end
 
