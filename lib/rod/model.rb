@@ -10,7 +10,9 @@ module Rod
     # This might happen if +build_structure+ was not called for the
     # class.
     def _initialize
-      raise "Method _initialize should not be called for abstract Model class"
+      raise RodException.new("Ensure that the +build_structure+ call was sent to concreate classes.\n" +
+                             "This won't happen if they are not linked with any database\n" +
+                             "or the database was not created/opened.")
     end
 
     private :_initialize
