@@ -6,6 +6,7 @@ Feature: Store and load small amount of data from one class
 
   Scenario: class with one field
     Given the class space is cleared
+    And the model is connected with the default database
     And a class Caveman has a name field of type string
     When database is created
     And I create a Caveman 
@@ -29,6 +30,7 @@ Feature: Store and load small amount of data from one class
 
   Scenario: class with every type of field
     Given the class space is cleared
+    And the model is connected with the default database
     And a class Caveman has a name field of type string
     And a class Caveman has an age field of type integer
     And a class Caveman has an identifier field of type ulong
@@ -49,6 +51,7 @@ Feature: Store and load small amount of data from one class
 
   Scenario: instance with string containing 0
     Given the class space is cleared
+    And the model is connected with the default database
     And a class Caveman has a name field of type string
     When database is created
     And I create a Caveman 
@@ -68,6 +71,7 @@ Feature: Store and load small amount of data from one class
 
   Scenario: reading fields while objects are created
     Given the class space is cleared
+    And the model is connected with the default database
     And a class Caveman has a name field of type string
     And a class Caveman has an age field of type integer
     And a class Caveman has an identifier field of type ulong
@@ -85,6 +89,7 @@ Feature: Store and load small amount of data from one class
 
   Scenario: referential integrity and indexing
     Given the class space is cleared
+    And the model is connected with the default database
     And a class Caveman has a name field of type string
     When database is created
     And I create a Caveman 

@@ -5,6 +5,7 @@ Feature: ROD Storage
   Background:
     Given the library works in development mode
     And the class space is cleared
+    And the model is connected with the default database
     And a class Fred has an age field of type integer
     And a class Fred has a sex field of type string with flat index
 

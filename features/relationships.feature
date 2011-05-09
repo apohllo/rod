@@ -6,6 +6,7 @@ Feature: relationships between different classes
 
   Scenario: two classes with has one relationship
     Given the class space is cleared
+    And the model is connected with the default database
     And a class Caveman has a name field of type string
     And a class Automobile has a name field of type string
     And a class Caveman has one automobile
@@ -26,6 +27,7 @@ Feature: relationships between different classes
 
   Scenario: two classes with has many relationship
     Given the class space is cleared
+    And the model is connected with the default database
     And a class Caveman has a name field of type string
     And a class Automobile has a name field of type string
     And a class Caveman has many automobiles

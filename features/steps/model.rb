@@ -1,13 +1,29 @@
 require 'rspec/expectations'
 require File.join(File.dirname(__FILE__),"test_helper")
 
-def get_class(class_name)
-  klass = RodTestSpace.const_get(class_name) rescue nil
+def get_class(class_name,type=:model)
+  klass = RodTest.const_get(class_name) rescue nil
   if klass.nil?
-    klass = Class.new(RodTest::TestModel)
-    RodTestSpace.const_set(class_name,klass)
+    superclass =
+      case type
+      when :model
+        RodTest::TestModel
+      when :db
+        Rod::Database
+      end
+    klass = Class.new(superclass)
+    RodTest.const_set(class_name,klass)
   end
   klass
+end
+
+def get_db(db_name)
+  case db_name
+  when "database"
+    RodTest::Database
+  else
+    get_class(db_name,:db)
+  end
 end
 
 def get_instance(class_name,position,cache=false)
@@ -48,6 +64,21 @@ def get_position(position)
   when "last"
     -1
   end
+end
+
+Given /^the model is connected with the default database$/ do
+  RodTest::TestModel.send(:database_class,RodTest::Database)
+end
+
+Given /^a class (\w+) inherits from ([\w:]+)$/ do |name1,name2|
+  if name2 =~ /::/
+    base_module = Module
+  else
+    base_module = RodTest
+  end
+  class2 = name2.split("::").inject(base_module){|m,n| m.const_get(n)}
+  class1 = Class.new(class2)
+  RodTest.const_set(name1,class1)
 end
 
 Given /^a class (\w+) has an? (\w+) field of type (\w+)( with (\w+) index)?$/ do |class_name,field,type,index,index_type|
