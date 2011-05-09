@@ -6,40 +6,9 @@ module Rod
   class Model
     include ActiveModel::Validations
 
-    # This exceptions is raised if there is a validation error.
-    class ValidationException < Exception
-      def initialize(message)
-        @message = message
-      end
-
-      def to_s
-        @message.join("\n")
-      end
-    end
-
-    # This exception is raised if there is no database linked with the class.
-    class MissingDatabase < Exception
-      def initialize(klass)
-        @klass = klass
-      end
-
-      def to_s
-        "Database not selected for class #{@klass}!\n" +
-          "Provide the database class via call to Rod::Model.database_class."
-      end
-    end
-
-    class InvalidArgument < Exception
-      def initialize(value,type)
-        @value = value
-        @type = type
-      end
-
-      def to_s
-        "The value '#@value' of the #@type is invalid!"
-      end
-    end
-
+    # Method _initialize must not be called for abstract Model class.
+    # This might happen if +build_structure+ was not called for the
+    # class.
     def _initialize
       raise "Method _initialize should not be called for abstract Model class"
     end
