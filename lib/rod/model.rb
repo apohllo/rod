@@ -408,7 +408,6 @@ module Rod
               <<-SUBEND
               |  unsigned long #{field}_length;
               |  unsigned long #{field}_offset;
-              |  unsigned long #{field}_page;
               SUBEND
             end
           end.join("\n|  \n") }
