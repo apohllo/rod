@@ -3,14 +3,7 @@ module Rod
   # This class implements the database abstraction, i.e. it
   # is a mediator between some model (a set of classes) and
   # the generated C code, implementing the data storage functionality.
-  #
-  # Instance of the class should not be used *as* the database (i.e.
-  # not in the macro-style function Rod::Model#database_class).
-  # A user should strongly consider subclassing it, since refraining
-  # from doing that, will not allow to use different databases for different
-  # models simultaneously. This is due to the way RubyInline creates and
-  # names (after the name of the class) the C code.
-  class Database
+  class AbstractDatabase
     # This class is a singleton, since in a given time instant there
     # is only one database (one file/set of files) storing data of
     # a given model (set of classes).

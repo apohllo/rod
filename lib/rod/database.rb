@@ -1,7 +1,16 @@
 require File.join(File.dirname(__FILE__),'constants')
 
 module Rod
-  class Service
+  # This class implements (in C) the Database abstraction defined
+  # in Rod::Database.
+  #
+  # Instance of the class should not be used *as* the database (i.e.
+  # not in the macro-style function Rod::Model#database_class).
+  # A user should strongly consider subclassing it, since refraining
+  # from doing that, will not allow to use different databases for different
+  # models simultaneously. This is due to the way RubyInline creates and
+  # names (after the name of the class) the C code.
+  class Database < AbstractDatabase
     # This flag indicates, if Service and Model works in development
     # mode, i.e. the dynamically loaded library has a unique, different id each time
     # the rod library is used.
@@ -467,6 +476,7 @@ module Rod
           |  }
           |  \n#{classes.map do |klass|
             <<-SUBEND
+            | printf("#{klass}\\n");
             |  if(model_p->#{klass.struct_name}_table != NULL){
             |    if(munmap(model_p->#{klass.struct_name}_table,page_size) == -1){
             |      rb_raise(cException,"Could not unmap #{klass.struct_name}.");
@@ -508,8 +518,12 @@ module Rod
           |    model_p->#{klass.struct_name}_offset = last_offset * page_size;
           |    last_offset = new_offset;
           |    fclose(class_file); //TODO delete this file
+          |    // XXX this causes a segfault if the DB is not closed properly in
+          |    // the right moment. #17
+          |    // ERROR starts
           |    cmd = malloc(sizeof(char) * (strlen(model_p->path) +
           |      #{klass.struct_name.size} + 8));
+          |    // ERROR ends
           |    strcpy(cmd,"rm -f ");
           |    strcat(cmd,model_p->path);
           |    strcat(cmd,".#{klass.struct_name}");
