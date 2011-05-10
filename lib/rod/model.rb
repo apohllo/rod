@@ -58,11 +58,16 @@ module Rod
     # Returns the number of objects of this class stored in the
     # database.
     def self.count
-      if database.readonly_data?
-        database.count(self)
-      else
-        @object_count || 0
-      end
+      self_count =
+        if database.readonly_data?
+          database.count(self)
+        else
+          @object_count || 0
+        end
+      # This should be changed if all other featurs connected with
+      # inheritence are implemented, especially #14
+      #subclasses.inject(self_count){|sum,sub| sum + sub.count}
+      self_count
     end
 
     # Iterates over object of this class stored in the database.
@@ -275,17 +280,29 @@ module Rod
 
     # Returns the fields of this class.
     def self.fields
-      @fields ||= {"rod_id" => {:type => :ulong}}
+      if self == Rod::Model
+        @fields ||= {"rod_id" => {:type => :ulong}}
+      else
+        @fields ||= superclass.fields.dup
+      end
     end
 
     # Returns singular associations of this class.
     def self.singular_associations
-      @singular_associations
+      if superclass.respond_to?(:singular_associations)
+        (@singular_associations || {}).merge(superclass.singular_associations)
+      else
+        @singular_associations || {}
+      end
     end
 
     # Returns plural associations of this class.
     def self.plural_associations
-      @plural_associations
+      if superclass.respond_to?(:plural_associations)
+        (@plural_associations || {}).merge(superclass.plural_associations)
+      else
+        @plural_associations || {}
+      end
     end
 
     protected
@@ -294,6 +311,7 @@ module Rod
     def self.inherited(subclass)
       begin
         subclass.add_to_database
+        subclasses << subclass
       rescue MissingDatabase
         # this might happen for classes which inherit directly from
         # the Rod::Model. Since the +inherited+ method is always called
@@ -301,6 +319,12 @@ module Rod
         # when this is called.
         # +add_to_database+ is called within +database_class+ for them.
       end
+    end
+
+    # Returns the subclasses of this class
+    def self.subclasses
+      @subclasses ||= []
+      @subclasses
     end
 
     # Add self to the database it is linked to.
