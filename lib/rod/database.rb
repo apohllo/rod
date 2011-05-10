@@ -73,7 +73,6 @@ module Rod
     end
 
     # Mmaps the class to its page during database creation.
-    # TODO merge with extend data file
     def mmap_class(klass)
       str =<<-SUBEND
       |  //printf("mmaping #{klass}\\n");
