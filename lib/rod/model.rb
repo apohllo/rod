@@ -116,8 +116,7 @@ module Rod
     #   with this class
     def self.has_many(name, options={})
       ensure_valid_name(name)
-      @plural_associations ||= {}
-      @plural_associations[name] = options
+      self.plural_associations[name] = options
     end
 
     # A macro-style function used to indicate that instances of this
@@ -129,8 +128,7 @@ module Rod
     #   with this class
     def self.has_one(name, options={})
       ensure_valid_name(name)
-      @singular_associations ||= {}
-      @singular_associations[name] = options
+      self.singular_associations[name] = options
     end
 
     # A macro-style function used to link the model with specific
@@ -207,7 +205,7 @@ module Rod
       # update object that references the stored object
       referenced_objects ||= database.referenced_objects
       # ... via singular associations
-      @singular_associations.each do |name, options|
+      singular_associations.each do |name, options|
         referenced = object.send(name)
         unless referenced.nil?
           # There is a referenced object, but its rod_id is not set.
@@ -221,7 +219,7 @@ module Rod
       end
 
       # ... via plural associations
-      @plural_associations.each do |name, options|
+      plural_associations.each do |name, options|
         referenced = object.send(name)
         unless referenced.nil?
           referenced.each_with_index do |element, index|
@@ -289,19 +287,19 @@ module Rod
 
     # Returns singular associations of this class.
     def self.singular_associations
-      if superclass.respond_to?(:singular_associations)
-        (@singular_associations || {}).merge(superclass.singular_associations)
+      if self == Rod::Model
+        @singular_associations ||= {}
       else
-        @singular_associations || {}
+        @singular_associations ||= superclass.singular_associations.dup
       end
     end
 
     # Returns plural associations of this class.
     def self.plural_associations
-      if superclass.respond_to?(:plural_associations)
-        (@plural_associations || {}).merge(superclass.plural_associations)
+      if self == Rod::Model
+        @plural_associations ||= {}
       else
-        @plural_associations || {}
+        @plural_associations ||= superclass.plural_associations.dup
       end
     end
 
@@ -414,10 +412,10 @@ module Rod
               SUBEND
             end
           end.join("\n|  \n") }
-          |  #{@singular_associations.map do |name, options|
+          |  #{singular_associations.map do |name, options|
             "unsigned long #{name};"
           end.join("\n|  ")}
-          |  \n#{@plural_associations.map do |name, options|
+          |  \n#{plural_associations.map do |name, options|
          "|  unsigned long #{name}_offset;\n"+
          "|  unsigned long #{name}_count;"
           end.join("\n|  \n")}
@@ -439,10 +437,10 @@ module Rod
               SUBEND
             end
           end.join("\n") }
-          |  \n#{@singular_associations.map do |name, options|
+          |  \n#{singular_associations.map do |name, options|
             "  printf(\"  singular assoc '#{name}': %lu\\n\",sizeof(unsigned long));"
           end.join("\n|  ")}
-          |  \n#{@plural_associations.map do |name, options|
+          |  \n#{plural_associations.map do |name, options|
          "|  printf(\"  plural assoc '#{name}' offset: %lu, count %lu\\n\",\n"+
          "|    sizeof(unsigned long),sizeof(unsigned long));"
           end.join("\n|  \n")}
@@ -476,8 +474,6 @@ module Rod
 
     # Adds C routines and dynamic Ruby accessors for a model class.
     def self.build_structure
-      @plural_associations ||= {}
-      @singular_associations ||= {}
       @object_count = 0
       return if @structure_build
 
@@ -499,12 +495,12 @@ module Rod
             SUBEND
           end
         end.join("\n")}
-        |  \n#{@singular_associations.map do |name,options|
+        |  \n#{singular_associations.map do |name,options|
         <<-SUBEND
         |  result->#{name} = 0;
         SUBEND
         end.join("\n")}
-        |  \n#{@plural_associations.map do |name, options|
+        |  \n#{plural_associations.map do |name, options|
         <<-SUBEND
         |  result->#{name}_count = 0;
         |  result->#{name}_offset = 0;
@@ -532,12 +528,12 @@ module Rod
           end
         end
 
-        @singular_associations.each do |name, options|
+        singular_associations.each do |name, options|
           field_reader(name,"unsigned long",builder)
           field_writer(name,"unsigned long",builder)
         end
 
-        @plural_associations.each do |name, options|
+        plural_associations.each do |name, options|
           field_reader("#{name}_count","unsigned long",builder)
           field_reader("#{name}_offset","unsigned long",builder)
           field_writer("#{name}_count","unsigned long",builder)
@@ -618,7 +614,7 @@ module Rod
         end
       end
 
-      @singular_associations.each do |name, options|
+      singular_associations.each do |name, options|
         private "_#{name}".to_sym, "_#{name}=".to_sym
         class_name =
           if options[:class_name]
@@ -649,7 +645,7 @@ module Rod
         end
       end
 
-      @plural_associations.each do |name, options|
+      plural_associations.each do |name, options|
         class_name =
           if options[:class_name]
             options[:class_name]

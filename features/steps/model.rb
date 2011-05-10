@@ -145,6 +145,14 @@ Then /^the (\w+) of the (\w+) (\w+) should be '([^']*)'( multiplied (\d+) times)
   get_instance(class_name,position).send(field.to_sym).should == value
 end
 
+Then /^the (\w+) (\w+) should not have a (\w+) field$/ do |position, class_name, field|
+  (lambda {get_instance(class_name,position).send(field.to_sym)}).should raise_error(NoMethodError)
+end
+
+Then /^the (\w+) (\w+) should not have (a|an )?(\w+)$/ do |position, class_name, ignore, assoc|
+  (lambda {get_instance(class_name,position).send(assoc.to_sym)}).should raise_error(NoMethodError)
+end
+
 Then /^the (\w+) (\w+) should not exist$/ do |position,class_name|
   (lambda {get_instance(class_name,position)}).should raise_error(IndexError)
 end
