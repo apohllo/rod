@@ -27,7 +27,7 @@ Feature: Store and load data for classes with inheritence relation
     And the name of the first User should be 'Annie'
     And the login of the first User should be 'ann123'
 
-  Scenario: three classes: A, B < A and C < D sharing some fields,
+  Scenario: three classes: A, B < A and C < B sharing some fields,
       connected to the same database.
 
     Given the class space is cleared
@@ -56,8 +56,11 @@ Feature: Store and load data for classes with inheritence relation
     And there should be 1 User(s)
     And there should be 1 SuperUser
     And the name of the first Person should be 'John'
+    And the first Person should not have a login field
+    And the first Person should not have a room field
     And the name of the first User should be 'Annie'
     And the login of the first User should be 'ann123'
+    And the first User should not have a room field
     And the name of the first SuperUser should be 'Nerd'
     And the login of the first SuperUser should be 'n4rrd'
     And the room of the first SuperUser should be '2-111'

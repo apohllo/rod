@@ -11,6 +11,8 @@ Given /^(the )?(\w+) is created$/ do |ignore,db_name|
       File.delete("tmp/#{db_name}.dat")
     end
   end
+  puts  db_name
+  puts get_db(db_name).instance.send(:classes)
   get_db(db_name).instance.create_database("tmp/#{db_name}.dat")
   @instances = {}
 end
@@ -20,9 +22,6 @@ Given /^a class (\w+) is connected to (\w+)$/ do |class_name,db_name|
 end
 
 Given /^the class space is cleared$/ do
-  if Dir.glob("/home/fox/.ruby_inline/Inline_Rod*").size > 0
-    `rm /home/fox/.ruby_inline/Inline_Rod*`
-  end
   #RodTest::Database.instance.close_database(true) if RodTest::Database.instance.opened?
   RodTest.constants.each do |constant|
     klass = RodTest.const_get(constant)
@@ -32,6 +31,10 @@ Given /^the class space is cleared$/ do
       end
     end
     RodTest.send(:remove_const,constant)
+  end
+  # TODO separate step?
+  if Dir.glob("/home/fox/.ruby_inline/Inline_Rod*").size > 0
+    `rm /home/fox/.ruby_inline/Inline_Rod*`
   end
   # TODO separate step?
   default_db = Class.new(Rod::Database)
