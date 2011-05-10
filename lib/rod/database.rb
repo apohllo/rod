@@ -1,4 +1,5 @@
 require File.join(File.dirname(__FILE__),'constants')
+require 'rod/abstract_database'
 
 module Rod
   # This class implements (in C) the Database abstraction defined
@@ -11,7 +12,7 @@ module Rod
   # models simultaneously. This is due to the way RubyInline creates and
   # names (after the name of the class) the C code.
   class Database < AbstractDatabase
-    # This flag indicates, if Service and Model works in development
+    # This flag indicates, if Database and Model works in development
     # mode, i.e. the dynamically loaded library has a unique, different id each time
     # the rod library is used.
     @@rod_development_mode = false
@@ -26,22 +27,19 @@ module Rod
       @@rod_development_mode
     end
 
-    # Closes the database.
-    def self.close(handler, classes)
-      _close(handler, classes)
-    end
+    #########################################################################
+    # Implementations of abstract methods
+    #########################################################################
+    protected
 
     ## Helper methods printing some generated code ##
 
-    def self.model_struct_name(path)
+    def model_struct_name(path)
       "model_" + path.gsub(/\W/,"_").squeeze("_")
     end
 
-    def self.print_layout(handler)
-      self._print_layout(handler)
-    end
-
-    def self.init_structs(classes)
+    # Initializes the C structures, which are based on the classes.
+    def init_structs(classes)
       classes.map do |klass|
         <<-END
         |  // first page offset - during READ
@@ -66,7 +64,7 @@ module Rod
       end.join("\n").margin
     end
 
-    def self.size_of_page(klass)
+    def size_of_page(klass)
       if klass != ::Rod::StringElement
         "per_page * sizeof(#{klass.struct_name})"
       else
@@ -76,7 +74,7 @@ module Rod
 
     # Mmaps the class to its page during database creation.
     # TODO merge with extend data file
-    def self.mmap_class(klass)
+    def mmap_class(klass)
       str =<<-SUBEND
       |  //printf("mmaping #{klass}\\n");
       |  //unmap the segment(s) first
@@ -149,10 +147,10 @@ module Rod
       str.margin
     end
 
-    # Generates the code in C responsible for management of the database.
-    def self.generate_c_code(path, classes)
+    # Generates the code C responsible for management of the database.
+    def generate_c_code(path, classes)
       if !@code_generated || @@rod_development_mode
-        inline(:C) do |builder|
+        self.class.inline(:C) do |builder|
           builder.include '<stdlib.h>'
           builder.include '<stdio.h>'
           builder.include '<string.h>'
@@ -235,7 +233,7 @@ module Rod
            |  return Data_Wrap_Struct(cClass, 0, free, model_p);
            |}
           END
-          builder.c_singleton(str.margin)
+          builder.c(str.margin)
 
           str =<<-END
           |VALUE _join_indices(unsigned long element_offset, unsigned long count, VALUE handler){
@@ -251,7 +249,7 @@ module Rod
           |  return result;
           |}
           END
-          builder.c_singleton(str.margin)
+          builder.c(str.margin)
 
           str =<<-END
           |void _set_join_element_offset(unsigned long element_offset,
@@ -269,7 +267,7 @@ module Rod
           |  element_p->offset = offset;
           |}
           END
-          builder.c_singleton(str.margin)
+          builder.c(str.margin)
 
           str =<<-END
           |VALUE _read_string(unsigned long length, unsigned long offset, VALUE handler){
@@ -279,7 +277,7 @@ module Rod
           |  return rb_str_new(str, length);
           |}
           END
-          builder.c_singleton(str.margin)
+          builder.c(str.margin)
 
           str =<<-END
           |VALUE _set_string(VALUE ruby_value, VALUE handler){
@@ -331,7 +329,7 @@ module Rod
           |  return result;
           |}
           END
-          builder.c_singleton(str.margin)
+          builder.c(str.margin)
 
           classes.each do |klass|
             next if klass == JoinElement or klass == StringElement
@@ -345,7 +343,7 @@ module Rod
                 |  return model_p->#{klass.struct_name}_#{field}_index_#{type};
                 |}
                 END
-                builder.c_singleton(str.margin)
+                builder.c(str.margin)
               end
             end
           end
@@ -440,7 +438,7 @@ module Rod
             |  return result;
             |}
             END
-            builder.c_singleton(str.margin)
+            builder.c(str.margin)
           end
 
           str =<<-END
@@ -476,7 +474,6 @@ module Rod
           |  }
           |  \n#{classes.map do |klass|
             <<-SUBEND
-            | printf("#{klass}\\n");
             |  if(model_p->#{klass.struct_name}_table != NULL){
             |    if(munmap(model_p->#{klass.struct_name}_table,page_size) == -1){
             |      rb_raise(cException,"Could not unmap #{klass.struct_name}.");
@@ -582,7 +579,7 @@ module Rod
           |  }
           |}
           END
-          builder.c_singleton(str.margin)
+          builder.c(str.margin)
 
           str =<<-END
           |VALUE _open(char * path){
@@ -647,7 +644,7 @@ module Rod
           |  return Data_Wrap_Struct(cClass, 0, free, model_p);
           |}
           END
-          builder.c_singleton(str.margin)
+          builder.c(str.margin)
 
           classes.each do |klass|
             next if klass == JoinElement or klass == StringElement
@@ -658,7 +655,7 @@ module Rod
             |  return model_p->#{klass.struct_name}_count;
             |}
             END
-            builder.c_singleton(str.margin)
+            builder.c(str.margin)
 
             str = <<-END
             |VALUE _#{klass.struct_name}_get(VALUE handler, unsigned long index){
@@ -669,7 +666,7 @@ module Rod
             |    model_p->#{klass.struct_name}_table + index);
             |}
             END
-            builder.c_singleton(str.margin)
+            builder.c(str.margin)
           end
           str = <<-END
           |void _print_layout(VALUE handler){
@@ -692,14 +689,14 @@ module Rod
           |  printf("=== Data layout END ===\\n");
           |}
           END
-          builder.c_singleton(str.margin)
+          builder.c(str.margin)
 
           str =<<-END
           |void _print_system_error(){
           |  perror(NULL);
           |}
           END
-          builder.c_singleton(str.margin)
+          builder.c(str.margin)
 
           if @@rod_development_mode
             # This method is created to force rebuild of the C code, since

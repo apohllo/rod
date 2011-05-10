@@ -1,7 +1,7 @@
 require File.join(File.dirname(__FILE__),"test_helper")
 
 Given /^the library works in development mode$/ do
-  Rod::Service.development_mode = true
+  Rod::Database.development_mode = true
 end
 
 Given /^(the )?(\w+) is created$/ do |ignore,db_name|
@@ -11,8 +11,6 @@ Given /^(the )?(\w+) is created$/ do |ignore,db_name|
       File.delete("tmp/#{db_name}.dat")
     end
   end
-  puts  db_name
-  puts get_db(db_name).instance.send(:classes)
   get_db(db_name).instance.create_database("tmp/#{db_name}.dat")
   @instances = {}
 end
