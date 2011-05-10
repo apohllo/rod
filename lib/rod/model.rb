@@ -173,7 +173,7 @@ module Rod
       if @indices[field].nil?
         raise "Index for field '#{field}' not build in '#{self.name}'"
       end
-      [Marshal.dump(@indices[field])].pack("m")
+      Marshal.dump(@indices[field])
     end
 
     # Stores given +object+ in the database. The object must be an
@@ -597,7 +597,7 @@ module Rod
                 values = %w{length offset}.map do |type|
                     database.read_index(self,field,type)
                   end
-                marshalled = database.read_string(*values).unpack("m").first
+                marshalled = database.read_string(*values)
                 index = Marshal.load(marshalled)
                 instance_variable_set("@#{field}_index".to_sym,index)
               end

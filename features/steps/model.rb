@@ -187,6 +187,6 @@ Then /^the (\w+) (\w+) should be identical with the (\w+) (\w+)$/ do |position1,
   instance1.object_id.should == instance2.object_id
 end
 
-Then /^there should be (\d+) (\w+)(\([^)]*\))? with (\w+) of value '(\w+)'$/ do |count,class_name,ignore,field,value|
+Then /^there should be (\d+) (\w+)(\([^)]*\))? with '([^']+)' (\w+)$/ do |count,class_name,ignore,value,field|
   get_class(class_name).send("find_all_by_#{field}",get_value(value)).count.should == count.to_i
 end

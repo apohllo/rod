@@ -37,8 +37,8 @@ Feature: ROD Storage
     And I store him in the database
     And I reopen database for reading
     Then database should be opened for reading
-    And there should be <count1> Fred(s) with sex of value 'male'
-    And there should be <count2> Fred(s) with sex of value 'female'
+    And there should be <count1> Fred(s) with 'male' sex
+    And there should be <count2> Fred(s) with 'female' sex
 
     Examples:
       | sex1  | sex2  | sex3    | count1  | count2  |
