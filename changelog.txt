@@ -1,3 +1,10 @@
+0.5.0
+- simultaneous usage of many databases
+- refactoring of service and model
+- remove page from string C definition
+- remove index packign/unpacking
+- inheritence of attributes and associations
+- features for all basic functions
 0.4.4
 - minor fix: count objects while storing
 - remove separate zero-string tests
