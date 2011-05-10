@@ -184,7 +184,7 @@ module Rod
       @indices ||= {}
       database.store(self,object)
       @object_count += 1
-      # XXX a sort of 'memory leak'
+      # XXX a sort of 'memory leak' #19
       cache[object.rod_id-1] = object
 
       # update indices
@@ -198,7 +198,7 @@ module Rod
             # since it forces the rebuild of the array
             @indices[field][object.send(field)] = []
           end
-           @indices[field][object.send(field)] << object.rod_id
+          @indices[field][object.send(field)] << object.rod_id
         end
       end
 
@@ -238,7 +238,7 @@ module Rod
 
       unless reverse_references.blank?
         reverse_references.each do |referee, method_name, index|
-          referee = referee.class.get(referee.rod_id-1)
+          referee = referee.class.find_by_rod_id(referee.rod_id)
           if index.nil?
             # singular association
             referee.set_referenced_id(method_name, object.rod_id)
@@ -258,17 +258,6 @@ module Rod
     # wrapped into Ruby classes.
     def self.struct_class_name
       self.to_s+"::Struct"
-    end
-
-    # Returns object of this class stored in the DB at given +position+.
-    def self.get(position)
-      object = cache[position]
-      if object.nil?
-        struct = database.get_structure(self,position)
-        object = self.new(struct)
-        cache[position] = object
-      end
-      object
     end
 
     def self.find_by_rod_id(rod_id)
@@ -304,6 +293,17 @@ module Rod
     end
 
     protected
+
+    # Returns object of this class stored in the DB at given +position+.
+    def self.get(position)
+      object = cache[position]
+      if object.nil?
+        struct = database.get_structure(self,position)
+        object = self.new(struct)
+        cache[position] = object
+      end
+      object
+    end
 
     # Used for establishing link with the DB.
     def self.inherited(subclass)
