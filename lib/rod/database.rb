@@ -146,6 +146,12 @@ module Rod
       str.margin
     end
 
+    # Returns true if the class is one of speciall classes
+    # (JoinElement, PolymorphicJoinElemen, StringElement).
+    def special_class?(klass)
+      self.class.special_classes.include?(klass)
+    end
+
     # Generates the code C responsible for management of the database.
     def generate_c_code(path, classes)
       if !@code_generated || @@rod_development_mode
@@ -331,7 +337,7 @@ module Rod
           builder.c(str.margin)
 
           classes.each do |klass|
-            next if klass == JoinElement or klass == StringElement
+            next if special_class?(klass)
             klass.fields.each do |field,options|
               next unless options[:index]
               %w{length offset}.each do |type|
@@ -348,7 +354,7 @@ module Rod
           end
 
           classes.each do |klass|
-            next if klass == JoinElement or klass == StringElement
+            next if special_class?(klass)
             str =<<-END
             |// Store the object in the database.
             |// The value returned is the index of the page
@@ -646,7 +652,7 @@ module Rod
           builder.c(str.margin)
 
           classes.each do |klass|
-            next if klass == JoinElement or klass == StringElement
+            next if special_class?(klass)
             str = <<-END
             |unsigned long _#{klass.struct_name}_count(VALUE handler){
             |  #{model_struct} * model_p;

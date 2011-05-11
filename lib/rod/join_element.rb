@@ -34,4 +34,21 @@ module Rod
       @cache ||= WeakHash.new
     end
   end
+
+  class PolymorphicJoinElemen < JoinElement
+    def self.typedef_struct
+      str = <<-END
+      |typedef struct {
+      |  unsigned long offset;
+      |  unsigned long index;
+      |  unsigned long class;
+      |} _polymorphic_join_element;
+      END
+      str.margin
+    end
+
+    def self.struct_name
+      "_polymorphic_join_element"
+    end
+  end
 end

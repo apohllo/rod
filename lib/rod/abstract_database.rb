@@ -11,7 +11,7 @@ module Rod
 
     # Initializes the classes linked with this database and the handler.
     def initialize
-      @classes ||= [JoinElement, StringElement]
+      @classes ||= self.class.special_classes
       @handler = nil
     end
 
@@ -73,7 +73,7 @@ module Rod
       @handler = nil
       # clear class information
       if purge_classes
-        @classes = [JoinElement, StringElement]
+        @classes = self.class.special_classes
       end
     end
 
@@ -165,6 +165,11 @@ module Rod
     # Returns collected subclasses.
     def classes
       @classes.sort{|c1,c2| c1.to_s <=> c2.to_s}
+    end
+
+    # Special classes used by the database.
+    def self.special_classes
+      [JoinElement, PolymorphicJoinElemen, StringElement]
     end
   end
 end
