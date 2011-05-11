@@ -396,18 +396,6 @@ module Rod
                    "rb_funcall(object, rb_intern(\"#{field}\"),0));"
                end
             end.join("\n")}
-            |  //printf("singular assocs\\n");
-            |  \n#{klass.singular_associations.map do |name, options|
-              <<-SUBEND
-              |  VALUE referenced_#{name} = rb_funcall(object, rb_intern("#{name}"),0);
-              |  if(referenced_#{name} == Qnil){
-              |    struct_p->#{name} = 0;
-              |  } else {
-              |    struct_p->#{name} = NUM2ULONG(rb_funcall(referenced_#{name},
-              |      rb_intern("rod_id"),0));
-              |  }
-              SUBEND
-            end.join("\n")}
             |  \n#{klass.plural_associations.map do |name, options|
               <<-SUBEND
               |  VALUE referenced_#{name} = rb_funcall(object, rb_intern("#{name}"),0);

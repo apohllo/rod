@@ -146,6 +146,9 @@ module Rod
     # Store the object in the database.
     def store(klass,object)
       send("_store_" + klass.struct_name,object,@handler)
+      object.class.singular_associations.each do |name,options|
+        object.update_singular_association(name,object.send(name),false)
+      end
     end
 
     # Prints the layout of the pages in memory and other

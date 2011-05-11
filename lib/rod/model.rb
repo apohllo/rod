@@ -114,6 +114,8 @@ module Rod
     # Options:
     # * +:class_name+ - the name of the class (as String) associated
     #   with this class
+    # * +:polymorphic+ - if set to +true+ the association is polymorphic (allows to acess
+    #   objects of different classes via this association)
     def self.has_many(name, options={})
       ensure_valid_name(name)
       self.plural_associations[name] = options
@@ -126,6 +128,8 @@ module Rod
     # Options:
     # * +:class_name+ - the name of the class (as String) associated
     #   with this class
+    # * +:polymorphic+ - if set to +true+ the association is polymorphic (allows to acess
+    #   objects of different classes via this association)
     def self.has_one(name, options={})
       ensure_valid_name(name)
       self.singular_associations[name] = options
@@ -147,21 +151,40 @@ module Rod
     #########################################################################
 
     public
-    # Set id of the object referenced via singular association.
-    def set_referenced_id(name, value)
-      sync_struct
-      send("_#{name}=", @struct, value)
+    # Update information about the +object+ which
+    # is referenced via singular association with +name+.
+    #
+    # The +sync+ flag indicates whether the object struct
+    # should be synced. This should happen, if the class
+    # was re-mmaped (during database creation).
+    def update_singular_association(name, object, sync=true)
+      sync_struct if sync
+      object_id = object.nil? ? 0 : object.rod_id
+      send("_#{name}=", @struct, object_id)
+      if self.class.singular_associations[name][:polymorphic]
+        send("_#{name}__class=", @struct, object.class.classname_hash)
+      end
     end
 
-    # Set id of the object referenced via plural association.
+    # Update information about the +object+ which is
+    # referenced via plural association with +name+.
     #
     # The name of the association is +name+, the referenced
     # object id is +object_id+ and +index+ is the position
     # of the referenced object in the association.
-    def set_element_referenced_id(name, object_id, index)
-      sync_struct
+    #
+    # The +sync+ flag indicates whether the object struct
+    # should be synced. This should happen, if the class
+    # was re-mmaped (during database creation).
+    def update_plural_association(name, object, index, sync=true)
+      sync_struct if sync
       offset = send("_#{name}_offset",@struct)
-      database.set_join_element_id(offset, index, object_id)
+      if self.class.plural_associations[name][:polymorphic]
+        database.set_polymorphic_join_element_id(offset, index, object.rod_id,
+                                                object.class.classname_hash)
+      else
+        database.set_join_element_id(offset, index, object.rod_id)
+      end
     end
 
     # Returns marshalled index for given field
@@ -237,9 +260,9 @@ module Rod
           referee = referee.class.find_by_rod_id(referee.rod_id)
           if index.nil?
             # singular association
-            referee.set_referenced_id(method_name, object.rod_id)
+            referee.update_singular_association(method_name, object)
           else
-            referee.set_element_referenced_id(method_name, object.rod_id, index)
+            referee.update_plural_association(method_name, object, index)
           end
         end
       end
@@ -305,6 +328,7 @@ module Rod
     def self.inherited(subclass)
       begin
         subclass.add_to_database
+        subclass.add_to_class_space
         subclasses << subclass
       rescue MissingDatabase
         # this might happen for classes which inherit directly from
@@ -324,6 +348,32 @@ module Rod
     # Add self to the database it is linked to.
     def self.add_to_database
       self.database.add_class(self)
+    end
+
+    # Add self to the Rod model class space. This is need
+    # to determine the class for polymorphic associations.
+    def self.add_to_class_space
+      Model.add_class(self)
+    end
+
+    # Adds given +klass+ to the class space.
+    # This method is used only for Model class itself. It should
+    # not be called for the subclasses.
+    def self.add_class(klass)
+      raise RodException.new("'add_class' method is final for Rod::Model") if self != Model
+      @class_space ||= {}
+      @class_space[klass.classname_hash] = klass
+    end
+
+    def self.get_class(klass_hash)
+      raise RodException.new("'get_class' method is final for Rod::Model") if self != Model
+      @class_space ||= {}
+      klass = @class_space[klass_hash]
+      if klass.nil?
+        raise RodException.new("There is no class with classname hash '#{klass_hash}'!\n" +
+                              "Check if all needed classes are loaded.")
+      end
+      klass
     end
 
     # Returns the database given instance belongs to (is or will be stored within).
@@ -393,6 +443,17 @@ module Rod
     # C-oriented API
     #########################################################################
 
+    # The SHA2 digest of the class name
+    def self.classname_hash
+      return @classname_hash unless @classname_hash.nil?
+      digest = Digest::SHA2.new
+      digest << self.struct_name
+      # This is not used to protect any value, only to
+      # distinguish names of classes. It doesn't have to be
+      # very strong agains collission attacks.
+      @classname_hash = digest.to_s.to_i(16) % 2 ** 32
+    end
+
     # The C structure representing this class.
     def self.typedef_struct
       result = <<-END
@@ -408,11 +469,17 @@ module Rod
             end
           end.join("\n|  \n") }
           |  #{singular_associations.map do |name, options|
-            "unsigned long #{name};"
+            result = "unsigned long #{name};"
+            if options[:polymorphic]
+              result += "  unsigned long #{name}__class;"
+            end
+            result
           end.join("\n|  ")}
           |  \n#{plural_associations.map do |name, options|
-         "|  unsigned long #{name}_offset;\n"+
-         "|  unsigned long #{name}_count;"
+            result =
+              "|  unsigned long #{name}_offset;\n"+
+              "|  unsigned long #{name}_count;"
+            result
           end.join("\n|  \n")}
           |} #{struct_name()};
       END
@@ -493,7 +560,7 @@ module Rod
         end.join("\n")}
         |  \n#{singular_associations.map do |name,options|
         <<-SUBEND
-        |  result->#{name} = 0;
+        |  result->#{name} = 0; #{options[:polymorphic] ? "result->#{name}__class = 0;" : ""}
         SUBEND
         end.join("\n")}
         |  \n#{plural_associations.map do |name, options|
@@ -530,6 +597,10 @@ module Rod
         singular_associations.each do |name, options|
           field_reader(name,"unsigned long",builder)
           field_writer(name,"unsigned long",builder)
+          if options[:polymorphic]
+            field_reader("#{name}__class","unsigned long",builder)
+            field_writer("#{name}__class","unsigned long",builder)
+          end
         end
 
         plural_associations.each do |name, options|
@@ -631,7 +702,13 @@ module Rod
             if index == 0
               value = nil
             else
-              value = class_name.constantize.get(index-1)
+              if options[:polymorphic]
+                puts "class id #{send("_#{name}__class",@struct)}"
+                klass = Model.get_class(send("_#{name}__class",@struct))
+                value = klass.get(index-1)
+              else
+                value = class_name.constantize.get(index-1)
+              end
             end
             send("#{name}=",value)
           end
