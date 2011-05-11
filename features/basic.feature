@@ -5,6 +5,7 @@ Feature: Store and load small amount of data from one class
     Given the library works in development mode
 
   Scenario: class with one field
+      Rod should allow to store in the DB instances of a class with one field
     Given the class space is cleared
     And the model is connected with the default database
     And a class Caveman has a name field of type string
@@ -29,6 +30,8 @@ Feature: Store and load small amount of data from one class
     And the third Caveman should not exist
 
   Scenario: class with every type of field
+      Rod should allow to store in the DB instances of a class
+      having fields of each type
     Given the class space is cleared
     And the model is connected with the default database
     And a class Caveman has a name field of type string
@@ -50,6 +53,8 @@ Feature: Store and load small amount of data from one class
     And the height of the first Caveman should be '1.86'
 
   Scenario: instance with string containing 0
+      Rod should allow to store in the DB string values
+      containing characters equal to 0 (not the number but value)
     Given the class space is cleared
     And the model is connected with the default database
     And a class Caveman has a name field of type string
@@ -70,6 +75,8 @@ Feature: Store and load small amount of data from one class
     And the name of the first Caveman should be 'Fred\0' multiplied 30000 times
 
   Scenario: reading fields while objects are created
+      Rod should allow to read values of fields of instances, before and after
+      the instance is stored to the DB.
     Given the class space is cleared
     And the model is connected with the default database
     And a class Caveman has a name field of type string
@@ -88,6 +95,10 @@ Feature: Store and load small amount of data from one class
     And his height should be '1.86'
 
   Scenario: referential integrity and simple indexing
+      Rod should allow to access objects via simple indexing
+      (i.e. Model[index]).
+      It should also impose referential integrity for objects
+      which are accessed via their indices.
     Given the class space is cleared
     And the model is connected with the default database
     And a class Caveman has a name field of type string
@@ -100,6 +111,8 @@ Feature: Store and load small amount of data from one class
     And the first Caveman should be equal with the instance
 
   Scenario: indexing of fields
+      Rod should allow to access objects via values of their fields,
+      for which indices were built.
     Given the class space is cleared
     And the model is connected with the default database
     And a class Caveman has a name field of type string with flat index
