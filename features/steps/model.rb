@@ -90,12 +90,26 @@ Given /^a class (\w+) has an? (\w+) field of type (\w+)( with (\w+) index)?$/ do
   end
 end
 
-Given /^a class (\w+) has one (\w+)$/ do |class_name,field|
-  get_class(class_name).send(:has_one,field.to_sym)
+Given /^a class (\w+) has one (\w+ )?(\w+)$/ do |class_name,type,assoc|
+  options = {}
+  unless type.nil?
+    case type
+    when /polymorphic/
+      options[:polymorphic] = true
+    end
+  end
+  get_class(class_name).send(:has_one,assoc.to_sym,options)
 end
 
-Given /^a class (\w+) has many (\w+)$/ do |class_name,field|
-  get_class(class_name).send(:has_many,field.to_sym)
+Given /^a class (\w+) has many (\w+ )?(\w+)$/ do |class_name,type,assoc|
+  options = {}
+  unless type.nil?
+    case type
+    when "polymorphic"
+      options[:polymorphic] = true
+    end
+  end
+  get_class(class_name).send(:has_many,assoc.to_sym,options)
 end
 
 When /^I create a(nother|n)? (\w+)$/ do |ignore,class_name|

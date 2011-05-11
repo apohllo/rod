@@ -70,3 +70,59 @@ Feature: relationships between different classes
     Then there should be 1 Caveman
     And there should be 2 Automobile(s)
     And the first Caveman should have 2 automobiles
+
+  Scenario: three classes with has one polymorphic association
+    Given the class space is cleared
+    And the model is connected with the default database
+    And a class Caveman has a name field of type string
+    And a class Caveman has one polymorphic item
+    And a class Automobile has a name field of type string
+    And a class Dog has a nickname field of type string
+    When the database is created
+    And I create an Automobile
+    And its name is 'Prehistoric car'
+    And I store it in the database
+    And I create a Dog
+    And its nickname is 'Snoopy'
+    And I store it in the database
+    And I create a Caveman
+    And his name is 'Fred'
+    And his item is the first Automobile created
+    And I store him in the database
+    And I create another Caveman
+    And her name is 'Willma'
+    And her item is the first Dog created
+    And I store her in the database
+    And I reopen database for reading
+    Then there should be 2 Caveman(s)
+    And there should be 1 Automobile
+    And there should be 1 Dog
+    And the item of the first Caveman should be equal to the first Automobile
+    And the item of the second Caveman should be equal to the first Dog
+
+  Scenario: three classes with has many polymorphic association
+    Given the class space is cleared
+    And the model is connected with the default database
+    And a class Caveman has a name field of type string
+    And a class Caveman has many polymorphic items
+    And a class Automobile has a name field of type string
+    And a class Dog has a nickname field of type string
+    When the database is created
+    And I create an Automobile
+    And its name is 'Prehistoric car'
+    And I store it in the database
+    And I create a Dog
+    And its nickname is 'Snoopy'
+    And I store it in the database
+    And I create a Caveman
+    And his name is 'Fred'
+    And his items contain the first Automobile created
+    And his items contain the first Dog created
+    And I store him in the database
+    And I reopen database for reading
+    Then there should be 1 Caveman
+    And there should be 1 Automobile
+    And there should be 1 Dog
+    And the first Caveman should have 2 items
+    And the first of items of the first Caveman should be equal to the first Automobile
+    And the second of items of the second Caveman should be equal to the first Dog
