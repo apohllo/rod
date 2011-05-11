@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name = "rod"
-  s.version = "0.5.0"
+  s.version = "0.5.1"
   s.date = "#{Time.now}"
   s.summary = "Ruby read-only object database"
   s.email = "apohllo@o2.pl"
@@ -9,7 +9,7 @@ Gem::Specification.new do |s|
   s.require_path = "lib"
   s.has_rdoc = true
   s.authors = ['Aleksander Pohl', 'Piotr Gurgul', 'Marcin Sieniek']
-  s.files = ["Rakefile", "rod.gemspec", 'lib/rod.rb', 'README', 
+  s.files = ["Rakefile", "rod.gemspec", 'lib/rod.rb', 'README',
     'changelog.txt', 'Gemfile'] + Dir.glob("lib/**/*")
   #s.test_files = Dir.glob("{test,spect}/**/*")
   #s.rdoc_options = ["--main", "README.txt"]

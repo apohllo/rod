@@ -17,6 +17,9 @@ task :uninstall do
   sh "sudo gem uninstall #$gem_name"
 end
 
+task :all_tests => [:test,:spec,:regression_test] do
+end
+
 desc "Run performence tests"
 task :perf do
   sh "ruby tests/eff1_test.rb"
