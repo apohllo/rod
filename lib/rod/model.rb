@@ -167,11 +167,11 @@ module Rod
     # Returns marshalled index for given field
     def self.field_index(field)
       if @indices.nil?
-        raise "Indices not build for '#{self.name}'"
+        raise RodException.new("Indices not build for '#{self.name}'")
       end
       field = field.to_sym
       if @indices[field].nil?
-        raise "Index for field '#{field}' not build in '#{self.name}'"
+        raise RodException.new("Index for field '#{field}' not build in '#{self.name}'")
       end
       Marshal.dump(@indices[field])
     end
@@ -181,7 +181,6 @@ module Rod
     def self.store(object)
       raise "Incompatible object class #{object.class}" unless object.is_a?(self)
       raise "The object #{object} is allready stored" unless object.rod_id == 0
-      @indices ||= {}
       database.store(self,object)
       @object_count += 1
       # XXX a sort of 'memory leak' #19
@@ -190,9 +189,6 @@ module Rod
       # update indices
       self.fields.each do |field,options|
         if options[:index]
-          if @indices[field].nil?
-            @indices[field] = {}
-          end
           if @indices[field][object.send(field)].nil?
             # We don't use the hash default value approach,
             # since it forces the rebuild of the array
@@ -471,10 +467,11 @@ module Rod
       builder.c(str.margin)
     end
 
-    # Adds C routines and dynamic Ruby accessors for a model class.
+    # This code intializes the class. It adds C routines and dynamic Ruby accessors.
     def self.build_structure
       @object_count = 0
-      return if @structure_build
+      return if @structure_built
+      @indices ||= {}
 
       inline(:C) do |builder|
         builder.prefix(typedef_struct)
@@ -524,6 +521,9 @@ module Rod
           else
             field_reader("#{name}_length","unsigned long",builder)
             field_reader("#{name}_offset","unsigned long",builder)
+          end
+          if options[:index]
+            @indices[name] = {}
           end
         end
 
@@ -689,7 +689,7 @@ module Rod
           instance_variable_set(("@" + name.to_s).to_sym, value)
         end
       end
-      @structure_build = true
+      @structure_built = true
     end
   end
 end

@@ -137,3 +137,26 @@ Feature: Store and load small amount of data from one class
     And there should be 1 Caveman with '111122225555' identifier
     And there should be 2 Caveman(s) with '1.67' height
     And there should be 1 Caveman with '1.86' height
+
+  Scenario: model without instances
+      A model without instances should be treated fine.
+    Given the class space is cleared
+    And the model is connected with the default database
+    And a class Caveman has a name field of type string with flat index
+    When database is created
+    And I reopen database for reading
+    Then there should be 0 Caveman(s)
+
+  Scenario: model without instances with indexed field
+      A model without instances but with indexed field should be treated fine.
+    Given the class space is cleared
+    And the model is connected with the default database
+    And a class Caveman has a name field of type string with flat index
+    And a class Automobile has a name field of type string with flat index
+    When database is created
+    And I create a Caveman
+    And his name is 'Fred'
+    And I store him in the database
+    And I reopen database for reading
+    Then there should be 1 Caveman
+    And there should be 0 Automobile(s)
