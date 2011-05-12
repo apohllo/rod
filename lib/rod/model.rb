@@ -180,11 +180,24 @@ module Rod
       sync_struct if sync
       offset = send("_#{name}_offset",@struct)
       if self.class.plural_associations[name][:polymorphic]
-        database.set_polymorphic_join_element_id(offset, index, object.rod_id,
-                                                object.class.classname_hash)
+        class_id = object.nil? ? 0 : object.class.name_hash
+        database.set_polymorphic_join_element_id(offset, index, object_id,
+                                                class_id)
       else
         database.set_join_element_id(offset, index, object.rod_id)
       end
+    end
+
+    # Updates count of elements for association with +name+
+    # to +value+.
+    def update_count(name,value)
+      send("_#{name}_count=",@struct,value)
+    end
+
+    # Updates offset of elements for association with +name+
+    # to +value+.
+    def update_offset(name,value)
+      send("_#{name}_offset=",@struct,value)
     end
 
     # Returns marshalled index for given field
@@ -733,20 +746,25 @@ module Rod
         # getter
         define_method("#{name}") do
           values = instance_variable_get(("@" + name.to_s).to_sym)
-          klass = class_name.constantize
           if values.nil?
             count = self.send("_#{name}_count",@struct)
             return instance_variable_set(("@" + name.to_s).to_sym,[]) if count == 0
-            indices = database.join_indices(self.send("_#{name}_offset",@struct),count)
-            # the indices are shifted by 1, to leave 0 for nil
-            values =
-              indices.map do |index|
-                if index == 0
-                  nil
-                else
-                  klass.get(index-1)
-                end
+            unless options[:polymorphic]
+              klass = class_name.constantize
+              # the indices are shifted by 1, to leave 0 for nil
+              values = database.
+                join_indices(self.send("_#{name}_offset",@struct),count).
+                map do |index|
+                index == 0 ? nil : klass.get(index-1)
               end
+            else
+              values = database.
+                polymorphic_join_indices(self.send("_#{name}_offset",@struct),count).
+                map do |index,class_id|
+                # the indices are shifted by 1, to leave 0 for nil
+                index == 0 ? nil : Model.get_class(class_id).get(index-1)
+              end
+            end
             instance_variable_set(("@" + name.to_s).to_sym, values)
           end
           values

@@ -35,7 +35,7 @@ module Rod
     end
   end
 
-  class PolymorphicJoinElemen < JoinElement
+  class PolymorphicJoinElement < JoinElement
     def self.typedef_struct
       str = <<-END
       |typedef struct {

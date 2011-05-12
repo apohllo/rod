@@ -117,9 +117,27 @@ module Rod
       _join_indices(offset, count, @handler)
     end
 
+    # Returns +count+ number of polymorphic join indices starting from +offset+.
+    # These are the indices for has many association of one type for one instance.
+    # Each index is a pair of object index and object class id (classname_hash).
+    def polymorphic_join_indices(offset, count)
+      table = _polymorphic_join_indices(offset, count, @handler)
+      if table.size % 2 != 0
+        raise RodException.new("Polymorphic join indices table is not even!")
+      end
+      (table.size/2).times.map{|i| [table[i*2],table[i*2+1]]}
+    end
+
     # Sets the +object_id+ of the join element with +offset+ and +index+.
     def set_join_element_id(offset,index,object_id)
       _set_join_element_offset(offset, index, object_id, @handler)
+    end
+
+    # Sets the +object_id+ and +class_id+ of the
+    # polymorphic join element with +offset+ and +index+.
+    def set_polymorphic_join_element_id(offset,index,object_id,class_id)
+      _set_polymorphic_join_element_offset(offset, index, object_id,
+                                           class_id, @handler)
     end
 
     # Returns the string of given +length+ starting at given +offset+.
@@ -146,8 +164,23 @@ module Rod
     # Store the object in the database.
     def store(klass,object)
       send("_store_" + klass.struct_name,object,@handler)
+      # set ids of objects referenced via singular associations
       object.class.singular_associations.each do |name,options|
         object.update_singular_association(name,object.send(name),false)
+      end
+      # set ids of objects referenced via plural associations
+      object.class.plural_associations.each do |name,options|
+        elements = object.send(name) || []
+        if options[:polymorphic]
+          offset = _allocate_polymorphic_join_elements(elements.size,@handler)
+        else
+          offset = _allocate_join_elements(elements.size,@handler)
+        end
+        object.update_count(name,elements.size)
+        object.update_offset(name,offset)
+        elements.each.with_index do |associated,index|
+          object.update_plural_association(name,associated,index,false)
+        end
       end
     end
 
@@ -172,7 +205,7 @@ module Rod
 
     # Special classes used by the database.
     def self.special_classes
-      [JoinElement, PolymorphicJoinElemen, StringElement]
+      [JoinElement, PolymorphicJoinElement, StringElement]
     end
   end
 end
