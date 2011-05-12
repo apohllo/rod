@@ -13,5 +13,11 @@ module Rod
   VERSION = "0.5.2"
 end
 
-files = Dir.glob(File.join(File.dirname(__FILE__), 'rod/**.rb'))
-files.each{ |f| require f }
+require 'rod/abstract_database'
+require 'rod/constants'
+require 'rod/database'
+require 'rod/exception'
+require 'rod/join_element'
+require 'rod/model'
+require 'rod/string_element'
+require 'rod/string_ex'
