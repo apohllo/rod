@@ -1,15 +1,20 @@
+$:.unshift "lib"
+require 'rod'
+
 task :default => [:install]
 
 $gem_name = "rod"
 
 desc "Build the gem"
-task :build => :test do
+task :build => :all_tests do
   sh "gem build #$gem_name.gemspec"
+  FileUtils.mkdir("pkg") unless File.exist?("pkg")
+  sh "mv '#$gem_name-#{Rod::VERSION}.gem' pkg"
 end
 
 desc "Install the library at local machnie"
 task :install => :build do 
-  sh "sudo gem install #$gem_name"
+  sh "sudo gem install pkg/#$gem_name-#{Rod::VERSION}.gem"
 end
 
 desc "Uninstall the library from local machnie"

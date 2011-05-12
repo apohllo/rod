@@ -9,6 +9,9 @@ require 'active_support/dependencies'
 # See #21
 ActiveSupport::Dependencies.mechanism = :require
 
+module Rod
+  VERSION = "0.5.2"
+end
 
 files = Dir.glob(File.join(File.dirname(__FILE__), 'rod/**.rb'))
 files.each{ |f| require f }

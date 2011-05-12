@@ -4,3 +4,4 @@ work
 *.gem
 Gemfile.lock
 .bundle
+pkg

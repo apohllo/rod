@@ -1,6 +1,9 @@
+$:.unshift "lib"
+require 'rod'
+
 Gem::Specification.new do |s|
   s.name = "rod"
-  s.version = "0.5.1"
+  s.version = Rod::VERSION
   s.date = "#{Time.now}"
   s.summary = "Ruby read-only object database"
   s.email = "apohllo@o2.pl"
