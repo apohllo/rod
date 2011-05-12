@@ -105,7 +105,7 @@ Given /^a class (\w+) has many (\w+ )?(\w+)$/ do |class_name,type,assoc|
   options = {}
   unless type.nil?
     case type
-    when "polymorphic"
+    when /polymorphic/
       options[:polymorphic] = true
     end
   end
@@ -127,12 +127,22 @@ When /^(his|her|its) (\w+) is '([^']*)'( multiplied (\d+) times)?$/ do |ignore,f
   @instance.send("#{field}=".to_sym,value)
 end
 
+When /^(his|her|its) (\w+) is nil$/ do |ignore,field|
+  @instance.send("#{field}=".to_sym,nil)
+end
+
+
+
 When /^(his|her|its) (\w+) is the (\w+) (\w+) created$/ do |ignore,field,position,class_name|
   @instance.send("#{field}=".to_sym,get_instance(class_name,position,true))
 end
 
 When /^(his|her|its) (\w+) contain the (\w+) (\w+) created$/ do |ignore,field,position,class_name|
   @instance.send("#{field}".to_sym) << get_instance(class_name,position,true)
+end
+
+When /^(his|her|its) (\w+) contain nil$/ do |ignore,field|
+  @instance.send("#{field}".to_sym) << nil
 end
 
 When /^I store (him|her|it) in the database$/ do |ignore|
@@ -176,6 +186,11 @@ Then /^the (\w+) of the (\w+) (\w+) should be equal to the (\w+) (\w+)$/ do |fie
     get_instance(class2,position2,true)
 end
 
+Then /^the (\w+) of the (\w+) (\w+) should be nil$/ do |field,position1,class1|
+  get_instance(class1,position1).send(field.to_sym).should == nil
+end
+
+
 Then /^the (\w+) (\w+) should have (\d+) (\w+)$/ do |position,class_name,count,field|
   get_instance(class_name,position).send(field.to_sym).count.should == count.to_i
 end
@@ -183,6 +198,10 @@ end
 Then /^the (\w+) of (\w+) of the (\w+) (\w+) should be equal to the (\w+) (\w+)$/ do |position0,field,position1,class1,position2,class2|
   get_instance(class1,position1).send(field.to_sym)[get_position(position0)].should ==
     get_instance(class2,position2,true)
+end
+
+Then /^the (\w+) of (\w+) of the (\w+) (\w+) should be nil$/ do |position0,field,position1,class1|
+  get_instance(class1,position1).send(field.to_sym)[get_position(position0)].should == nil
 end
 
 Then /^(his|her|its) (\w+) should be '([^']*)'$/ do |ignore,field, value|
