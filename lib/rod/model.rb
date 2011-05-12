@@ -181,12 +181,13 @@ module Rod
     def update_plural_association(name, object, index, sync=true)
       sync_struct if sync
       offset = send("_#{name}_offset",@struct)
+      object_id = object.nil? ? 0 : object.rod_id
       if self.class.plural_associations[name][:polymorphic]
         class_id = object.nil? ? 0 : object.class.name_hash
         database.set_polymorphic_join_element_id(offset, index, object_id,
                                                 class_id)
       else
-        database.set_join_element_id(offset, index, object.rod_id)
+        database.set_join_element_id(offset, index, object_id)
       end
     end
 
@@ -258,7 +259,7 @@ module Rod
         unless referenced.nil?
           referenced.each_with_index do |element, index|
             # There are referenced objects, but their rod_id is not set
-            if element.rod_id == 0
+            if !element.nil? && element.rod_id == 0
               unless referenced_objects.has_key?(element)
                 referenced_objects[element] = []
               end
