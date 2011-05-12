@@ -1,5 +1,5 @@
 $:.unshift "lib"
-require 'rod'
+require 'rod/constants'
 
 Gem::Specification.new do |s|
   s.name = "rod"
