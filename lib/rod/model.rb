@@ -721,7 +721,6 @@ module Rod
               value = nil
             else
               if options[:polymorphic]
-                puts "class id #{send("_#{name}__class",@struct)}"
                 klass = Model.get_class(send("_#{name}__class",@struct))
                 value = klass.get(index-1)
               else
