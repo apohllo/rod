@@ -85,7 +85,8 @@ module Rod
       if index >= 0 && index < self.count
         get(index)
       else
-        raise IndexError.new("The index is out of scope [0...#{self.count}]")
+        raise IndexError.
+          new("The index #{index} is out of the scope [0...#{self.count}] for #{self}")
       end
     end
 
