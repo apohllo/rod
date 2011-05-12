@@ -1,3 +1,11 @@
+0.5.2
+- polymorphic associations
+- fix C code: change INT2NUM to UINT2NUM for unsigned values
+- make index scope error for model more descriptive
+- features for nil associations
+- store version of the library in Ruby code
+- make Rakefile more useful
+- rod.rb explicitly enumerates the required files
 0.5.1
 - force ActiveSupport::Dependencis to use regular require
 - fix initialization of models with indices
