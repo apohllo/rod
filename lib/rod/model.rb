@@ -163,7 +163,8 @@ module Rod
       object_id = object.nil? ? 0 : object.rod_id
       send("_#{name}=", @struct, object_id)
       if self.class.singular_associations[name][:polymorphic]
-        send("_#{name}__class=", @struct, object.class.classname_hash)
+        class_id = object.nil? ? 0 : object.class.name_hash
+        send("_#{name}__class=", @struct, class_id)
       end
     end
 
@@ -376,7 +377,7 @@ module Rod
     def self.add_class(klass)
       raise RodException.new("'add_class' method is final for Rod::Model") if self != Model
       @class_space ||= {}
-      @class_space[klass.classname_hash] = klass
+      @class_space[klass.name_hash] = klass
     end
 
     def self.get_class(klass_hash)
@@ -458,14 +459,16 @@ module Rod
     #########################################################################
 
     # The SHA2 digest of the class name
-    def self.classname_hash
-      return @classname_hash unless @classname_hash.nil?
-      digest = Digest::SHA2.new
-      digest << self.struct_name
+    #
+    # Warning: if you dynamically create classes (via Class.new)
+    # this value is random, until the class is bound with a constant!
+    def self.name_hash
+      return @name_hash unless @name_hash.nil?
       # This is not used to protect any value, only to
       # distinguish names of classes. It doesn't have to be
-      # very strong agains collission attacks.
-      @classname_hash = digest.to_s.to_i(16) % 2 ** 32
+      # very strong agains collision attacks.
+      @name_hash = Digest::SHA2.new.hexdigest(self.struct_name).
+        to_s.to_i(16) % 2 ** 32
     end
 
     # The C structure representing this class.
