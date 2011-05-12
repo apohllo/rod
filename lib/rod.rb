@@ -9,10 +9,6 @@ require 'active_support/dependencies'
 # See #21
 ActiveSupport::Dependencies.mechanism = :require
 
-module Rod
-  VERSION = "0.5.2"
-end
-
 require 'rod/abstract_database'
 require 'rod/constants'
 require 'rod/database'

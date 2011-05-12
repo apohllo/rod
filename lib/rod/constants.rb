@@ -1,4 +1,6 @@
 module Rod
+  VERSION = "0.5.2"
+
   TYPE_MAPPING = {
     :string => 'char *',
     :integer => 'long',

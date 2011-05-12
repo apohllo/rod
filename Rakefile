@@ -1,5 +1,5 @@
 $:.unshift "lib"
-require 'rod'
+require 'rod/constants'
 
 task :default => [:install]
 
