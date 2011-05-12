@@ -27,9 +27,6 @@ module Rod
       @@rod_development_mode
     end
 
-    #########################################################################
-    # Implementations of abstract methods
-    #########################################################################
     protected
 
     ## Helper methods printing some generated code ##
@@ -147,10 +144,14 @@ module Rod
     end
 
     # Returns true if the class is one of speciall classes
-    # (JoinElement, PolymorphicJoinElemen, StringElement).
+    # (JoinElement, PolymorphicJoinElement, StringElement).
     def special_class?(klass)
       self.class.special_classes.include?(klass)
     end
+
+    #########################################################################
+    # Implementations of abstract methods
+    #########################################################################
 
     # Generates the code C responsible for management of the database.
     def generate_c_code(path, classes)
@@ -167,6 +168,9 @@ module Rod
             builder.prefix(klass.typedef_struct)
           end
 
+          #########################################
+          # Model struct
+          #########################################
           model_struct = model_struct_name(path);
           str = <<-END
             |typedef struct {
@@ -202,44 +206,9 @@ module Rod
           END
           builder.prefix(str.margin)
 
-          str = <<-END
-           |VALUE _create(char * path){
-           |  unsigned int page_size = sysconf(_SC_PAGE_SIZE);
-           |  #{model_struct} * model_p;
-           |  model_p = ALLOC(#{model_struct});
-           |
-           |  //join elements
-           |  model_p->_elements_pages_count = 1;
-           |
-           |  #{init_structs(classes)}
-           |  model_p->#{StringElement.struct_name}_size = 0;
-           |
-           |//prepare the file
-           |  char* empty = calloc(page_size,1);
-           |  VALUE cException = #{EXCEPTION_CLASS};
-           |  model_p->path = malloc(sizeof(char)*(strlen(path)+1));
-           |  strcpy(model_p->path,path);
-           |
-           |  model_p->lib_file = open(path, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
-           |  if(model_p->lib_file == -1) {
-           |    rb_raise(cException,"Could not open file %s for writing.",path);
-           |  }
-           |
-           |  if(write(model_p->lib_file,empty,page_size) == -1){
-           |    rb_raise(cException,"Could not fill stats with empty data.");
-           |  }
-           |
-           |  //mmap the structures
-           |  \n#{classes.map{|klass| mmap_class(klass)}.join("\n|\n")}
-           |
-           |//create the wrapping object
-           |  VALUE cClass = rb_define_class("#{model_struct_name(path).camelcase(true)}",
-           |    rb_cObject);
-           |  return Data_Wrap_Struct(cClass, 0, free, model_p);
-           |}
-          END
-          builder.c(str.margin)
-
+          #########################################
+          # Join indices
+          #########################################
           str =<<-END
           |VALUE _join_indices(unsigned long element_offset, unsigned long count, VALUE handler){
           |  #{model_struct} * model_p;
@@ -249,7 +218,24 @@ module Rod
           |  VALUE result = rb_ary_new();
           |  for(element_index = 0; element_index < count; element_index++){
           |    element_p = model_p->_join_element_table + element_offset + element_index;
-          |    rb_ary_push(result,INT2NUM(element_p->offset));
+          |    rb_ary_push(result,UINT2NUM(element_p->offset));
+          |  }
+          |  return result;
+          |}
+          END
+          builder.c(str.margin)
+
+          str =<<-END
+          |VALUE _polymorphic_join_indices(unsigned long element_offset, unsigned long count, VALUE handler){
+          |  #{model_struct} * model_p;
+          |  Data_Get_Struct(handler,#{model_struct},model_p);
+          |  _polymorphic_join_element * element_p;
+          |  unsigned long element_index;
+          |  VALUE result = rb_ary_new();
+          |  for(element_index = 0; element_index < count; element_index++){
+          |    element_p = model_p->_polymorphic_join_element_table + element_offset + element_index;
+          |    rb_ary_push(result,UINT2NUM(element_p->offset));
+          |    rb_ary_push(result,UINT2NUM(element_p->class));
           |  }
           |  return result;
           |}
@@ -274,6 +260,77 @@ module Rod
           END
           builder.c(str.margin)
 
+          str =<<-END
+          |void _set_polymorphic_join_element_offset(unsigned long element_offset,
+          |  unsigned long element_index, unsigned long offset, unsigned long class_id,
+          |  VALUE handler){
+          |  #{model_struct} * model_p;
+          |  Data_Get_Struct(handler,#{model_struct},model_p);
+          |  _polymorphic_join_element * element_p;
+          |  element_p = model_p->_polymorphic_join_element_table + element_offset + element_index;
+          |  if(element_p->index != element_index){
+          |      VALUE eClass = rb_const_get(rb_cObject, rb_intern("Exception"));
+          |      rb_raise(eClass, "Polymorphic join element indices are inconsistent: %lu %lu!",
+          |        element_index, element_p->index);
+          |  }
+          |  element_p->offset = offset;
+          |  element_p->class = class_id;
+          |}
+          END
+          builder.c(str.margin)
+
+          str =<<-END
+          |unsigned long _allocate_join_elements(VALUE size, VALUE handler){
+          |  _join_element * element;
+          |  unsigned int page_size = sysconf(_SC_PAGE_SIZE);
+          |  unsigned long index;
+          |  #{model_struct} * model_p;
+          |  Data_Get_Struct(handler,#{model_struct},model_p);
+          |  unsigned long result = model_p->_join_element_count;
+          |  for(index = 0; index < size; index++){
+          |    if(model_p->_join_element_count * sizeof(_join_element) >=
+          |      page_size * model_p->_join_element_offset){
+          |      \n#{mmap_class(JoinElement)}
+          |    }
+          |    element = model_p->_join_element_table + model_p->_join_element_count;
+          |    model_p->_join_element_count++;
+          |    element->index = index;
+          |    element->offset = 0;
+          |  }
+          |  return result;
+          |}
+          END
+          builder.c(str.margin)
+
+          str =<<-END
+          |unsigned long _allocate_polymorphic_join_elements(VALUE size, VALUE handler){
+          |  _polymorphic_join_element * element;
+          |  unsigned int page_size = sysconf(_SC_PAGE_SIZE);
+          |  unsigned long index;
+          |  #{model_struct} * model_p;
+          |  Data_Get_Struct(handler,#{model_struct},model_p);
+          |  unsigned long result = model_p->_polymorphic_join_element_count;
+          |  for(index = 0; index < size; index++){
+          |    if(model_p->_polymorphic_join_element_count *
+          |      sizeof(_polymorphic_join_element) >=
+          |      page_size * model_p->_polymorphic_join_element_offset){
+          |      \n#{mmap_class(PolymorphicJoinElement)}
+          |    }
+          |    element = model_p->_polymorphic_join_element_table +
+          |      model_p->_polymorphic_join_element_count;
+          |    model_p->_polymorphic_join_element_count++;
+          |    element->index = index;
+          |    element->offset = 0;
+          |    element->class = 0;
+          |  }
+          |  return result;
+          |}
+          END
+          builder.c(str.margin)
+
+          #########################################
+          # Strings
+          #########################################
           str =<<-END
           |VALUE _read_string(unsigned long length, unsigned long offset, VALUE handler){
           |  #{model_struct} * model_p;
@@ -329,13 +386,16 @@ module Rod
           |  model_p->#{StringElement.struct_name}_count += length;
           |
           |  VALUE result = rb_ary_new();
-          |  rb_ary_push(result, INT2NUM(length));
-          |  rb_ary_push(result, INT2NUM(offset + page * page_size));
+          |  rb_ary_push(result, UINT2NUM(length));
+          |  rb_ary_push(result, UINT2NUM(offset + page * page_size));
           |  return result;
           |}
           END
           builder.c(str.margin)
 
+          #########################################
+          # Field indices
+          #########################################
           classes.each do |klass|
             next if special_class?(klass)
             klass.fields.each do |field,options|
@@ -353,6 +413,35 @@ module Rod
             end
           end
 
+          #########################################
+          # Object accessors
+          #########################################
+          classes.each do |klass|
+            next if special_class?(klass)
+            str = <<-END
+            |unsigned long _#{klass.struct_name}_count(VALUE handler){
+            |  #{model_struct} * model_p;
+            |  Data_Get_Struct(handler,#{model_struct},model_p);
+            |  return model_p->#{klass.struct_name}_count;
+            |}
+            END
+            builder.c(str.margin)
+
+            str = <<-END
+            |VALUE _#{klass.struct_name}_get(VALUE handler, unsigned long index){
+            |  #{model_struct} * model_p;
+            |  Data_Get_Struct(handler,#{model_struct},model_p);
+            |  VALUE cClass = rb_define_class("#{klass.struct_class_name}",rb_cObject);
+            |  return Data_Wrap_Struct(cClass,0,0,
+            |    model_p->#{klass.struct_name}_table + index);
+            |}
+            END
+            builder.c(str.margin)
+          end
+
+          #########################################
+          # Storage
+          #########################################
           classes.each do |klass|
             next if special_class?(klass)
             str =<<-END
@@ -367,7 +456,7 @@ module Rod
             |    model_p->#{klass.struct_name}_offset * page_size){
             |     \n#{mmap_class(klass)}
             |  }
-            |  VALUE result = INT2NUM(model_p->#{klass.struct_name}_offset - 1);
+            |  VALUE result = UINT2NUM(model_p->#{klass.struct_name}_offset - 1);
             |  #{klass.struct_name} * struct_p = model_p->#{klass.struct_name}_table +
             |    model_p->#{klass.struct_name}_count;
             |  //printf("struct assigned\\n");
@@ -382,7 +471,7 @@ module Rod
                  # (refered) object is nil
                  <<-SUBEND
                  |  struct_p->rod_id = model_p->#{klass.struct_name}_count;
-                 |  rb_iv_set(object, \"@rod_id\",INT2NUM(struct_p->rod_id));
+                 |  rb_iv_set(object, \"@rod_id\",UINT2NUM(struct_p->rod_id));
                  SUBEND
                elsif options[:type] == :string
                  <<-SUBEND
@@ -396,37 +485,6 @@ module Rod
                    "rb_funcall(object, rb_intern(\"#{field}\"),0));"
                end
             end.join("\n")}
-            |  \n#{klass.plural_associations.map do |name, options|
-              <<-SUBEND
-              |  VALUE referenced_#{name} = rb_funcall(object, rb_intern("#{name}"),0);
-              |  struct_p->#{name}_offset = model_p->_join_element_count;
-              |  if(referenced_#{name} == Qnil){
-              |    struct_p->#{name}_count = 0;
-              |  } else {
-              |    VALUE aClass = rb_const_get(rb_cObject, rb_intern("Array"));
-              |    if(!rb_obj_is_kind_of(referenced_#{name},aClass)){
-              |      VALUE eClass = #{EXCEPTION_CLASS};
-              |      rb_raise(eClass, "#{name} returns object of invalid type (not Array)");
-              |    }
-              |    _join_element * element;
-              |    unsigned long size = NUM2ULONG(rb_funcall(referenced_#{name},
-              |      rb_intern("size"),0));
-              |    struct_p->#{name}_count = size;
-              |    unsigned long index;
-              |    for(index = 0; index < size; index++){
-              |      if(model_p->_join_element_count * sizeof(_join_element) >=
-              |        page_size * model_p->_join_element_offset){
-              |        \n#{mmap_class(JoinElement)}
-              |      }
-              |      element = model_p->_join_element_table + model_p->_join_element_count;
-              |      model_p->_join_element_count++;
-              |      element->offset = NUM2ULONG(rb_funcall(rb_ary_entry(referenced_#{name},index),
-              |        rb_intern("rod_id"),0));
-              |      element->index = index;
-              |    }
-              |  }
-              SUBEND
-            end.join("\n")}
             |  rb_iv_set(object,"@struct",struct_object);
             |  return result;
             |}
@@ -434,6 +492,118 @@ module Rod
             builder.c(str.margin)
           end
 
+          #########################################
+          # create
+          #########################################
+          str = <<-END
+           |VALUE _create(char * path){
+           |  unsigned int page_size = sysconf(_SC_PAGE_SIZE);
+           |  #{model_struct} * model_p;
+           |  model_p = ALLOC(#{model_struct});
+           |
+           |  //join elements
+           |  model_p->_elements_pages_count = 1;
+           |
+           |  #{init_structs(classes)}
+           |  model_p->#{StringElement.struct_name}_size = 0;
+           |
+           |//prepare the file
+           |  char* empty = calloc(page_size,1);
+           |  VALUE cException = #{EXCEPTION_CLASS};
+           |  model_p->path = malloc(sizeof(char)*(strlen(path)+1));
+           |  strcpy(model_p->path,path);
+           |
+           |  model_p->lib_file = open(path, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
+           |  if(model_p->lib_file == -1) {
+           |    rb_raise(cException,"Could not open file %s for writing.",path);
+           |  }
+           |
+           |  if(write(model_p->lib_file,empty,page_size) == -1){
+           |    rb_raise(cException,"Could not fill stats with empty data.");
+           |  }
+           |
+           |  //mmap the structures
+           |  \n#{classes.map{|klass| mmap_class(klass)}.join("\n|\n")}
+           |
+           |//create the wrapping object
+           |  VALUE cClass = rb_define_class("#{model_struct_name(path).camelcase(true)}",
+           |    rb_cObject);
+           |  return Data_Wrap_Struct(cClass, 0, free, model_p);
+           |}
+          END
+          builder.c(str.margin)
+
+          #########################################
+          # open
+          #########################################
+          str =<<-END
+          |VALUE _open(char * path){
+          |  #{model_struct} * model_p;
+          |  int lib_file = open(path, O_RDONLY);
+          |  VALUE cException = #{EXCEPTION_CLASS};
+          |  if(lib_file == -1) {
+          |    rb_raise(cException,"Could not open data file %s for reading.",path);
+          |  }
+          |  unsigned int page_size = sysconf(_SC_PAGE_SIZE);
+          |  model_p = ALLOC(#{model_struct});
+          |
+          |  \n#{last_struct = nil
+          classes.map do |klass|
+             <<-SUBEND
+             |  unsigned long #{klass.struct_name}_count;
+             |  if(read(lib_file, &#{klass.struct_name}_count, sizeof(unsigned long)) == -1){
+             |    rb_raise(cException,"Could not read #{klass.struct_name} count.");
+             |  }
+             |  unsigned long #{klass.struct_name}_offset;
+             |  if(read(lib_file, &#{klass.struct_name}_offset, sizeof(unsigned long)) == -1){
+             |    rb_raise(cException,"Could not read #{klass.struct_name} offset.");
+             |  }
+             #{klass.fields.map do |field,options|
+               if options[:index]
+                 %w{length offset}.map do |type|
+                   str =<<-SUBSUBEND
+                   |  if(read(lib_file,&(model_p->#{klass.struct_name}_#{field}_index_#{type}),
+                   |    sizeof(unsigned long)) == -1){
+                   |    rb_raise(cException,
+                   |      "Could not read '#{klass.struct_name}' '#{field}' index #{type}.");
+                   |  }
+                   SUBSUBEND
+                 end.join("\n")
+               end
+             end.join("\n")}
+             |  model_p->#{klass.struct_name}_size =
+             |    (sizeof(#{klass.struct_name}) * #{klass.struct_name}_count / page_size)
+             |      * page_size +
+             |    (sizeof(#{klass.struct_name}) * #{klass.struct_name}_count % page_size ==
+             |      0 ? 0 : page_size);
+             |  model_p->#{klass.struct_name}_count = #{klass.struct_name}_count;
+             |  model_p->#{klass.struct_name}_offset = #{klass.struct_name}_offset;
+             |
+             |  if(model_p->#{klass.struct_name}_size > 0){
+             |    if((model_p->#{klass.struct_name}_table = mmap(NULL,
+             |      model_p->#{klass.struct_name}_size, PROT_READ, MAP_SHARED,
+             |      lib_file, model_p->#{klass.struct_name}_offset)) == MAP_FAILED){
+             |      perror(NULL);
+             |      rb_raise(cException,"Could not mmap class '#{klass}'.");
+             |    }
+             |  } else {
+             |    model_p->#{klass.struct_name}_table = NULL;
+             |  }
+             |  model_p->last_#{klass.struct_name} = #{klass.struct_name}_count;
+             SUBEND
+          end.join("\n")}
+          |  model_p->lib_file = lib_file;
+          |//create the wrapping object
+          |  VALUE cClass = rb_define_class("#{model_struct_name(path).camelcase(true)}",
+          |    rb_cObject);
+          |  return Data_Wrap_Struct(cClass, 0, free, model_p);
+          |}
+          END
+          builder.c(str.margin)
+
+          #########################################
+          # close
+          #########################################
           str =<<-END
           |void _close(VALUE handler, VALUE classes){
           |  #{model_struct} * model_p;
@@ -574,93 +744,10 @@ module Rod
           END
           builder.c(str.margin)
 
-          str =<<-END
-          |VALUE _open(char * path){
-          |  #{model_struct} * model_p;
-          |  int lib_file = open(path, O_RDONLY);
-          |  VALUE cException = #{EXCEPTION_CLASS};
-          |  if(lib_file == -1) {
-          |    rb_raise(cException,"Could not open data file %s for reading.",path);
-          |  }
-          |  unsigned int page_size = sysconf(_SC_PAGE_SIZE);
-          |  model_p = ALLOC(#{model_struct});
-          |
-          |  \n#{last_struct = nil
-          classes.map do |klass|
-             <<-SUBEND
-             |  unsigned long #{klass.struct_name}_count;
-             |  if(read(lib_file, &#{klass.struct_name}_count, sizeof(unsigned long)) == -1){
-             |    rb_raise(cException,"Could not read #{klass.struct_name} count.");
-             |  }
-             |  unsigned long #{klass.struct_name}_offset;
-             |  if(read(lib_file, &#{klass.struct_name}_offset, sizeof(unsigned long)) == -1){
-             |    rb_raise(cException,"Could not read #{klass.struct_name} offset.");
-             |  }
-             #{klass.fields.map do |field,options|
-               if options[:index]
-                 %w{length offset}.map do |type|
-                   str =<<-SUBSUBEND
-                   |  if(read(lib_file,&(model_p->#{klass.struct_name}_#{field}_index_#{type}),
-                   |    sizeof(unsigned long)) == -1){
-                   |    rb_raise(cException,
-                   |      "Could not read '#{klass.struct_name}' '#{field}' index #{type}.");
-                   |  }
-                   SUBSUBEND
-                 end.join("\n")
-               end
-             end.join("\n")}
-             |  model_p->#{klass.struct_name}_size =
-             |    (sizeof(#{klass.struct_name}) * #{klass.struct_name}_count / page_size)
-             |      * page_size +
-             |    (sizeof(#{klass.struct_name}) * #{klass.struct_name}_count % page_size ==
-             |      0 ? 0 : page_size);
-             |  model_p->#{klass.struct_name}_count = #{klass.struct_name}_count;
-             |  model_p->#{klass.struct_name}_offset = #{klass.struct_name}_offset;
-             |
-             |  if(model_p->#{klass.struct_name}_size > 0){
-             |    if((model_p->#{klass.struct_name}_table = mmap(NULL,
-             |      model_p->#{klass.struct_name}_size, PROT_READ, MAP_SHARED,
-             |      lib_file, model_p->#{klass.struct_name}_offset)) == MAP_FAILED){
-             |      perror(NULL);
-             |      rb_raise(cException,"Could not mmap class '#{klass}'.");
-             |    }
-             |  } else {
-             |    model_p->#{klass.struct_name}_table = NULL;
-             |  }
-             |  model_p->last_#{klass.struct_name} = #{klass.struct_name}_count;
-             SUBEND
-          end.join("\n")}
-          |  model_p->lib_file = lib_file;
-          |//create the wrapping object
-          |  VALUE cClass = rb_define_class("#{model_struct_name(path).camelcase(true)}",
-          |    rb_cObject);
-          |  return Data_Wrap_Struct(cClass, 0, free, model_p);
-          |}
-          END
-          builder.c(str.margin)
 
-          classes.each do |klass|
-            next if special_class?(klass)
-            str = <<-END
-            |unsigned long _#{klass.struct_name}_count(VALUE handler){
-            |  #{model_struct} * model_p;
-            |  Data_Get_Struct(handler,#{model_struct},model_p);
-            |  return model_p->#{klass.struct_name}_count;
-            |}
-            END
-            builder.c(str.margin)
-
-            str = <<-END
-            |VALUE _#{klass.struct_name}_get(VALUE handler, unsigned long index){
-            |  #{model_struct} * model_p;
-            |  Data_Get_Struct(handler,#{model_struct},model_p);
-            |  VALUE cClass = rb_define_class("#{klass.struct_class_name}",rb_cObject);
-            |  return Data_Wrap_Struct(cClass,0,0,
-            |    model_p->#{klass.struct_name}_table + index);
-            |}
-            END
-            builder.c(str.margin)
-          end
+          #########################################
+          # Utilities
+          #########################################
           str = <<-END
           |void _print_layout(VALUE handler){
           |  #{model_struct} * model_p;
