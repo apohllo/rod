@@ -1,10 +1,10 @@
-= ROD -- Read-only Data(base) 
+= ROD -- Ruby Object Database
 
 * http://github.com/apohllo/rod
 
 == DESCRIPTION
 
-ROD (Read-only Data(base)) is library which aims at providing very fast
+ROD (Ruby Object Database) is library which aims at providing fast
 access for data, which rarely changes. 
 
 == FEATURES/PROBLEMS:
@@ -12,13 +12,14 @@ access for data, which rarely changes.
 * written mostly in C
 * optimized for speed
 * has nice Ruby interface which mimicks Active Record
-* uses mmap for maximum speed (doesn't work on Windows)
+* uses mmap for maximum speed 
+* doesn't work on Windows
 
 == SYNOPSIS:
 
 ROD is designed for storing and accessing data which rarely changes.
-It is a opposite of RDBMS as the data is not normalized
-It is a opposite of in-memory databases, since it is designed to cover 
+It is an opposite of RDBMS as the data is not normalized.
+It is an opposite of in-memory databases, since it is designed to cover 
 out of core data sets (10 GB and more).
 
 The primary reason for designing it was to create storage facility for
@@ -28,14 +29,15 @@ unacceptable performance hit. The in-memory data bases, on the other hand,
 would require the data to be kept mostly in the operational memory,
 which is not needed, while processing text (in most cases only a friction
 of the data is needed). That's why a storage facility which minimizes the
-number of memory look-ups was designed. The Ruby interface facilitates it's
+number of disk reads was designed. The Ruby interface facilitates it's
 usage.
 
 == REQUIREMENTS:
 
-* RubyInline gem
-* facets gem
-* english gem
+* RubyInline
+* english
+* ActiveModel
+* weak_hash
 
 == INSTALL
 
@@ -43,7 +45,69 @@ TODO (pull from github, will push to gemcutter shortly).
 
 == BASIC USAGE:
 
-(see tests)
+ class MyDatabase < Rod::Database
+ end
+
+ class Model < Rod::Model
+   database_class MyDatabase
+ end
+
+ class User < Model
+   field :name, :string
+   field :surname, :string, :index => true
+   field :age, :integer
+   has_one :account
+   has_many :files
+ end
+
+ class Account < Model
+   field :email, :string
+   field :login, :string, :index => true
+   field :password, :string
+ end
+
+ class File < Model
+   field :title, :string, :index => true
+   field :data, :string
+ end
+
+ MyDatabase.create_database("data/db.dat")
+ user = User.new
+ user.name = 'Fred'
+ user.surname = 'Smith'
+ user.age = 22
+ account = Account.new
+ account.email = "fred@smith.org"
+ account.login = "fred"
+ account.password = "password"
+ file1 = File.new
+ file1.title = "Lady Gaga video"
+ file2.data = "0012220001..."
+ file2 = File.new
+ file2.title = "Pink Floyd video"
+ file2.data = "0012220001..."
+ user.account = account
+ user.files << file1
+ user.files << file2
+ user.store
+ account.store
+ file1.store
+ file2.store
+ MyDatabase.close_database
+
+ MyDatabase.open_database("data/db.dat")
+ User.each do |user|
+   puts "Name: #{user.name} surname: #{user.surname}"
+   puts "login: #{user.account.login} e-mail: #{user.account.email}"
+   user.files.each do |file|
+     puts "File: #{file.title}
+   end
+ end
+
+ User[0]                           # gives first user
+ User.find_by_surname("Smith")     # gives Fred
+ User.find_all_by_surname("Smith") # gives [Fred]
+ File[0].user                      # won't work - the data is not normalized
 
 == LICENSE:
  

@@ -5,10 +5,10 @@ Gem::Specification.new do |s|
   s.name = "rod"
   s.version = Rod::VERSION
   s.date = "#{Time.now}"
-  s.summary = "Ruby read-only object database"
+  s.summary = "Ruby object database"
   s.email = "apohllo@o2.pl"
   #s.homepage = "http://wierzba.wzks.uj.edu.pl/~mag/dilp"
-  s.description = "Ruby read-only object database with nice interface"
+  s.description = "Ruby object database is designed for large amount of data, whose structure rarely changes."
   s.require_path = "lib"
   s.has_rdoc = true
   s.authors = ['Aleksander Pohl', 'Piotr Gurgul', 'Marcin Sieniek']
