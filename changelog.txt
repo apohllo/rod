@@ -1,3 +1,7 @@
+0.5.3
+- implementation of field serialization
+- refactoring of field storage
+- implementation of enumerator and enumerable
 0.5.2
 - polymorphic associations
 - fix C code: change INT2NUM to UINT2NUM for unsigned values

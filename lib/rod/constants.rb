@@ -1,5 +1,5 @@
 module Rod
-  VERSION = "0.5.2"
+  VERSION = "0.5.3"
 
   TYPE_MAPPING = {
     :string => 'char *',
