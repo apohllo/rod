@@ -40,6 +40,8 @@ def get_value(value)
     value.to_f
   when /^\d+$/
     value.to_i
+  when /^:/
+    value[1..-1].to_sym
   else
     value = value.scan(/[^\d\\]+|\\\d+/).map do |segment|
       case segment
