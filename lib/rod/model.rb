@@ -5,6 +5,7 @@ module Rod
   # Abstract class representing a model entity. Each storable class has to derieve from +Model+.
   class Model
     include ActiveModel::Validations
+    extend Enumerable
 
     # Method _initialize must not be called for abstract Model class.
     # This might happen if +build_structure+ was not called for the
@@ -74,8 +75,12 @@ module Rod
     # The database must be opened for reading (see +open+).
     def self.each
       #TODO an exception if in wrong state?
-      self.count.times do |index|
-        yield self.get(index)
+      if block_given?
+        self.count.times do |index|
+          yield self.get(index)
+        end
+      else
+        enum_for(:each)
       end
     end
 

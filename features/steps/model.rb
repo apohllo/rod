@@ -68,6 +68,9 @@ def get_position(position)
   end
 end
 
+################################################################
+# Given
+################################################################
 Given /^the model is connected with the default database$/ do
   RodTest::TestModel.send(:database_class,RodTest::Database)
 end
@@ -114,10 +117,26 @@ Given /^a class (\w+) has many (\w+ )?(\w+)$/ do |class_name,type,assoc|
   get_class(class_name).send(:has_many,assoc.to_sym,options)
 end
 
+################################################################
+# When
+################################################################
 When /^I create a(nother|n)? (\w+)$/ do |ignore,class_name|
   @instance = get_class(class_name).new
   @instances[class_name] ||= []
   @instances[class_name] << @instance
+end
+
+When /^I create and store the following (\w+)\(s\):$/ do |class_name,table|
+  klass = get_class(class_name)
+  table.hashes.each do |attributes|
+    instance = klass.new
+    attributes.each do |field,value|
+      instance.send("#{field}=",get_value(value))
+    end
+    @instances[class_name] ||= []
+    @instances[class_name] << instance
+    instance.store
+  end
 end
 
 When /^(his|her|its) (\w+) is '([^']*)'( multiplied (\d+) times)?$/ do |ignore,field,value,multi,multiplier|
@@ -132,7 +151,6 @@ end
 When /^(his|her|its) (\w+) is nil$/ do |ignore,field|
   @instance.send("#{field}=".to_sym,nil)
 end
-
 
 
 When /^(his|her|its) (\w+) is the (\w+) (\w+) created$/ do |ignore,field,position,class_name|
@@ -155,6 +173,9 @@ When /^I store the (\w+) (\w+) in the database$/ do |position,class_name|
   get_instance(class_name,position,true).store
 end
 
+################################################################
+# Then
+################################################################
 Then /^there should be (\d+) (\w+)(\([^)]*\))?$/ do |count,class_name,ignore|
   get_class(class_name).count.should == count.to_i
 end
@@ -224,4 +245,25 @@ end
 
 Then /^there should be (\d+) (\w+)(\([^)]*\))? with '([^']+)' (\w+)$/ do |count,class_name,ignore,value,field|
   get_class(class_name).send("find_all_by_#{field}",get_value(value)).count.should == count.to_i
+end
+
+Then /^I should be able to iterate( with index)? over these (\w+)\(s\)$/ do |with_index,class_name|
+  if with_index
+    (lambda {get_class(class_name).each.with_index{|e,i| e}}).should_not raise_error(Exception)
+  else
+    (lambda {get_class(class_name).each{|e| e}}).should_not raise_error(Exception)
+  end
+end
+
+Then /^I should be able to find a (\w+) with '([^']*)' (\w+) and '([^']*)' (\w+)$/ do |class_name,value1,field1,value2,field2|
+  get_class(class_name).find{|e| e.send(field1) == get_value(value1) && e.send(field2) == get_value(value2)}.should_not == nil
+end
+
+Then /^there should be (\d+) (\w+)(\([^)]*\))? with (\w+) below (\d+)( with index below (\d+))?$/ do |count1,class_name,ignore,field,value,with_index,count2|
+  if with_index
+    get_class(class_name).each.with_index.select{|e,i| e.send(field) < value.to_i && i < count2.to_i}.size.should == count1.to_i
+  else
+    get_class(class_name).select{|e| e.send(field) < value.to_i}.size.should == count1.to_i
+  end
+
 end
