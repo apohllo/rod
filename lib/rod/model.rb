@@ -98,6 +98,7 @@ module Rod
     # * +:ulong+
     # * +:float+
     # * +:string+
+    # * +:object+ (value is marshaled durign storage, and unmarshaled during read)
     # Options:
     # * +:index+ if set to true, builds a simple hash index for the field
     # Warning!
@@ -152,7 +153,7 @@ module Rod
     #########################################################################
 
     public
-    # Update information about the +object+ which
+    # Update in the DB information about the +object+ which
     # is referenced via singular association with +name+.
     #
     # The +sync+ flag indicates whether the object struct
@@ -168,7 +169,7 @@ module Rod
       end
     end
 
-    # Update information about the +object+ which is
+    # Update in the DB information about the +object+ which is
     # referenced via plural association with +name+.
     #
     # The name of the association is +name+, the referenced
@@ -191,16 +192,29 @@ module Rod
       end
     end
 
-    # Updates count of elements for association with +name+
-    # to +value+.
-    def update_count(name,value)
-      send("_#{name}_count=",@struct,value)
+    # Updates in the DB the +count+ and +offset+ of elements for +name+ association.
+    def update_count_and_offset(name,count,offset)
+      send("_#{name}_count=",@struct,count)
+      send("_#{name}_offset=",@struct,offset)
     end
 
-    # Updates offset of elements for association with +name+
-    # to +value+.
-    def update_offset(name,value)
-      send("_#{name}_offset=",@struct,value)
+    # Updates in the DB the field +name+ to the actual value.
+    def update_field(name)
+      if self.class.string_field?(self.class.fields[name][:type])
+        if self.class.fields[name][:type] == :string
+          value = send(name)
+        elsif self.class.fields[name][:type] == :object
+          value = instance_variable_get("@#{name}")
+          value = Marshal.dump(value)
+        else
+          raise RodException.new("Unrecognised field type '#{self.class.fields[name][:type]}'!")
+        end
+        length, offset = database.set_string(value)
+        send("_#{name}_length=",@struct,length)
+        send("_#{name}_offset=",@struct,offset)
+      else
+        send("_#{name}=",@struct,send(name))
+      end
     end
 
     # Returns marshalled index for given field
@@ -472,12 +486,21 @@ module Rod
         to_s.to_i(16) % 2 ** 32
     end
 
+    def self.string_field?(type)
+      string_types.include?(type)
+    end
+
+    # Types which are stored as strings.
+    def self.string_types
+      [:string, :object]
+    end
+
     # The C structure representing this class.
     def self.typedef_struct
       result = <<-END
           |typedef struct {
           |  \n#{self.fields.map do |field,options|
-            if options[:type] != :string
+            unless string_field?(options[:type])
               "|  #{TYPE_MAPPING[options[:type]]} #{field};"
             else
               <<-SUBEND
@@ -508,7 +531,7 @@ module Rod
     def self.layout
       result = <<-END
         |  \n#{self.fields.map do |field,options|
-            if options[:type] != :string
+            unless string_field?(options[:type])
               "|  printf(\"  size of '#{field}': %lu\\n\",sizeof(#{TYPE_MAPPING[options[:type]]}));"
             else
               <<-SUBEND
@@ -565,7 +588,7 @@ module Rod
         |VALUE _initialize(){
         |  #{struct_name()} * result = ALLOC(#{struct_name()});
         |  \n#{fields.map do |field, options|
-          if options[:type] != :string
+          unless string_field?(options[:type])
             <<-SUBEND
             |  result->#{field} = 0;
             SUBEND
@@ -600,12 +623,14 @@ module Rod
         end
 
         self.fields.each do |name, options|
-          if options[:type] != :string
+          unless string_field?(options[:type])
             field_reader(name,TYPE_MAPPING[options[:type]],builder)
             field_writer(name,TYPE_MAPPING[options[:type]],builder)
           else
             field_reader("#{name}_length","unsigned long",builder)
             field_reader("#{name}_offset","unsigned long",builder)
+            field_writer("#{name}_length","unsigned long",builder)
+            field_writer("#{name}_offset","unsigned long",builder)
           end
           if options[:index]
             @indices[name] = {}
@@ -633,13 +658,13 @@ module Rod
       self.fields.each do |field, options|
         # adding new private fields visible from Ruby
         # they are lazily initialized based on the C representation
-        if options[:type] != :string
+        unless string_field?(options[:type])
           private "_#{field}".to_sym, "_#{field}=".to_sym
         else
           private "_#{field}_length".to_sym, "_#{field}_offset".to_sym
         end
 
-        if options[:type] != :string
+        unless string_field?(options[:type])
           # getter
           define_method(field) do
             value = instance_variable_get("@#{field}")
@@ -657,7 +682,8 @@ module Rod
             instance_variable_set("@#{field}".to_sym,value)
             value
           end
-        else #strings
+        else
+          # string-type fields
           # getter
           define_method(field) do
             value = instance_variable_get(("@" + field.to_s).to_sym)
@@ -665,6 +691,9 @@ module Rod
               length = send("_#{field}_length", @struct)
               offset = send("_#{field}_offset", @struct)
               value = database.read_string(length, offset)
+              if options[:type] == :object
+                value = Marshal.load(value)
+              end
               # caching Ruby representation
               send("#{field}=",value)
             end

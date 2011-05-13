@@ -147,6 +147,11 @@ module Rod
       _read_string(length, offset, @handler).force_encoding("utf-8")
     end
 
+    # Stores the string in the DB encoding it to utf-8.
+    def set_string(value)
+      _set_string(value.encode("utf-8"),@handler)
+    end
+
     # Returns the number of objects for given +klass+.
     def count(klass)
       send("_#{klass.struct_name}_count",@handler)
@@ -164,6 +169,11 @@ module Rod
     # Store the object in the database.
     def store(klass,object)
       send("_store_" + klass.struct_name,object,@handler)
+      # set fields' values
+      object.class.fields.each do |name,options|
+        # rod_id is set during _store
+        object.update_field(name) unless name == "rod_id"
+      end
       # set ids of objects referenced via singular associations
       object.class.singular_associations.each do |name,options|
         object.update_singular_association(name,object.send(name),false)
@@ -176,8 +186,7 @@ module Rod
         else
           offset = _allocate_join_elements(elements.size,@handler)
         end
-        object.update_count(name,elements.size)
-        object.update_offset(name,offset)
+        object.update_count_and_offset(name,elements.size,offset)
         elements.each.with_index do |associated,index|
           object.update_plural_association(name,associated,index,false)
         end

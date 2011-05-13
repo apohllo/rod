@@ -342,6 +342,8 @@ module Rod
           builder.c(str.margin)
 
           str =<<-END
+          |// The first argument is the string to be stored.
+          |// The return value is a pair: length and offset.
           |VALUE _set_string(VALUE ruby_value, VALUE handler){
           |  #{model_struct} * model_p;
           |  Data_Get_Struct(handler,#{model_struct},model_p);
@@ -464,27 +466,10 @@ module Rod
             |  VALUE sClass = rb_funcall(object, rb_intern("class"),0);
             |  VALUE struct_object = Data_Wrap_Struct(sClass, 0, 0, struct_p);
             |
-            |  //printf("fields\\n");
-            |  \n#{klass.fields.map do |field, options|
-               if field == "rod_id"
-                 # the number is incresed by 1, because 0 indicates that the
-                 # (refered) object is nil
-                 <<-SUBEND
-                 |  struct_p->rod_id = model_p->#{klass.struct_name}_count;
-                 |  rb_iv_set(object, \"@rod_id\",UINT2NUM(struct_p->rod_id));
-                 SUBEND
-               elsif options[:type] == :string
-                 <<-SUBEND
-                 |  VALUE #{field}_string_data = rb_funcall(self,rb_intern("_set_string"),2,
-                 |    rb_funcall(object,rb_intern("#{field}"),0), handler);
-                 |  struct_p->#{field}_length = NUM2ULONG(rb_ary_entry(#{field}_string_data,0));
-                 |  struct_p->#{field}_offset = NUM2ULONG(rb_ary_entry(#{field}_string_data,1));
-                 SUBEND
-               else
-                 "|  struct_p->#{field} = #{RUBY_TO_C_MAPPING[options[:type]]}("+
-                   "rb_funcall(object, rb_intern(\"#{field}\"),0));"
-               end
-            end.join("\n")}
+            |  //the number is incresed by 1, because 0 indicates that the
+            |  //(referenced) object is nil
+            |  struct_p->rod_id = model_p->#{klass.struct_name}_count;
+            |  rb_iv_set(object, \"@rod_id\",UINT2NUM(struct_p->rod_id));
             |  rb_iv_set(object,"@struct",struct_object);
             |  return result;
             |}

@@ -5,8 +5,10 @@ module Rod
     :string => 'char *',
     :integer => 'long',
     :float => 'double',
-    :ulong => 'unsigned long'
+    :ulong => 'unsigned long',
+    :object => 'char *'
   }
+
   RUBY_TO_C_MAPPING = {
     :string => 'StringValuePtr',
     :integer => 'NUM2LONG',
