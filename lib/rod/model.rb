@@ -56,6 +56,15 @@ module Rod
       self.class == other.class && self.rod_id == other.rod_id
     end
 
+    # Default implementation of to_s.
+    def to_s
+      class_name = self.class.to_s
+      fields = self.class.fields.map{|n,o| "#{n}:#{self.send(n)}"}.join(",")
+      singular = self.class.singular_associations.map{|n,o| "#{n}:#{self.send(n).class}"}.join(",")
+      plural = self.class.plural_associations.map{|n,o| "#{n}:#{self.send(n).size}"}.join(",")
+      "#{self.class}:<#{fields}><#{singular}><#{plural}>"
+    end
+
     # Returns the number of objects of this class stored in the
     # database.
     def self.count
