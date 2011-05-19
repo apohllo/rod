@@ -53,7 +53,7 @@ module Rod
         |  model_p->#{klass.struct_name}_table = NULL;
 
         |  // initialize the last element end
-        |  model_p->last_#{klass.struct_name} = 0;
+        |  #{klass == StringElement ? "model_p->char_last = 0;" : ""}
         |
         |  // initialize the file descriptor to -1 to force its creation
         |  model_p->#{klass.struct_name}_lib_file = -1;
@@ -131,8 +131,6 @@ module Rod
       |    rb_raise(cException,"Could not mmap segment for #{klass.struct_name}.");
       |  }
       |
-      |  // reset the elements counter
-      |  #{klass != Rod::StringElement ? "model_p->last_#{klass.struct_name} = 0;" : ""}
       |  // reset cache
       |  VALUE module_#{klass.struct_name} = rb_const_get(rb_cObject, rb_intern("Kernel"));
       |  \n#{klass.name.split("::")[0..-2].map do |mod_name|
@@ -177,7 +175,7 @@ module Rod
             |#{classes.map do |klass|
               substruct = <<-SUBEND
               |  #{klass.struct_name} * #{klass.struct_name}_table;
-              |  unsigned long last_#{klass.struct_name};
+              |  #{klass == StringElement ? "unsigned long char_last;" : ""}
               |  unsigned long #{klass.struct_name}_offset;
               |  unsigned long #{klass.struct_name}_size;
               |  unsigned long #{klass.struct_name}_count;
@@ -364,7 +362,7 @@ module Rod
           |  // count:
           |  // - total number of bytes
           |  long length_left = length;
-          |  offset = model_p->last_#{StringElement.struct_name};
+          |  offset = model_p->char_last;
           |  page = model_p->#{StringElement.struct_name}_size;
           |  current_page = page;
           |  while(length_left > 0){
@@ -384,7 +382,7 @@ module Rod
           |    length_left -= page_size;
           |  }
           |
-          |  model_p->last_#{StringElement.struct_name} = (length + offset) % page_size;
+          |  model_p->char_last = (length + offset) % page_size;
           |  model_p->#{StringElement.struct_name}_count += length;
           |
           |  VALUE result = rb_ary_new();
@@ -420,14 +418,13 @@ module Rod
           #########################################
           classes.each do |klass|
             next if special_class?(klass)
-            str = <<-END
-            |unsigned long _#{klass.struct_name}_count(VALUE handler){
-            |  #{model_struct} * model_p;
-            |  Data_Get_Struct(handler,#{model_struct},model_p);
-            |  return model_p->#{klass.struct_name}_count;
-            |}
-            END
-            builder.c(str.margin)
+            self.class.field_reader("#{klass.struct_name}_count",
+                                    "unsigned long",builder,model_struct)
+            self.class.field_writer("#{klass.struct_name}_count",
+                                    "unsigned long",builder,model_struct)
+            if klass == StringElement
+              self.class.field_writer("char_last","unsigned long",builder,model_struct)
+            end
 
             str = <<-END
             |VALUE _#{klass.struct_name}_get(VALUE handler, unsigned long index){
@@ -584,7 +581,7 @@ module Rod
              |  } else {
              |    model_p->#{klass.struct_name}_table = NULL;
              |  }
-             |  model_p->last_#{klass.struct_name} = #{klass.struct_name}_count;
+             |  #{klass == StringElement ? "model_p->char_last = #{klass.struct_name}_count;" : ""}
              SUBEND
           end.join("\n")}
           |  model_p->lib_file = lib_file;
@@ -750,9 +747,9 @@ module Rod
           |  printf("-- #{klass} --\\n");
           |  printf("Size of #{klass.struct_name} %lu\\n",(unsigned long)sizeof(#{klass.struct_name}));
           |  \n#{klass.layout}
-          |  printf("Size: %lu, offset: %lu, count %lu, last: %lu, pointer: %lx\\n",
+          |  printf("Size: %lu, offset: %lu, count %lu, pointer: %lx\\n",
           |    model_p->#{klass.struct_name}_size, model_p->#{klass.struct_name}_offset,
-          |    model_p->#{klass.struct_name}_count, model_p->last_#{klass.struct_name},
+          |    model_p->#{klass.struct_name}_count,
           |    (unsigned long)model_p->#{klass.struct_name}_table);
                SUBEND
                str.margin
@@ -777,6 +774,30 @@ module Rod
         end
         @code_generated = true
       end
+    end
+
+    # Reads the value of a specified field of the C-structure.
+    def self.field_reader(name,result_type,builder,model_struct)
+      str =<<-END
+      |#{result_type} _#{name}(VALUE handler){
+      |  #{model_struct} * model_p;
+      |  Data_Get_Struct(handler,#{model_struct},model_p);
+      |  return model_p->#{name};
+      |}
+      END
+      builder.c(str.margin)
+    end
+
+    # Writes the value of a specified field of the C-structure.
+    def self.field_writer(name,arg_type,builder,model_struct)
+      str =<<-END
+      |void _#{name}_equals(VALUE handler,#{arg_type} value){
+      |  #{model_struct} * model_p;
+      |  Data_Get_Struct(handler,#{model_struct},model_p);
+      |  model_p->#{name} = value;
+      |}
+      END
+      builder.c(str.margin)
     end
   end
 end
