@@ -1,3 +1,8 @@
+0.5.4
+- default implementation of to_s
+- DB data is stored in a DB, not a single file #36 #37
+- removal of legacy tests
+- index flushing when the DB is created
 0.5.3
 - implementation of field serialization
 - refactoring of field storage

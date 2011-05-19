@@ -1,5 +1,5 @@
 module Rod
-  VERSION = "0.5.3"
+  VERSION = "0.5.4"
 
   # The name of file containing the data base.
   DATABASE_FILE = "database.dat"
