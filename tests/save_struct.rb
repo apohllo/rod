@@ -2,7 +2,7 @@ $:.unshift("tests")
 require 'structures'
 
 puts "-- Save sample structures test --"
-RodTest::Database.instance.create_database("tmp/abc.dat")
+RodTest::Database.instance.create_database("tmp/abc")
 
 #MAGNITUDE = 100000
 MAGNITUDE = 50

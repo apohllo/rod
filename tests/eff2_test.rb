@@ -19,7 +19,7 @@ module RodTest
   class EffectivenessTest
 
 		MAGNITUDE = 100000
-    FILENAME = "tmp/eff2.dat"
+    FILENAME = "tmp/eff2"
 
 		def setup
       @structs = {}

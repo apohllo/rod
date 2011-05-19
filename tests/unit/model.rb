@@ -4,7 +4,7 @@ require 'structures'
 
 class ModelTest < Test::Unit::TestCase
   def setup
-    RodTest::Database.instance.open_database("tmp/abc.dat")
+    RodTest::Database.instance.open_database("tmp/abc")
   end
 
   def teardown

@@ -9,7 +9,7 @@ module RodTest
 
 		MAGNITUDE = 10000
 		def setup
-			@test_filename = "tmp/noncontinuous_pages.dat"
+			@test_filename = "tmp/noncontinuous_pages"
 			Model.create_database(@test_filename)
 			@hs = []
 			(MAGNITUDE).times do |i|

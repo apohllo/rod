@@ -124,7 +124,7 @@ module RodTest
       a2.b_structs = [b1]
       a3.b_structs = []
 
-      Model.create_database("tmp/test_stored_instances.dat")
+      Model.create_database("tmp/test_stored_instances")
       a1.store
       a2.store
       a3.store

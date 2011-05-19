@@ -19,7 +19,7 @@ module RodTest
   class EffectivenessTest
 
 		MAGNITUDE = 100000
-    FILENAME = "tmp/eff1.dat"
+    FILENAME = "tmp/eff1"
 
 		def setup
 			Model.create_database(FILENAME)
