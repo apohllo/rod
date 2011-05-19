@@ -1,6 +1,15 @@
 module Rod
   VERSION = "0.5.3"
 
+  # The name of file containing the data base.
+  DATABASE_FILE = "database.dat"
+
+  # Invalid names of fields.
+  INVALID_NAMES = {"rod_id" => true}
+
+  # The exception raised by Database C implementation.
+  EXCEPTION_CLASS = "rb_const_get(rb_cObject, rb_intern(\"Exception\"))"
+
   TYPE_MAPPING = {
     :string => 'char *',
     :integer => 'long',
@@ -23,7 +32,4 @@ module Rod
     :ulong => 'INT2NUM'
   }
 
-  INVALID_NAMES = {"rod_id" => true}
-
-  EXCEPTION_CLASS = "rb_const_get(rb_cObject, rb_intern(\"Exception\"))"
 end

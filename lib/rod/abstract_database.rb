@@ -1,4 +1,5 @@
 require 'singleton'
+
 module Rod
   # This class implements the database abstraction, i.e. it
   # is a mediator between some model (a set of classes) and
@@ -40,6 +41,8 @@ module Rod
       raise "Database already opened." unless @handler.nil?
       @readonly = false
       self.classes.each{|s| s.send(:build_structure)}
+      path = canonicalize_path(path)
+      Dir.mkdir(path) unless File.exist?(path)
       generate_c_code(path, classes)
       @handler = _create(path)
     end
@@ -50,6 +53,7 @@ module Rod
       raise "Database already opened." unless @handler.nil?
       @readonly = true
       self.classes.each{|s| s.send(:build_structure)}
+      path = canonicalize_path(path)
       generate_c_code(path, classes)
       @handler = _open(path)
     end
@@ -210,6 +214,11 @@ module Rod
     # Returns collected subclasses.
     def classes
       @classes.sort{|c1,c2| c1.to_s <=> c2.to_s}
+    end
+
+    # Retruns the path to the DB as a name of a directory.
+    def canonicalize_path(path)
+      path + "/" unless path[-1] == "/"
     end
 
     # Special classes used by the database.

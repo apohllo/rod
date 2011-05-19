@@ -89,9 +89,9 @@ module Rod
       |  // create the file unless it exists
       |  if(model_p->#{klass.struct_name}_lib_file == -1){
       |    char * path = malloc(sizeof(char) * (strlen(model_p->path) +
-      |      #{klass.struct_name.size} + 2));
+      |      #{klass.struct_name.size} + #{".dat".size} + 1));
       |    strcpy(path,model_p->path);
-      |    strcat(path,".#{klass.struct_name}");
+      |    strcat(path,"#{klass.struct_name}.dat");
       |    model_p->#{klass.struct_name}_lib_file =
       |      open(path, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
       |    if(model_p->lib_file == -1) {
@@ -481,7 +481,7 @@ module Rod
           # create
           #########################################
           str = <<-END
-           |VALUE _create(char * path){
+           |VALUE _create(char * dir_path){
            |  unsigned int page_size = sysconf(_SC_PAGE_SIZE);
            |  #{model_struct} * model_p;
            |  model_p = ALLOC(#{model_struct});
@@ -493,15 +493,20 @@ module Rod
            |  model_p->#{StringElement.struct_name}_size = 0;
            |
            |//prepare the file
+           |  char * path = malloc(sizeof(char) * (strlen(dir_path) +
+           |    #{DATABASE_FILE.size} + 1));
+           |  strcpy(path,dir_path);
+           |  strcat(path,"#{DATABASE_FILE}");
            |  char* empty = calloc(page_size,1);
            |  VALUE cException = #{EXCEPTION_CLASS};
-           |  model_p->path = malloc(sizeof(char)*(strlen(path)+1));
-           |  strcpy(model_p->path,path);
+           |  model_p->path = malloc(sizeof(char)*(strlen(dir_path)+1));
+           |  strcpy(model_p->path,dir_path);
            |
            |  model_p->lib_file = open(path, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
            |  if(model_p->lib_file == -1) {
            |    rb_raise(cException,"Could not open file %s for writing.",path);
            |  }
+           |  free(path);
            |
            |  if(write(model_p->lib_file,empty,page_size) == -1){
            |    rb_raise(cException,"Could not fill stats with empty data.");
@@ -522,13 +527,18 @@ module Rod
           # open
           #########################################
           str =<<-END
-          |VALUE _open(char * path){
+          |VALUE _open(char * dir_path){
           |  #{model_struct} * model_p;
+          |  char * path = malloc(sizeof(char) * (strlen(dir_path) +
+          |    #{DATABASE_FILE.size} + 1));
+          |  strcpy(path,dir_path);
+          |  strcat(path,"#{DATABASE_FILE}");
           |  int lib_file = open(path, O_RDONLY);
           |  VALUE cException = #{EXCEPTION_CLASS};
           |  if(lib_file == -1) {
           |    rb_raise(cException,"Could not open data file %s for reading.",path);
           |  }
+          |  free(path);
           |  unsigned int page_size = sysconf(_SC_PAGE_SIZE);
           |  model_p = ALLOC(#{model_struct});
           |
@@ -663,17 +673,13 @@ module Rod
           |    model_p->#{klass.struct_name}_offset = last_offset * page_size;
           |    last_offset = new_offset;
           |    fclose(class_file); //TODO delete this file
-          |    // XXX this causes a segfault if the DB is not closed properly in
-          |    // the right moment. #17
-          |    // ERROR starts
           |    cmd = malloc(sizeof(char) * (strlen(model_p->path) +
-          |      #{klass.struct_name.size} + 8));
-          |    // ERROR ends
+          |      #{klass.struct_name.size} + #{"rm -f .dat".size} + 1));
           |    strcpy(cmd,"rm -f ");
           |    strcat(cmd,model_p->path);
-          |    strcat(cmd,".#{klass.struct_name}");
+          |    strcat(cmd,"#{klass.struct_name}.dat");
           |    if(system(cmd) == -1){
-          |      // dont raise exception, since it is not a major bug
+          |      // don't raise exception, since it is not a major bug
           |      perror(NULL);
           |    }
           SUBEND
