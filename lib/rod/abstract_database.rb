@@ -118,14 +118,14 @@ module Rod
     # Returns +count+ number of join indices starting from +offset+.
     # These are the indices for has many association of one type for one instance.
     def join_indices(offset, count)
-      _join_indices(offset, count, @handler)
+      _join_element_indices(offset, count, @handler)
     end
 
     # Returns +count+ number of polymorphic join indices starting from +offset+.
     # These are the indices for has many association of one type for one instance.
     # Each index is a pair of object index and object class id (classname_hash).
     def polymorphic_join_indices(offset, count)
-      table = _polymorphic_join_indices(offset, count, @handler)
+      table = _polymorphic_join_element_indices(offset, count, @handler)
       if table.size % 2 != 0
         raise RodException.new("Polymorphic join indices table is not even!")
       end

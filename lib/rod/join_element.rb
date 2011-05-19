@@ -50,5 +50,10 @@ module Rod
     def self.struct_name
       "_polymorphic_join_element"
     end
+
+    def self.layout
+      '  printf("  offset: %lu, index: %lu, class: %lu\n",' +
+        'sizeof(unsigned long), sizeof(unsigned long), sizeof(unsigned long));' + "\n"
+    end
   end
 end

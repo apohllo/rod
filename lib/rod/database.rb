@@ -39,9 +39,8 @@ module Rod
     def init_structs(classes)
       classes.map do |klass|
         <<-END
-        |  // first page offset - during READ
         |  // number of pages - during WRITE
-        |  model_p->#{klass.struct_name}_offset = 0;
+        |  model_p->#{klass.struct_name}_page_count = 0;
         |
         |  // maximal number of structures on one page
         |  model_p->#{klass.struct_name}_size = page_size / sizeof(#{klass.struct_name});
@@ -61,14 +60,6 @@ module Rod
       end.join("\n").margin
     end
 
-    def size_of_page(klass)
-      if klass != ::Rod::StringElement
-        "per_page * sizeof(#{klass.struct_name})"
-      else
-        "page_size"
-      end
-    end
-
     # Mmaps the class to its page during database creation.
     def mmap_class(klass)
       str =<<-SUBEND
@@ -76,7 +67,7 @@ module Rod
       |  //unmap the segment(s) first
       |  if(model_p->#{klass.struct_name}_table != NULL){
       |    if(munmap(model_p->#{klass.struct_name}_table,
-      |      page_size*(model_p->#{klass.struct_name}_offset)) == -1){
+      |      page_size*(model_p->#{klass.struct_name}_page_count)) == -1){
       |      perror(NULL);
       |      VALUE cException = #{EXCEPTION_CLASS};
       |      rb_raise(cException,"Could not unmap segment for #{klass.struct_name}.");
@@ -84,7 +75,7 @@ module Rod
       |  }
       |
       |  // increase the segments count by 1
-      |  model_p->#{klass.struct_name}_offset++;
+      |  model_p->#{klass.struct_name}_page_count++;
       |
       |  // create the file unless it exists
       |  if(model_p->#{klass.struct_name}_lib_file == -1){
@@ -123,7 +114,7 @@ module Rod
       |    rb_raise(cException,"Could not seek to start file for #{klass.struct_name}.");
       |  }
       |  model_p->#{klass.struct_name}_table = mmap(NULL,
-      |    model_p->#{klass.struct_name}_offset * page_size,
+      |    model_p->#{klass.struct_name}_page_count * page_size,
       |    PROT_WRITE | PROT_READ, MAP_SHARED, model_p->#{klass.struct_name}_lib_file,0);
       |  if(model_p->#{klass.struct_name}_table == MAP_FAILED){
       |    perror(NULL);
@@ -176,7 +167,7 @@ module Rod
               substruct = <<-SUBEND
               |  #{klass.struct_name} * #{klass.struct_name}_table;
               |  #{klass == StringElement ? "unsigned long char_last;" : ""}
-              |  unsigned long #{klass.struct_name}_offset;
+              |  unsigned long #{klass.struct_name}_page_count;
               |  unsigned long #{klass.struct_name}_size;
               |  unsigned long #{klass.struct_name}_count;
               |  int #{klass.struct_name}_lib_file;
@@ -208,7 +199,7 @@ module Rod
           # Join indices
           #########################################
           str =<<-END
-          |VALUE _join_indices(unsigned long element_offset, unsigned long count, VALUE handler){
+          |VALUE _join_element_indices(unsigned long element_offset, unsigned long count, VALUE handler){
           |  #{model_struct} * model_p;
           |  Data_Get_Struct(handler,#{model_struct},model_p);
           |  _join_element * element_p;
@@ -224,7 +215,7 @@ module Rod
           builder.c(str.margin)
 
           str =<<-END
-          |VALUE _polymorphic_join_indices(unsigned long element_offset, unsigned long count, VALUE handler){
+          |VALUE _polymorphic_join_element_indices(unsigned long element_offset, unsigned long count, VALUE handler){
           |  #{model_struct} * model_p;
           |  Data_Get_Struct(handler,#{model_struct},model_p);
           |  _polymorphic_join_element * element_p;
@@ -287,7 +278,7 @@ module Rod
           |  unsigned long result = model_p->_join_element_count;
           |  for(index = 0; index < size; index++){
           |    if(model_p->_join_element_count * sizeof(_join_element) >=
-          |      page_size * model_p->_join_element_offset){
+          |      page_size * model_p->_join_element_page_count){
           |      \n#{mmap_class(JoinElement)}
           |    }
           |    element = model_p->_join_element_table + model_p->_join_element_count;
@@ -311,7 +302,7 @@ module Rod
           |  for(index = 0; index < size; index++){
           |    if(model_p->_polymorphic_join_element_count *
           |      sizeof(_polymorphic_join_element) >=
-          |      page_size * model_p->_polymorphic_join_element_offset){
+          |      page_size * model_p->_polymorphic_join_element_page_count){
           |      \n#{mmap_class(PolymorphicJoinElement)}
           |    }
           |    element = model_p->_polymorphic_join_element_table +
@@ -452,10 +443,10 @@ module Rod
             |  #{model_struct} * model_p;
             |  Data_Get_Struct(handler,#{model_struct},model_p);
             |  if((model_p->#{klass.struct_name}_count+1) * sizeof(#{klass.struct_name}) >=
-            |    model_p->#{klass.struct_name}_offset * page_size){
+            |    model_p->#{klass.struct_name}_page_count * page_size){
             |     \n#{mmap_class(klass)}
             |  }
-            |  VALUE result = UINT2NUM(model_p->#{klass.struct_name}_offset - 1);
+            |  VALUE result = UINT2NUM(model_p->#{klass.struct_name}_page_count - 1);
             |  #{klass.struct_name} * struct_p = model_p->#{klass.struct_name}_table +
             |    model_p->#{klass.struct_name}_count;
             |  //printf("struct assigned\\n");
@@ -546,8 +537,8 @@ module Rod
              |  if(read(lib_file, &#{klass.struct_name}_count, sizeof(unsigned long)) == -1){
              |    rb_raise(cException,"Could not read #{klass.struct_name} count.");
              |  }
-             |  unsigned long #{klass.struct_name}_offset;
-             |  if(read(lib_file, &#{klass.struct_name}_offset, sizeof(unsigned long)) == -1){
+             |  unsigned long #{klass.struct_name}_page_count;
+             |  if(read(lib_file, &#{klass.struct_name}_page_count, sizeof(unsigned long)) == -1){
              |    rb_raise(cException,"Could not read #{klass.struct_name} offset.");
              |  }
              #{klass.fields.map do |field,options|
@@ -569,12 +560,12 @@ module Rod
              |    (sizeof(#{klass.struct_name}) * #{klass.struct_name}_count % page_size ==
              |      0 ? 0 : page_size);
              |  model_p->#{klass.struct_name}_count = #{klass.struct_name}_count;
-             |  model_p->#{klass.struct_name}_offset = #{klass.struct_name}_offset;
+             |  model_p->#{klass.struct_name}_page_count = #{klass.struct_name}_page_count;
              |
              |  if(model_p->#{klass.struct_name}_size > 0){
              |    if((model_p->#{klass.struct_name}_table = mmap(NULL,
              |      model_p->#{klass.struct_name}_size, PROT_READ, MAP_SHARED,
-             |      lib_file, model_p->#{klass.struct_name}_offset)) == MAP_FAILED){
+             |      lib_file, model_p->#{klass.struct_name}_page_count)) == MAP_FAILED){
              |      perror(NULL);
              |      rb_raise(cException,"Could not mmap class '#{klass}'.");
              |    }
@@ -657,7 +648,7 @@ module Rod
           |    if(fseek(class_file,0,SEEK_SET) == -1){
           |      rb_raise(cException,"Could not seek file for #{klass} while copying pages");
           |    }
-          |    for(index = 0; index < model_p->#{klass.struct_name}_offset;index++){
+          |    for(index = 0; index < model_p->#{klass.struct_name}_page_count;index++){
           |      if(read(model_p->#{klass.struct_name}_lib_file,buffer,page_size) == -1){
           |        rb_raise(cException,"Could not read file for #{klass}");
           |      }
@@ -666,8 +657,8 @@ module Rod
           |      }
           |    }
           |    // update offset
-          |    new_offset = last_offset + model_p->#{klass.struct_name}_offset;
-          |    model_p->#{klass.struct_name}_offset = last_offset * page_size;
+          |    new_offset = last_offset + model_p->#{klass.struct_name}_page_count;
+          |    model_p->#{klass.struct_name}_page_count = last_offset * page_size;
           |    last_offset = new_offset;
           |    fclose(class_file); //TODO delete this file
           |    cmd = malloc(sizeof(char) * (strlen(model_p->path) +
@@ -703,7 +694,7 @@ module Rod
             |    rb_raise(cException,"Could not write #{klass.struct_name} count.");
             |  }
             |  if(write(model_p->lib_file,
-            |    &(model_p->#{klass.struct_name}_offset),
+            |    &(model_p->#{klass.struct_name}_page_count),
             |    sizeof(unsigned long)) == -1){
             |    rb_raise(cException,"Could not write #{klass.struct_name} offset.");
             |  }\n
@@ -748,7 +739,7 @@ module Rod
           |  printf("Size of #{klass.struct_name} %lu\\n",(unsigned long)sizeof(#{klass.struct_name}));
           |  \n#{klass.layout}
           |  printf("Size: %lu, offset: %lu, count %lu, pointer: %lx\\n",
-          |    model_p->#{klass.struct_name}_size, model_p->#{klass.struct_name}_offset,
+          |    model_p->#{klass.struct_name}_size, model_p->#{klass.struct_name}_page_count,
           |    model_p->#{klass.struct_name}_count,
           |    (unsigned long)model_p->#{klass.struct_name}_table);
                SUBEND
