@@ -159,6 +159,39 @@ Feature: Store and load small amount of data from one class
     And there should be 2 Caveman(s) with '1.67' height
     And there should be 1 Caveman with '1.86' height
 
+  Scenario: indexing of fields with different DBs for the same model
+    The contents of indices should be fulshed when the database is reopened.
+    Given the class space is cleared
+    And the model is connected with the default database
+    And a class Caveman has a name field of type string with flat index
+    When database is created
+    And I create a Caveman
+    And his name is 'Fred'
+    And I store him in the database
+    And I create another Caveman
+    And his name is 'Fred'
+    And I store him in the database
+    And I create another Caveman
+    And his name is 'Fred'
+    And I store him in the database
+    And I reopen database for reading
+    And I access the Caveman name index
+    And database is created in location2
+    And I create a Caveman
+    And his name is 'Willma'
+    And I store him in the database
+    And I create another Caveman
+    And his name is 'Willma'
+    And I store him in the database
+    And I create another Caveman
+    And his name is 'Willma'
+    And I store him in the database
+    And I reopen database for reading in location2
+    Then there should be 3 Caveman(s)
+    Then there should be 3 Caveman(s) with 'Willma' name
+    And there should be 0 Caveman(s) with 'Fred' name
+
+
   Scenario: model without instances
       A model without instances should be treated fine.
     Given the class space is cleared

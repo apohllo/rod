@@ -173,6 +173,10 @@ When /^I store the (\w+) (\w+) in the database$/ do |position,class_name|
   get_instance(class_name,position,true).store
 end
 
+When /^I access the (\w+) (\w+) index$/ do |class_name,field|
+  get_class(class_name).send("find_by_#{field}",nil)
+end
+
 ################################################################
 # Then
 ################################################################

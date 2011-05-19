@@ -4,14 +4,21 @@ Given /^the library works in development mode$/ do
   Rod::Database.development_mode = true
 end
 
-Given /^(the )?(\w+) is created$/ do |ignore,db_name|
+Given /^(the )?(\w+) is created( in (\w+))?$/ do |ignore,db_name,location,location_name|
   get_db(db_name).instance.close_database if get_db(db_name).instance.opened?
   if File.exist?("tmp")
-    if File.exist?("tmp/#{db_name}.dat")
-      File.delete("tmp/#{db_name}.dat")
+    if location
+      db_location = location_name
+    else
+      db_location = db_name
+    end
+    if File.exist?("tmp/#{db_location}")
+      Dir.glob("tmp/#{db_location}").each do |file_name|
+        File.delete(file_name) unless File.directory?(file_name)
+      end
     end
   end
-  get_db(db_name).instance.create_database("tmp/#{db_name}.dat")
+  get_db(db_name).instance.create_database("tmp/#{db_location}")
   @instances = {}
 end
 
@@ -42,10 +49,15 @@ Given /^the class space is cleared$/ do
 end
 
 
-When /^I reopen (\w+) for reading$/ do |db_name|
+When /^I reopen (\w+) for reading( in (\w+))?$/ do |db_name,location,location_name|
+  if location
+    db_location = location_name
+  else
+    db_location = db_name
+  end
   get_db(db_name).instance.close_database
   get_db(db_name).instance.clear_cache
-  get_db(db_name).instance.open_database("tmp/#{db_name}.dat")
+  get_db(db_name).instance.open_database("tmp/#{db_location}")
 end
 
 Then /^database should be opened for reading$/ do

@@ -583,8 +583,14 @@ module Rod
     # This code intializes the class. It adds C routines and dynamic Ruby accessors.
     def self.build_structure
       @object_count = 0
+      @indices = {}
+      self.fields.each do |name, options|
+        if options[:index]
+          @indices[name] = {}
+          instance_variable_set("@#{name}_index".to_sym,nil)
+        end
+      end
       return if @structure_built
-      @indices ||= {}
 
       inline(:C) do |builder|
         builder.prefix(typedef_struct)
@@ -636,9 +642,6 @@ module Rod
             field_reader("#{name}_offset","unsigned long",builder)
             field_writer("#{name}_length","unsigned long",builder)
             field_writer("#{name}_offset","unsigned long",builder)
-          end
-          if options[:index]
-            @indices[name] = {}
           end
         end
 
