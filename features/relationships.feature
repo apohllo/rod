@@ -28,12 +28,12 @@ Feature: relationships between different classes
     # Should store nil
     When the database is created
     And I create a Caveman
-    And his name is 'Fred'
+    And his name is 'Willma'
     And his automobile is nil
     And I store him in the database
     And I reopen database for reading
     Then there should be 1 Caveman
-    And the name of the first Caveman should be 'Fred'
+    And the name of the first Caveman should be 'Willma'
     And the automobile of the first Caveman should be nil
 
   Scenario: two classes with has many relationship
@@ -136,12 +136,12 @@ Feature: relationships between different classes
     # should store nil
     When the database is created
     And I create a Caveman
-    And his name is 'Fred'
+    And his name is 'Willma'
     And his item is nil
     And I store him in the database
     And I reopen database for reading
     Then there should be 1 Caveman
-    And the name of the first Caveman should be 'Fred'
+    And the name of the first Caveman should be 'Willma'
     And the item of the first Caveman should be nil
 
   Scenario: three classes with has many polymorphic association

@@ -12,11 +12,6 @@ Given /^(the )?(\w+) is created( in (\w+))?$/ do |ignore,db_name,location,locati
     else
       db_location = db_name
     end
-    if File.exist?("tmp/#{db_location}")
-      Dir.glob("tmp/#{db_location}").each do |file_name|
-        File.delete(file_name) unless File.directory?(file_name)
-      end
-    end
   end
   get_db(db_name).instance.create_database("tmp/#{db_location}")
   @instances = {}

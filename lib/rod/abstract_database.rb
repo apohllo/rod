@@ -37,12 +37,21 @@ module Rod
     # database configured via Rod::Model#database_class call
     # (this configuration is by default inherited in subclasses,
     # so it have to be called only in the root class of given model).
+    #
+    # WARNING: all files in the DB directory are removed during DB creation!
     def create_database(path)
       raise "Database already opened." unless @handler.nil?
       @readonly = false
       self.classes.each{|s| s.send(:build_structure)}
       path = canonicalize_path(path)
-      Dir.mkdir(path) unless File.exist?(path)
+      # XXX maybe should be more careful?
+      if File.exist?(path)
+        Dir.glob("#{path}*").each do |file_name|
+          File.delete(file_name) unless File.directory?(file_name)
+        end
+      else
+        Dir.mkdir(path)
+      end
       generate_c_code(path, classes)
       @handler = _create(path)
     end
