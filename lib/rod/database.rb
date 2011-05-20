@@ -540,8 +540,8 @@ module Rod
           |  \n#{classes.map do |klass|
             <<-SUBEND
             |  if(model_p->#{klass.struct_name}_table != NULL){
-            |    // XXX the size is invalid #38
-            |    if(munmap(model_p->#{klass.struct_name}_table,page_size) == -1){
+            |    if(munmap(model_p->#{klass.struct_name}_table,
+            |      page_size * model_p->#{klass.struct_name}_page_count) == -1){
             |      rb_raise(cException,"Could not unmap #{klass.struct_name}.");
             |    }
             |  }
