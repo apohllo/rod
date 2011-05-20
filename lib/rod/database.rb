@@ -65,9 +65,9 @@ module Rod
       |  strcat(path,"#{klass.struct_name}.dat");
       |  model_p->#{klass.struct_name}_lib_file =
       |    open(path, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
-      |  if(model_p->lib_file == -1) {
+      |  if(model_p->#{klass.struct_name}_lib_file == -1) {
       |    VALUE cException = #{EXCEPTION_CLASS};
-      |    rb_raise(cException,"Could not open file %s for writing.",path);
+      |    rb_raise(cException,"Could not open file for class #{klass} on path %s writing.",path);
       |  }
       |  free(path);
       |}
@@ -189,11 +189,7 @@ module Rod
                 end.join("\n")
               (substruct + indices).margin
             end.join("\n")}
-            |  // number of pages of join elements
-            |  unsigned long _elements_pages_count;
-            |
-            |  // the handler to the file containing the data
-            |  int lib_file;
+            |  // the path to the DB
             |  char * path;
             |
             |} #{model_struct};
@@ -390,16 +386,14 @@ module Rod
             next if special_class?(klass)
             klass.fields.each do |field,options|
               next unless options[:index]
-              %w{length offset}.each do |type|
-                str =<<-END
-                |unsigned long _read_#{klass.struct_name}_#{field}_index_#{type}(VALUE handler){
-                |  #{model_struct} * model_p;
-                |  Data_Get_Struct(handler,#{model_struct},model_p);
-                |  return model_p->#{klass.struct_name}_#{field}_index_#{type};
-                |}
-                END
-                builder.c(str.margin)
-              end
+              self.class.field_reader("#{klass.struct_name}_#{field}_index_length",
+                                      "unsigned long",builder,model_struct)
+              self.class.field_writer("#{klass.struct_name}_#{field}_index_length",
+                                      "unsigned long",builder,model_struct)
+              self.class.field_reader("#{klass.struct_name}_#{field}_index_offset",
+                                      "unsigned long",builder,model_struct)
+              self.class.field_writer("#{klass.struct_name}_#{field}_index_offset",
+                                      "unsigned long",builder,model_struct)
             end
           end
 
@@ -407,12 +401,16 @@ module Rod
           # Object accessors
           #########################################
           classes.each do |klass|
-            next if special_class?(klass)
             self.class.field_reader("#{klass.struct_name}_count",
                                     "unsigned long",builder,model_struct)
             self.class.field_writer("#{klass.struct_name}_count",
                                     "unsigned long",builder,model_struct)
+            self.class.field_reader("#{klass.struct_name}_page_count",
+                                    "unsigned long",builder,model_struct)
+            self.class.field_writer("#{klass.struct_name}_page_count",
+                                    "unsigned long",builder,model_struct)
 
+            next if special_class?(klass)
             str = <<-END
             |VALUE _#{klass.struct_name}_get(VALUE handler, unsigned long index){
             |  #{model_struct} * model_p;
@@ -459,47 +457,40 @@ module Rod
           end
 
           #########################################
+          # init handler
+          #########################################
+          str = <<-END
+          |VALUE _init_handler(char * dir_path){
+          |  #{model_struct} * model_p;
+          |  unsigned int page_size = sysconf(_SC_PAGE_SIZE);
+          |  model_p = ALLOC(#{model_struct});
+          |
+          |  #{init_structs(classes)}
+          |
+          |  // set dir path
+          |  model_p->path = malloc(sizeof(char)*(strlen(dir_path)+1));
+          |  strcpy(model_p->path,dir_path);
+          |
+          |  //create the wrapping object
+          |  VALUE cClass = rb_define_class("#{model_struct_name(path).camelcase(true)}",
+          |    rb_cObject);
+          |  return Data_Wrap_Struct(cClass, 0, free, model_p);
+          |}
+          END
+          builder.c(str.margin)
+
+          #########################################
           # create
           #########################################
           str = <<-END
-           |VALUE _create(char * dir_path){
-           |  unsigned int page_size = sysconf(_SC_PAGE_SIZE);
-           |  #{model_struct} * model_p;
-           |  model_p = ALLOC(#{model_struct});
-           |
-           |  //join elements
-           |  model_p->_elements_pages_count = 1;
-           |
-           |  #{init_structs(classes)}
-           |
-           |//prepare the file
-           |  char * path = malloc(sizeof(char) * (strlen(dir_path) +
-           |    #{DATABASE_FILE.size} + 1));
-           |  strcpy(path,dir_path);
-           |  strcat(path,"#{DATABASE_FILE}");
-           |  char* empty = calloc(page_size,1);
-           |  VALUE cException = #{EXCEPTION_CLASS};
-           |  model_p->path = malloc(sizeof(char)*(strlen(dir_path)+1));
-           |  strcpy(model_p->path,dir_path);
-           |
-           |  model_p->lib_file = open(path, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
-           |  if(model_p->lib_file == -1) {
-           |    rb_raise(cException,"Could not open file %s for writing.",path);
-           |  }
-           |  free(path);
-           |
-           |  if(write(model_p->lib_file,empty,page_size) == -1){
-           |    rb_raise(cException,"Could not fill stats with empty data.");
-           |  }
-           |
-           |  //mmap the structures
-           |  \n#{classes.map{|klass| mmap_class(klass)}.join("\n|\n")}
-           |
-           |//create the wrapping object
-           |  VALUE cClass = rb_define_class("#{model_struct_name(path).camelcase(true)}",
-           |    rb_cObject);
-           |  return Data_Wrap_Struct(cClass, 0, free, model_p);
-           |}
+          |void _create(VALUE handler){
+          |  #{model_struct} * model_p;
+          |  unsigned int page_size = sysconf(_SC_PAGE_SIZE);
+          |  Data_Get_Struct(handler,#{model_struct},model_p);
+          |
+          |  //mmap the structures
+          |  \n#{classes.map{|klass| mmap_class(klass)}.join("\n|\n")}
+          |}
           END
           builder.c(str.margin)
 
@@ -507,50 +498,14 @@ module Rod
           # open
           #########################################
           str =<<-END
-          |VALUE _open(char * dir_path){
+          |void _open(VALUE handler){
           |  #{model_struct} * model_p;
           |  unsigned int page_size = sysconf(_SC_PAGE_SIZE);
-          |  model_p = ALLOC(#{model_struct});
-          |  char * path = malloc(sizeof(char) * (strlen(dir_path) +
-          |    #{DATABASE_FILE.size} + 1));
-          |  model_p->path = malloc(sizeof(char) * (strlen(dir_path) + 1));
-          |  strcpy(model_p->path,dir_path);
-          |  strcpy(path,dir_path);
-          |  strcat(path,"#{DATABASE_FILE}");
-          |  int lib_file = open(path, O_RDONLY);
+          |  Data_Get_Struct(handler,#{model_struct},model_p);
           |  VALUE cException = #{EXCEPTION_CLASS};
-          |  if(lib_file == -1) {
-          |    rb_raise(cException,"Could not open data file %s for reading.",path);
-          |  }
-          |  free(path);
-          |  unsigned long last_offset = page_size;
           |
-          |  \n#{last_struct = nil
-          classes.map do |klass|
+          |  \n#{classes.map do |klass|
              <<-SUBEND
-             |  unsigned long #{klass.struct_name}_count;
-             |  if(read(lib_file, &#{klass.struct_name}_count, sizeof(unsigned long)) == -1){
-             |    rb_raise(cException,"Could not read #{klass.struct_name} count.");
-             |  }
-             |  unsigned long #{klass.struct_name}_page_count;
-             |  if(read(lib_file, &#{klass.struct_name}_page_count, sizeof(unsigned long)) == -1){
-             |    rb_raise(cException,"Could not read #{klass.struct_name} page count.");
-             |  }
-             #{klass.fields.map do |field,options|
-               if options[:index]
-                 %w{length offset}.map do |type|
-                   str =<<-SUBSUBEND
-                   |  if(read(lib_file,&(model_p->#{klass.struct_name}_#{field}_index_#{type}),
-                   |    sizeof(unsigned long)) == -1){
-                   |    rb_raise(cException,
-                   |      "Could not read '#{klass.struct_name}' '#{field}' index #{type}.");
-                   |  }
-                   SUBSUBEND
-                 end.join("\n")
-               end
-             end.join("\n")}
-             |  model_p->#{klass.struct_name}_count = #{klass.struct_name}_count;
-             |  model_p->#{klass.struct_name}_page_count = #{klass.struct_name}_page_count;
              |  model_p->#{klass.struct_name}_lib_file = -1;
              |
              |  if(model_p->#{klass.struct_name}_page_count > 0){
@@ -564,14 +519,8 @@ module Rod
              |  } else {
              |    model_p->#{klass.struct_name}_table = NULL;
              |  }
-             |  last_offset += #{klass.struct_name}_page_count * page_size;
              SUBEND
           end.join("\n")}
-          |  model_p->lib_file = lib_file;
-          |  //create the wrapping object
-          |  VALUE cClass = rb_define_class("#{model_struct_name(path).camelcase(true)}",
-          |    rb_cObject);
-          |  return Data_Wrap_Struct(cClass, 0, free, model_p);
           |}
           END
           builder.c(str.margin)
@@ -588,29 +537,6 @@ module Rod
           |  VALUE klass;
           |  unsigned int page_size = sysconf(_SC_PAGE_SIZE);
           |
-          |  if(classes != Qnil){
-          |  \n#{classes.map.with_index do |klass,index|
-            <<-SUBEND
-            |    klass = rb_ary_entry(classes, #{index});
-            |    // store indices
-            |    \n#{klass.fields.map do |field, options|
-              if options[:index]
-                str =<<-SUBSUBEND
-                |    VALUE index_#{klass.struct_name}_#{field} =
-                |      rb_funcall(klass,rb_intern("field_index"),1,rb_str_new2("#{field}"));
-                |    VALUE index_data_#{klass.struct_name}_#{field} =
-                |      rb_funcall(self,rb_intern("_set_string"),2,
-                |      index_#{klass.struct_name}_#{field},handler);
-                |    model_p->#{klass.struct_name}_#{field}_index_length =
-                |      NUM2ULONG(rb_ary_entry(index_data_#{klass.struct_name}_#{field},0));
-                |    model_p->#{klass.struct_name}_#{field}_index_offset =
-                |      NUM2ULONG(rb_ary_entry(index_data_#{klass.struct_name}_#{field},1));
-                SUBSUBEND
-              end
-            end.join("\n|\n")}
-            SUBEND
-          end.join("\n|\n")}
-          |  }
           |  \n#{classes.map do |klass|
             <<-SUBEND
             |  if(model_p->#{klass.struct_name}_table != NULL){
@@ -619,47 +545,11 @@ module Rod
             |      rb_raise(cException,"Could not unmap #{klass.struct_name}.");
             |    }
             |  }
+            |  if(close(model_p->#{klass.struct_name}_lib_file) == -1){
+            |    rb_raise(cException,"Could not close model file for #{klass}.");
+            |  }
             SUBEND
           end.join("\n")}
-          |  if(classes != Qnil){
-          |    FILE * main_file = fdopen(model_p->lib_file,"w+");
-          |    if(fseek(main_file,0,SEEK_SET) == -1){
-          |      rb_raise(cException,"Cloud not seek to the beginning of the file.");
-          |    }
-          |  \n#{classes.map do |klass|
-            main_part =<<-SUBEND
-            |    close(model_p->#{klass.struct_name}_lib_file);
-            |    if(write(model_p->lib_file,
-            |      &(model_p->#{klass.struct_name}_count),
-            |      sizeof(unsigned long)) == -1){
-            |      rb_raise(cException,"Could not write #{klass.struct_name} count.");
-            |    }
-            |    if(write(model_p->lib_file,
-            |      &(model_p->#{klass.struct_name}_page_count),
-            |      sizeof(unsigned long)) == -1){
-            |      rb_raise(cException,"Could not write #{klass.struct_name} page count.");
-            |    }\n
-            SUBEND
-            fields_part = klass.fields.map do |field,options|
-              if options[:index]
-                %w{length offset}.map do |type|
-                  str =<<-SUBEND
-                  |    if(write(model_p->lib_file,
-                  |      &(model_p->#{klass.struct_name}_#{field}_index_#{type}),
-                  |      sizeof(unsigned long)) == -1){
-                  |      rb_raise(cException,
-                  |        "Could not write '#{klass.struct_name}' '#{field}' index #{type}.");
-                  |    }
-                  SUBEND
-                end.join("\n")
-              end
-            end.join("\n")
-            main_part + fields_part
-          end.join("\n")}
-          |  }
-          |  if(close(model_p->lib_file) == -1){
-          |    rb_raise(cException,"Could not close model file.");
-          |  }
           |}
           END
           builder.c(str.margin)
@@ -673,7 +563,6 @@ module Rod
           |  #{model_struct} * model_p;
           |  Data_Get_Struct(handler,#{model_struct},model_p);
           |  printf("============= Data layout START =============\\n");
-          |  printf("File handler %d\\n",model_p->lib_file);
           |  \n#{classes.map do |klass|
                str =<<-SUBEND
           |  printf("-- #{klass} --\\n");

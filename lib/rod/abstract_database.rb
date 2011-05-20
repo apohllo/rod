@@ -1,4 +1,5 @@
 require 'singleton'
+require 'yaml'
 
 module Rod
   # This class implements the database abstraction, i.e. it
@@ -43,17 +44,18 @@ module Rod
       raise "Database already opened." unless @handler.nil?
       @readonly = false
       self.classes.each{|s| s.send(:build_structure)}
-      path = canonicalize_path(path)
+      @path = canonicalize_path(path)
       # XXX maybe should be more careful?
-      if File.exist?(path)
-        Dir.glob("#{path}*").each do |file_name|
+      if File.exist?(@path)
+        Dir.glob("#{@path}*").each do |file_name|
           File.delete(file_name) unless File.directory?(file_name)
         end
       else
-        Dir.mkdir(path)
+        Dir.mkdir(@path)
       end
-      generate_c_code(path, classes)
-      @handler = _create(path)
+      generate_c_code(@path, classes)
+      @handler = _init_handler(@path)
+      _create(@handler)
     end
 
     # Opens the database at +path+ for readonly mode. This allows
@@ -62,9 +64,25 @@ module Rod
       raise "Database already opened." unless @handler.nil?
       @readonly = true
       self.classes.each{|s| s.send(:build_structure)}
-      path = canonicalize_path(path)
-      generate_c_code(path, classes)
-      @handler = _open(path)
+      @path = canonicalize_path(path)
+      generate_c_code(@path, classes)
+      metadata = {}
+      File.open(@path + DATABASE_FILE) do |input|
+        metadata = YAML::load(input)
+      end
+      @handler = _init_handler(@path)
+      self.classes.each do |klass|
+        meta = metadata[klass.name]
+        set_count(klass,meta[:count])
+        send("_#{klass.struct_name}_page_count=",@handler,meta[:page_count])
+        klass.fields.each do |field,options|
+          if options[:index]
+            write_index(klass,field,"length",meta[:fields][field][:length])
+            write_index(klass,field,"offset",meta[:fields][field][:offset])
+          end
+        end
+      end
+      _open(@handler)
     end
 
     # Closes the database.
@@ -80,6 +98,38 @@ module Rod
       else
         unless referenced_objects.select{|k, v| not v.empty?}.size == 0
           raise "Not all associations have been stored: #{referenced_objects.size} objects"
+        end
+        metadata = {}
+        rod_data = metadata["Rod"] = {}
+        rod_data[:version] = VERSION
+        self.classes.each do |klass|
+          meta = metadata[klass.name] = {}
+          meta[:count] = count(klass)
+          meta[:page_count] = send("_#{klass.struct_name}_page_count",@handler)
+          fields = meta[:fields] = {} unless klass.fields.empty?
+          klass.fields.each do |field,options|
+            fields[field] = {}
+            fields[field][:options] = options
+            if options[:index]
+              length, offset = _set_string(klass.field_index(field),@handler)
+              fields[field][:length] = length
+              fields[field][:offset] = offset
+            end
+          end
+          next if special_class?(klass)
+          has_one = meta[:has_one] = {} unless klass.singular_associations.empty?
+          klass.singular_associations.each do |name,options|
+            has_one[name] = {}
+            has_one[name][:options] = options
+          end
+          has_many = meta[:has_many] = {} unless klass.plural_associations.empty?
+          klass.plural_associations.each do |name,options|
+            has_many[name] = {}
+            has_many[name][:options] = options
+          end
+        end
+        File.open(@path + DATABASE_FILE,"w") do |out|
+          out.puts(YAML::dump(metadata))
         end
         _close(@handler, self.classes)
       end
@@ -170,13 +220,22 @@ module Rod
       send("_#{klass.struct_name}_count",@handler)
     end
 
+    # Sets the number of objects for given +klass+.
+    def set_count(klass,value)
+      send("_#{klass.struct_name}_count=",@handler,value)
+    end
+
     # Reads field of +type+ of index of +klass+ of +field+.
     # Note: The first field refers to the inner structure of the
     # index (lenght,offset); the second field referst to the field
     # in the class.
     def read_index(klass,field,type)
-      send("_read_#{klass.struct_name()}_#{field}_index_#{type}",
-           @handler)
+      send("_#{klass.struct_name()}_#{field}_index_#{type}", @handler)
+    end
+
+    # Write +value+ for index of +type+ for +field+ for +klass+.
+    def write_index(klass,field,type,value)
+      send("_#{klass.struct_name()}_#{field}_index_#{type}_equals", @handler,value)
     end
 
     # Store the object in the database.
