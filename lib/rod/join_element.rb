@@ -18,6 +18,10 @@ module Rod
       "_join_element"
     end
 
+    def self.path_for_data(path)
+      "#{path}#{self.struct_name}.dat"
+    end
+
     def self.page_offsets
       @page_offsets ||= []
     end

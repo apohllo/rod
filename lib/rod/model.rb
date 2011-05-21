@@ -500,6 +500,12 @@ module Rod
         to_s.to_i(16) % 2 ** 32
     end
 
+    # The name of the file (for given +path+), which the data of this class
+    # is stored in.
+    def self.path_for_data(relative_path)
+      "#{relative_path}#{self.struct_name}.dat"
+    end
+
     def self.string_field?(type)
       string_types.include?(type)
     end

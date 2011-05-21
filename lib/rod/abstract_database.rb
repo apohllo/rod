@@ -74,7 +74,11 @@ module Rod
       self.classes.each do |klass|
         meta = metadata[klass.name]
         set_count(klass,meta[:count])
-        send("_#{klass.struct_name}_page_count=",@handler,meta[:page_count])
+        file_size = File.new(klass.path_for_data(@path)).size
+        unless file_size % _page_size == 0
+          raise RodException.new("Size of data file of #{klass} is invalid: #{file_size}")
+        end
+        set_page_count(klass,file_size / _page_size)
         klass.fields.each do |field,options|
           if options[:index]
             write_index(klass,field,"length",meta[:fields][field][:length])
@@ -223,6 +227,11 @@ module Rod
     # Sets the number of objects for given +klass+.
     def set_count(klass,value)
       send("_#{klass.struct_name}_count=",@handler,value)
+    end
+
+    # Sets the number of pages allocated for given +klass+.
+    def set_page_count(klass,value)
+      send("_#{klass.struct_name}_page_count=",@handler,value)
     end
 
     # Reads field of +type+ of index of +klass+ of +field+.

@@ -14,6 +14,11 @@ module Rod
       "char"
     end
 
+    def self.path_for_data(path)
+      "#{path}#{self.struct_name}.dat"
+    end
+
+
     def self.layout
     end
 

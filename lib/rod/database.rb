@@ -60,9 +60,9 @@ module Rod
       |// create the file unless it exists
       |if(model_p->#{klass.struct_name}_lib_file == -1){
       |  char * path = malloc(sizeof(char) * (strlen(model_p->path) +
-      |    #{klass.struct_name.size} + #{".dat".size} + 1));
+      |    #{klass.path_for_data("").size} + 1));
       |  strcpy(path,model_p->path);
-      |  strcat(path,"#{klass.struct_name}.dat");
+      |  strcat(path,"#{klass.path_for_data("")}");
       |  model_p->#{klass.struct_name}_lib_file =
       |    open(path, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
       |  if(model_p->#{klass.struct_name}_lib_file == -1) {
@@ -534,7 +534,6 @@ module Rod
           |  #{model_struct} * model_p;
           |  Data_Get_Struct(handler,#{model_struct},model_p);
           |  VALUE cException = #{EXCEPTION_CLASS};
-          |  VALUE klass;
           |  unsigned int page_size = sysconf(_SC_PAGE_SIZE);
           |
           |  \n#{classes.map do |klass|
@@ -583,6 +582,13 @@ module Rod
           str =<<-END
           |void _print_system_error(){
           |  perror(NULL);
+          |}
+          END
+          builder.c(str.margin)
+
+          str =<<-END
+          |unsigend int _page_size(){
+          |  return sysconf(_SC_PAGE_SIZE);
           |}
           END
           builder.c(str.margin)
