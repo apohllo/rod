@@ -102,19 +102,16 @@ module Rod
     def close_database(purge_classes=false)
       raise "Database not opened." if @handler.nil?
 
-      if readonly_data?
-        _close(@handler, nil)
-      else
+      unless readonly_data?
         unless referenced_objects.select{|k, v| not v.empty?}.size == 0
           raise "Not all associations have been stored: #{referenced_objects.size} objects"
         end
         metadata = {}
         rod_data = metadata["Rod"] = {}
         rod_data[:version] = VERSION
+        # write the indices first for the string elements to have proper count
         self.classes.each do |klass|
           meta = metadata[klass.name] = {}
-          meta[:count] = count(klass)
-          meta[:page_count] = send("_#{klass.struct_name}_page_count",@handler)
           fields = meta[:fields] = {} unless klass.fields.empty?
           klass.fields.each do |field,options|
             fields[field] = {}
@@ -125,6 +122,11 @@ module Rod
               fields[field][:offset] = offset
             end
           end
+        end
+        self.classes.each do |klass|
+          meta = metadata[klass.name]
+          meta[:count] = count(klass)
+          meta[:page_count] = send("_#{klass.struct_name}_page_count",@handler)
           next if special_class?(klass)
           has_one = meta[:has_one] = {} unless klass.singular_associations.empty?
           klass.singular_associations.each do |name,options|
@@ -140,8 +142,8 @@ module Rod
         File.open(@path + DATABASE_FILE,"w") do |out|
           out.puts(YAML::dump(metadata))
         end
-        _close(@handler, self.classes)
       end
+      _close(@handler)
       @handler = nil
       # clear class information
       if purge_classes

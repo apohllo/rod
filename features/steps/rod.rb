@@ -43,8 +43,8 @@ Given /^the class space is cleared$/ do
   RodTest.const_set("TestModel",default_model)
 end
 
-
-When /^I reopen (\w+) for reading( in (\w+))?$/ do |db_name,location,location_name|
+# Should be split
+When /^I reopen (\w+)( for reading)?( in (\w+))?$/ do |db_name,reading,location,location_name|
   if location
     db_location = location_name
   else
