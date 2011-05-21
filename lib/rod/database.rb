@@ -49,6 +49,16 @@ module Rod
         |
         |  // initialize the file descriptor to -1 to force its creation
         |  model_p->#{klass.struct_name}_lib_file = -1;
+        |\n#{klass.fields.map do |field,options|
+          if options[:index]
+            <<-SUBEND
+              |  model_p->#{klass.struct_name}_#{field}_index_length = 0;
+              |  model_p->#{klass.struct_name}_#{field}_index_offset = 0;
+            SUBEND
+          else
+            ""
+          end
+        end.join("\n|\n")}
         END
       end.join("\n").margin
     end

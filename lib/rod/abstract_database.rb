@@ -84,8 +84,10 @@ module Rod
         set_page_count(klass,file_size / _page_size)
         klass.fields.each do |field,options|
           if options[:index]
-            write_index(klass,field,"length",meta[:fields][field][:length])
-            write_index(klass,field,"offset",meta[:fields][field][:offset])
+            send("_#{klass.struct_name()}_#{field}_index_length_equals",
+                 @handler, meta[:fields][field][:length])
+            send("_#{klass.struct_name()}_#{field}_index_offset_equals",
+                 @handler, meta[:fields][field][:offset])
           end
         end
       end
@@ -118,7 +120,7 @@ module Rod
             fields[field] = {}
             fields[field][:options] = options
             if options[:index]
-              length, offset = _set_string(klass.field_index(field),@handler)
+              length, offset = write_index(klass,field)
               fields[field][:length] = length
               fields[field][:offset] = offset
             end
@@ -240,17 +242,20 @@ module Rod
       send("_#{klass.struct_name}_page_count=",@handler,value)
     end
 
-    # Reads field of +type+ of index of +klass+ of +field+.
-    # Note: The first field refers to the inner structure of the
-    # index (lenght,offset); the second field referst to the field
-    # in the class.
-    def read_index(klass,field,type)
-      send("_#{klass.struct_name()}_#{field}_index_#{type}", @handler)
+    # Reads index of +field+ for +klass+.
+    def read_index(klass,field)
+      length = send("_#{klass.struct_name()}_#{field}_index_length", @handler)
+      offset = send("_#{klass.struct_name()}_#{field}_index_offset", @handler)
+      return {} if length == 0
+      marshalled = _read_string(length,offset,@handler)
+      Marshal.load(marshalled)
     end
 
-    # Write +value+ for index of +type+ for +field+ for +klass+.
-    def write_index(klass,field,type,value)
-      send("_#{klass.struct_name()}_#{field}_index_#{type}_equals", @handler,value)
+    # Store index of +field+ of +klass+ in the database.
+    def write_index(klass,field)
+      raise DatabaseError.new("Readonly database.") if readonly_data?
+      marshalled = Marshal.dump(klass.index_for(field))
+      _set_string(marshalled,@handler)
     end
 
     # Store the object in the database.

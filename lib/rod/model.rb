@@ -68,12 +68,7 @@ module Rod
     # Returns the number of objects of this class stored in the
     # database.
     def self.count
-      self_count =
-        if database.readonly_data?
-          database.count(self)
-        else
-          @object_count || 0
-        end
+      self_count = database.count(self)
       # This should be changed if all other featurs connected with
       # inheritence are implemented, especially #14
       #subclasses.inject(self_count){|sum,sub| sum + sub.count}
@@ -231,37 +226,24 @@ module Rod
       end
     end
 
-    # Returns marshalled index for given field
-    def self.field_index(field)
-      if @indices.nil?
-        raise RodException.new("Indices not build for '#{self.name}'")
-      end
-      field = field.to_sym
-      if @indices[field].nil?
-        raise RodException.new("Index for field '#{field}' not build in '#{self.name}'")
-      end
-      Marshal.dump(@indices[field])
-    end
-
     # Stores given +object+ in the database. The object must be an
     # instance of this class.
     def self.store(object)
       raise "Incompatible object class #{object.class}" unless object.is_a?(self)
       raise "The object #{object} is allready stored" unless object.rod_id == 0
       database.store(self,object)
-      @object_count += 1
       # XXX a sort of 'memory leak' #19
       cache[object.rod_id-1] = object
 
       # update indices
       self.fields.each do |field,options|
         if options[:index]
-          if @indices[field][object.send(field)].nil?
+          if self.index_for(field)[object.send(field)].nil?
             # We don't use the hash default value approach,
             # since it forces the rebuild of the array
-            @indices[field][object.send(field)] = []
+            self.index_for(field)[object.send(field)] = []
           end
-          @indices[field][object.send(field)] << object.rod_id
+          self.index_for(field)[object.send(field)] << object.rod_id
         end
       end
 
@@ -610,11 +592,8 @@ module Rod
 
     # This code intializes the class. It adds C routines and dynamic Ruby accessors.
     def self.build_structure
-      @object_count = 0
-      @indices = {}
       self.fields.each do |name, options|
         if options[:index]
-          @indices[name] = {}
           instance_variable_set("@#{name}_index".to_sym,nil)
         end
       end
@@ -744,24 +723,29 @@ module Rod
 
         if options[:index]
           (class << self; self; end).class_eval do
-            define_method("find_all_by_#{field}".to_sym) do |value|
+            # Read index for the +field+ from the database.
+            define_method(:index_for) do |field|
               index = instance_variable_get("@#{field}_index".to_sym)
               if index.nil?
-                values = %w{length offset}.map do |type|
-                    database.read_index(self,field,type)
-                  end
-                marshalled = database.read_string(*values)
-                index = Marshal.load(marshalled)
+                index = database.read_index(self,field)
                 instance_variable_set("@#{field}_index".to_sym,index)
               end
-              (index[value] || []).map{|i| self.get(i-1)}
+              index
             end
-          end
 
-          #TODO could be more effective if didn't use find_all_by_field
-          (class << self; self; end).class_eval do
+            # Find all objects with given +value+ of the +field.
+            define_method("find_all_by_#{field}".to_sym) do |value|
+              (index_for(field.to_sym)[value] || []).map{|i| self.get(i-1)}
+            end
+
+            # Find first object with given +value+ of the +field.
             define_method("find_by_#{field}".to_sym) do |value|
-              send("find_all_by_#{field}",value).first
+              objects_ids = self.index_for(field.to_sym)[value]
+              if objects_ids
+                self.get(objects_ids[0]-1)
+              else
+                nil
+              end
             end
           end
         end
