@@ -65,6 +65,8 @@ def get_position(position)
     2
   when "last"
     -1
+  when Fixnum
+    position
   end
 end
 
@@ -165,8 +167,15 @@ When /^(his|her|its) (\w+) contain nil$/ do |ignore,field|
   @instance.send("#{field}".to_sym) << nil
 end
 
-When /^I store (him|her|it) in the database$/ do |ignore|
-  @instance.store
+When /^I store (him|her|it) in the database( (\d+) times)?$/ do |ignore,times,count|
+  if times
+    count.to_i.times do |index|
+      instance = @instance.dup
+      instance.store
+    end
+  else
+    @instance.store
+  end
 end
 
 When /^I store the (\w+) (\w+) in the database$/ do |position,class_name|
@@ -220,6 +229,30 @@ end
 
 Then /^the (\w+) (\w+) should have (\d+) (\w+)$/ do |position,class_name,count,field|
   get_instance(class_name,position).send(field.to_sym).count.should == count.to_i
+end
+
+Then /^(\w+)(\([^)]*\))? from (\d+) to (\d+) should have '([^']*)' (\w+)$/ do |class_name,ignore,first,last,value,field|
+  (first.to_i - 1).upto(last.to_i - 1) do |index|
+    get_instance(class_name,index).send(field.to_sym).should == value
+  end
+end
+
+Then /^(\w+)(\([^)]*\))? from (\d+) to (\d+) should have a(n)? (\w+) equal to the (\w+) (\w+)$/ do |class1,ignore,first,last,ignore1,field,position,class2|
+  (first.to_i - 1).upto(last.to_i - 1) do |index|
+    get_instance(class1,index).send(field.to_sym).should == get_instance(class2,position)
+  end
+end
+
+Then /^(\w+)(\([^)]*\))? from (\d+) to (\d+) should have (\d+) (\w+)$/ do |class1,ignore,first,last,count,field|
+  (first.to_i - 1).upto(last.to_i - 1) do |index|
+    get_instance(class1,index).send(field.to_sym).count.should == count.to_i
+  end
+end
+
+Then /^(\w+)(\([^)]*\))? from (\d+) to (\d+) should have (\w+) of (\w+) equal to the (\w+) (\w+) created$/ do |class1,ignore,first,last,position1,field,position2,class2|
+  (first.to_i - 1).upto(last.to_i - 1) do |index|
+    get_instance(class1,index).send(field.to_sym)[get_position(position1)] == get_instance(class2,position2)
+  end
 end
 
 Then /^the (\w+) of (\w+) of the (\w+) (\w+) should be equal to the (\w+) (\w+)$/ do |position0,field,position1,class1,position2,class2|

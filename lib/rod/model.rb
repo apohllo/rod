@@ -500,10 +500,23 @@ module Rod
         to_s.to_i(16) % 2 ** 32
     end
 
-    # The name of the file (for given +path+), which the data of this class
+    # The name of the file (for given +relative_path+), which the data of this class
     # is stored in.
     def self.path_for_data(relative_path)
       "#{relative_path}#{self.struct_name}.dat"
+    end
+
+    # The name of the file or directory (for given +relative_path+), which the
+    # index (with +type+) of the +field+ of this class is stored in.
+    def self.path_for_index(relative_path,field,type)
+      case type
+      when :flat
+        "#{relative_path}#{self.struct_name}_#{field}.idx"
+      when :segmented
+        "#{relative_path}#{self.struct_name}_#{field}_idx/"
+      else
+        raise RodException.new("Invalid index type #{type}")
+      end
     end
 
     def self.string_field?(type)
