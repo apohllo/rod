@@ -41,7 +41,7 @@ module Rod
     #
     # WARNING: all files in the DB directory are removed during DB creation!
     def create_database(path)
-      raise "Database already opened." unless @handler.nil?
+      raise DatabaseError.new("Database already opened.") unless @handler.nil?
       @readonly = false
       self.classes.each{|s| s.send(:build_structure)}
       @path = canonicalize_path(path)
@@ -60,9 +60,12 @@ module Rod
 
     # Opens the database at +path+ for readonly mode. This allows
     # for Rod::Model.count, Rod::Model.each, and similar calls.
-    def open_database(path)
-      raise "Database already opened." unless @handler.nil?
-      @readonly = true
+    #
+    # By default the database is opened in +readonly+ mode. You
+    # can change it by passing +false+ as the second argument.
+    def open_database(path,readonly=true)
+      raise DatabaseError.new("Database already opened.") unless @handler.nil?
+      @readonly = readonly
       self.classes.each{|s| s.send(:build_structure)}
       @path = canonicalize_path(path)
       generate_c_code(@path, classes)
@@ -197,12 +200,14 @@ module Rod
 
     # Sets the +object_id+ of the join element with +offset+ and +index+.
     def set_join_element_id(offset,index,object_id)
+      raise DatabaseError.new("Readonly database.") if readonly_data?
       _set_join_element_offset(offset, index, object_id, @handler)
     end
 
     # Sets the +object_id+ and +class_id+ of the
     # polymorphic join element with +offset+ and +index+.
     def set_polymorphic_join_element_id(offset,index,object_id,class_id)
+      raise DatabaseError.new("Readonly database.") if readonly_data?
       _set_polymorphic_join_element_offset(offset, index, object_id,
                                            class_id, @handler)
     end
@@ -216,6 +221,7 @@ module Rod
 
     # Stores the string in the DB encoding it to utf-8.
     def set_string(value)
+      raise DatabaseError.new("Readonly database.") if readonly_data?
       _set_string(value.encode("utf-8"),@handler)
     end
 
@@ -249,6 +255,7 @@ module Rod
 
     # Store the object in the database.
     def store(klass,object)
+      raise DatabaseError.new("Readonly database.") if readonly_data?
       send("_store_" + klass.struct_name,object,@handler)
       # set fields' values
       object.class.fields.each do |name,options|

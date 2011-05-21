@@ -52,7 +52,19 @@ When /^I reopen (\w+) for reading( in (\w+))?$/ do |db_name,location,location_na
   end
   get_db(db_name).instance.close_database
   get_db(db_name).instance.clear_cache
-  get_db(db_name).instance.open_database("tmp/#{db_location}")
+  readonly = reading.nil? ? false : true
+  get_db(db_name).instance.open_database("tmp/#{db_location}",readonly)
+end
+
+When /^I open (\w+)( for reading)?( in (\w+))?$/ do |db_name,reading,location,location_name|
+  if location
+    db_location = location_name
+  else
+    db_location = db_name
+  end
+  get_db(db_name).instance.clear_cache
+  readonly = reading.nil? ? false : true
+  get_db(db_name).instance.open_database("tmp/#{db_location}",readonly)
 end
 
 Then /^database should be opened for reading$/ do
