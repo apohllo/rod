@@ -76,8 +76,7 @@ module Rod
       |  model_p->#{klass.struct_name}_lib_file =
       |    open(path, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
       |  if(model_p->#{klass.struct_name}_lib_file == -1) {
-      |    VALUE cException = #{EXCEPTION_CLASS};
-      |    rb_raise(cException,"Could not open file for class #{klass} on path %s writing.",path);
+      |    rb_raise(rodException(),"Could not open file for class #{klass} on path %s writing.",path);
       |  }
       |  free(path);
       |}
@@ -92,10 +91,9 @@ module Rod
       |  //unmap the segment(s) first
       |  if(model_p->#{klass.struct_name}_table != NULL){
       |    if(munmap(model_p->#{klass.struct_name}_table,
-      |      page_size*(model_p->#{klass.struct_name}_page_count)) == -1){
+      |      page_size()*(model_p->#{klass.struct_name}_page_count)) == -1){
       |      perror(NULL);
-      |      VALUE cException = #{EXCEPTION_CLASS};
-      |      rb_raise(cException,"Could not unmap segment for #{klass.struct_name}.");
+      |      rb_raise(rodException(),"Could not unmap segment for #{klass.struct_name}.");
       |    }
       |  }
       |  \n#{open_class_file(klass)}
@@ -110,34 +108,29 @@ module Rod
       |  FILE * #{klass.struct_name}_file =
       |    fdopen(model_p->#{klass.struct_name}_lib_file,"w+");
       |  if(#{klass.struct_name}_file == NULL){
-      |    VALUE cException = #{EXCEPTION_CLASS};
-      |    rb_raise(cException,"Could not open file for #{klass.struct_name}.");
+      |    rb_raise(rodException(),"Could not open file for #{klass.struct_name}.");
       |  }
       |  // seek to the end
       |  if(fseek(#{klass.struct_name}_file,0,SEEK_END) == -1){
-      |    VALUE cException = #{EXCEPTION_CLASS};
-      |    rb_raise(cException,"Could not seek to end file for #{klass.struct_name}.");
+      |    rb_raise(rodException(),"Could not seek to end file for #{klass.struct_name}.");
       |  }
       |  // write empty data at the end
-      |  char* #{klass.struct_name}_empty_data = calloc(page_size,1);
+      |  char* #{klass.struct_name}_empty_data = calloc(page_size(),1);
       |  if(write(model_p->#{klass.struct_name}_lib_file,#{klass.struct_name}_empty_data,
-      |    page_size) == -1){
-      |    VALUE cException = #{EXCEPTION_CLASS};
-      |    rb_raise(cException,"Could not write to file for #{klass.struct_name}.");
+      |    page_size()) == -1){
+      |    rb_raise(rodException(),"Could not write to file for #{klass.struct_name}.");
       |  }
       |  // seek to the beginning
       |  if(fseek(#{klass.struct_name}_file,0,SEEK_SET) == -1){
-      |    VALUE cException = #{EXCEPTION_CLASS};
-      |    rb_raise(cException,"Could not seek to start file for #{klass.struct_name}.");
+      |    rb_raise(rodException(),"Could not seek to start file for #{klass.struct_name}.");
       |  }
       |  // mmap the extended file
       |  model_p->#{klass.struct_name}_table = mmap(NULL,
-      |    model_p->#{klass.struct_name}_page_count * page_size,
+      |    model_p->#{klass.struct_name}_page_count * page_size(),
       |    PROT_WRITE | PROT_READ, MAP_SHARED, model_p->#{klass.struct_name}_lib_file,0);
       |  if(model_p->#{klass.struct_name}_table == MAP_FAILED){
       |    perror(NULL);
-      |    VALUE cException = #{EXCEPTION_CLASS};
-      |    rb_raise(cException,"Could not mmap segment for #{klass.struct_name}.");
+      |    rb_raise(rodException(),"Could not mmap segment for #{klass.struct_name}.");
       |  }
       |
       |  // reset cache
@@ -174,6 +167,23 @@ module Rod
           classes.each do |klass|
             builder.prefix(klass.typedef_struct)
           end
+
+          str =<<-END
+          |unsigned int page_size(){
+          |  return sysconf(_SC_PAGE_SIZE);
+          |}
+          END
+          builder.prefix(str.margin)
+
+          str =<<-END
+          |VALUE rodException(){
+          |  VALUE klass = rb_const_get(rb_cObject, rb_intern("Rod"));
+          |  klass = rb_const_get(klass, rb_intern("DatabaseError"));
+          |  return klass;
+          |}
+          END
+          builder.prefix(str.margin)
+
 
           #########################################
           # Model struct
@@ -282,14 +292,13 @@ module Rod
           str =<<-END
           |unsigned long _allocate_join_elements(VALUE size, VALUE handler){
           |  _join_element * element;
-          |  unsigned int page_size = sysconf(_SC_PAGE_SIZE);
           |  unsigned long index;
           |  #{model_struct} * model_p;
           |  Data_Get_Struct(handler,#{model_struct},model_p);
           |  unsigned long result = model_p->_join_element_count;
           |  for(index = 0; index < size; index++){
           |    if(model_p->_join_element_count * sizeof(_join_element) >=
-          |      page_size * model_p->_join_element_page_count){
+          |      page_size() * model_p->_join_element_page_count){
           |      \n#{mmap_class(JoinElement)}
           |    }
           |    element = model_p->_join_element_table + model_p->_join_element_count;
@@ -305,7 +314,6 @@ module Rod
           str =<<-END
           |unsigned long _allocate_polymorphic_join_elements(VALUE size, VALUE handler){
           |  _polymorphic_join_element * element;
-          |  unsigned int page_size = sysconf(_SC_PAGE_SIZE);
           |  unsigned long index;
           |  #{model_struct} * model_p;
           |  Data_Get_Struct(handler,#{model_struct},model_p);
@@ -313,7 +321,7 @@ module Rod
           |  for(index = 0; index < size; index++){
           |    if(model_p->_polymorphic_join_element_count *
           |      sizeof(_polymorphic_join_element) >=
-          |      page_size * model_p->_polymorphic_join_element_page_count){
+          |      page_size() * model_p->_polymorphic_join_element_page_count){
           |      \n#{mmap_class(PolymorphicJoinElement)}
           |    }
           |    element = model_p->_polymorphic_join_element_table +
@@ -347,7 +355,6 @@ module Rod
           |VALUE _set_string(VALUE ruby_value, VALUE handler){
           |  #{model_struct} * model_p;
           |  Data_Get_Struct(handler,#{model_struct},model_p);
-          |  unsigned int page_size = sysconf(_SC_PAGE_SIZE);
           |  unsigned long length = RSTRING_LEN(ruby_value);
           |  char * value = RSTRING_PTR(ruby_value);
           |  unsigned long string_offset, page_offset, current_page;
@@ -360,30 +367,30 @@ module Rod
           |  // - total number of bytes
           |  long length_left = length;
           |  // first free byte in current page
-          |  string_offset = model_p->#{StringElement.struct_name}_count % page_size;
-          |  page_offset = model_p->#{StringElement.struct_name}_count / page_size;
+          |  string_offset = model_p->#{StringElement.struct_name}_count % page_size();
+          |  page_offset = model_p->#{StringElement.struct_name}_count / page_size();
           |  current_page = page_offset;
           |  while(length_left > 0){
-          |    if(length_left + string_offset >= page_size){
+          |    if(length_left + string_offset >= page_size()){
           |      \n#{mmap_class(StringElement)}
           |    }
           |    dest = model_p->#{StringElement.struct_name}_table +
-          |      current_page * page_size + string_offset;
-          |    if(length_left > page_size){
-          |      memcpy(dest,value,page_size);
+          |      current_page * page_size() + string_offset;
+          |    if(length_left > page_size()){
+          |      memcpy(dest,value,page_size());
           |    } else {
           |      memcpy(dest,value,length_left);
           |    }
-          |    value += page_size;
+          |    value += page_size();
           |    current_page++;
-          |    length_left -= page_size;
+          |    length_left -= page_size();
           |  }
           |
           |  model_p->#{StringElement.struct_name}_count += length;
           |
           |  VALUE result = rb_ary_new();
           |  rb_ary_push(result, UINT2NUM(length));
-          |  rb_ary_push(result, UINT2NUM(string_offset + page_offset * page_size));
+          |  rb_ary_push(result, UINT2NUM(string_offset + page_offset * page_size()));
           |  return result;
           |}
           END
@@ -441,12 +448,11 @@ module Rod
             str =<<-END
             |// Store the object in the database.
             |void _store_#{klass.struct_name}(VALUE object, VALUE handler){
-            |  unsigned int page_size = sysconf(_SC_PAGE_SIZE);
             |
             |  #{model_struct} * model_p;
             |  Data_Get_Struct(handler,#{model_struct},model_p);
             |  if((model_p->#{klass.struct_name}_count+1) * sizeof(#{klass.struct_name}) >=
-            |    model_p->#{klass.struct_name}_page_count * page_size){
+            |    model_p->#{klass.struct_name}_page_count * page_size()){
             |     \n#{mmap_class(klass)}
             |  }
             |  #{klass.struct_name} * struct_p = model_p->#{klass.struct_name}_table +
@@ -472,7 +478,6 @@ module Rod
           str = <<-END
           |VALUE _init_handler(char * dir_path){
           |  #{model_struct} * model_p;
-          |  unsigned int page_size = sysconf(_SC_PAGE_SIZE);
           |  model_p = ALLOC(#{model_struct});
           |
           |  #{init_structs(classes)}
@@ -495,7 +500,6 @@ module Rod
           str = <<-END
           |void _create(VALUE handler){
           |  #{model_struct} * model_p;
-          |  unsigned int page_size = sysconf(_SC_PAGE_SIZE);
           |  Data_Get_Struct(handler,#{model_struct},model_p);
           |
           |  //mmap the structures
@@ -510,9 +514,7 @@ module Rod
           str =<<-END
           |void _open(VALUE handler){
           |  #{model_struct} * model_p;
-          |  unsigned int page_size = sysconf(_SC_PAGE_SIZE);
           |  Data_Get_Struct(handler,#{model_struct},model_p);
-          |  VALUE cException = #{EXCEPTION_CLASS};
           |
           |  \n#{classes.map do |klass|
              <<-SUBEND
@@ -521,10 +523,10 @@ module Rod
              |  if(model_p->#{klass.struct_name}_page_count > 0){
              |    \n#{open_class_file(klass)}
              |    if((model_p->#{klass.struct_name}_table = mmap(NULL,
-             |      model_p->#{klass.struct_name}_page_count * page_size, PROT_READ, MAP_SHARED,
-             |      model_p->#{klass.struct_name}_lib_file, 0)) == MAP_FAILED){
+             |      model_p->#{klass.struct_name}_page_count * page_size(), PROT_WRITE | PROT_READ,
+             |      MAP_SHARED, model_p->#{klass.struct_name}_lib_file, 0)) == MAP_FAILED){
              |      perror(NULL);
-             |      rb_raise(cException,"Could not mmap class '#{klass}'.");
+             |      rb_raise(rodException(),"Could not mmap class '#{klass}'.");
              |    }
              |  } else {
              |    model_p->#{klass.struct_name}_table = NULL;
@@ -540,22 +542,20 @@ module Rod
           #########################################
           str =<<-END
           |// if +classes+ are Qnil, the DB was open in readonly mode.
-          |void _close(VALUE handler, VALUE classes){
+          |void _close(VALUE handler){
           |  #{model_struct} * model_p;
           |  Data_Get_Struct(handler,#{model_struct},model_p);
-          |  VALUE cException = #{EXCEPTION_CLASS};
-          |  unsigned int page_size = sysconf(_SC_PAGE_SIZE);
           |
           |  \n#{classes.map do |klass|
             <<-SUBEND
             |  if(model_p->#{klass.struct_name}_table != NULL){
             |    if(munmap(model_p->#{klass.struct_name}_table,
-            |      page_size * model_p->#{klass.struct_name}_page_count) == -1){
-            |      rb_raise(cException,"Could not unmap #{klass.struct_name}.");
+            |      page_size() * model_p->#{klass.struct_name}_page_count) == -1){
+            |      rb_raise(rodException(),"Could not unmap #{klass.struct_name}.");
             |    }
             |  }
             |  if(close(model_p->#{klass.struct_name}_lib_file) == -1){
-            |    rb_raise(cException,"Could not close model file for #{klass}.");
+            |    rb_raise(rodException(),"Could not close model file for #{klass}.");
             |  }
             SUBEND
           end.join("\n")}
@@ -597,8 +597,8 @@ module Rod
           builder.c(str.margin)
 
           str =<<-END
-          |unsigend int _page_size(){
-          |  return sysconf(_SC_PAGE_SIZE);
+          |unsigned int _page_size(){
+          |  return page_size();
           |}
           END
           builder.c(str.margin)

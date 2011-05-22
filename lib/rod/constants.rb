@@ -7,9 +7,6 @@ module Rod
   # Invalid names of fields.
   INVALID_NAMES = {"rod_id" => true}
 
-  # The exception raised by Database C implementation.
-  EXCEPTION_CLASS = "rb_const_get(rb_cObject, rb_intern(\"Exception\"))"
-
   TYPE_MAPPING = {
     :string => 'char *',
     :integer => 'long',

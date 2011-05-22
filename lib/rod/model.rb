@@ -229,8 +229,12 @@ module Rod
     # Stores given +object+ in the database. The object must be an
     # instance of this class.
     def self.store(object)
-      raise "Incompatible object class #{object.class}" unless object.is_a?(self)
-      raise "The object #{object} is allready stored" unless object.rod_id == 0
+      unless object.is_a?(self)
+        raise RodException.new("Incompatible object class #{object.class}.")
+      end
+      unless object.rod_id == 0
+        raise RodException.new("The object #{object} is allready stored!")
+      end
       database.store(self,object)
       # XXX a sort of 'memory leak' #19
       cache[object.rod_id-1] = object
@@ -306,7 +310,9 @@ module Rod
     end
 
     def self.find_by_rod_id(rod_id)
-      raise "Requested id does not represent any object stored in the database!" unless rod_id != 0
+      unless rod_id != 0
+        raise RodException.new("Requested id does not represent any object stored in the database!")
+      end
       get(rod_id - 1)
     end
 

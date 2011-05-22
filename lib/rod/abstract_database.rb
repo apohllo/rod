@@ -76,10 +76,14 @@ module Rod
       @handler = _init_handler(@path)
       self.classes.each do |klass|
         meta = metadata[klass.name]
+        if meta.nil?
+          # new class
+          next
+        end
         set_count(klass,meta[:count])
         file_size = File.new(klass.path_for_data(@path)).size
         unless file_size % _page_size == 0
-          raise RodException.new("Size of data file of #{klass} is invalid: #{file_size}")
+          raise DatabaseError.new("Size of data file of #{klass} is invalid: #{file_size}")
         end
         set_page_count(klass,file_size / _page_size)
         klass.fields.each do |field,options|
@@ -100,11 +104,11 @@ module Rod
     # linked with this database is removed. This is important for testing, when
     # classes with same names have different definitions.
     def close_database(purge_classes=false)
-      raise "Database not opened." if @handler.nil?
+      raise DatabaseError.new("Database not opened.") if @handler.nil?
 
       unless readonly_data?
         unless referenced_objects.select{|k, v| not v.empty?}.size == 0
-          raise "Not all associations have been stored: #{referenced_objects.size} objects"
+          raise DatabaseError.new("Not all associations have been stored: #{referenced_objects.size} objects")
         end
         metadata = {}
         rod_data = metadata["Rod"] = {}
@@ -197,7 +201,7 @@ module Rod
     def polymorphic_join_indices(offset, count)
       table = _polymorphic_join_element_indices(offset, count, @handler)
       if table.size % 2 != 0
-        raise RodException.new("Polymorphic join indices table is not even!")
+        raise DatabaseError.new("Polymorphic join indices table is not even!")
       end
       (table.size/2).times.map{|i| [table[i*2],table[i*2+1]]}
     end
@@ -291,7 +295,7 @@ module Rod
     # Prints the layout of the pages in memory and other
     # internal data of the model.
     def print_layout
-      raise "Database not opened." if @handler.nil?
+      raise DatabaseError.new("Database not opened.") if @handler.nil?
       _print_layout(@handler)
     end
 
