@@ -92,7 +92,7 @@ module Rod
       |  // exted the file
       |
       |  // increase the pages count by 1
-      |  model_p->#{klass.struct_name}_page_count++;
+      |  model_p->#{klass.struct_name}_page_count += ALLOCATED_PAGES;
       |
       |  // open the file for writing
       |  FILE * #{klass.struct_name}_file =
@@ -105,9 +105,9 @@ module Rod
       |    rb_raise(rodException(),"Could not seek to end file for #{klass.struct_name}.");
       |  }
       |  // write empty data at the end
-      |  char* #{klass.struct_name}_empty_data = calloc(page_size(),1);
+      |  char* #{klass.struct_name}_empty_data = calloc(page_size() * ALLOCATED_PAGES,1);
       |  if(write(model_p->#{klass.struct_name}_lib_file,#{klass.struct_name}_empty_data,
-      |    page_size()) == -1){
+      |    page_size() * ALLOCATED_PAGES) == -1){
       |    rb_raise(rodException(),"Could not write to file for #{klass.struct_name}.");
       |  }
       |  // seek to the beginning
@@ -123,12 +123,6 @@ module Rod
       |    rb_raise(rodException(),"Could not mmap segment for #{klass.struct_name}.");
       |  }
       |
-      |  // reset cache
-      |  VALUE module_#{klass.struct_name} = rb_const_get(rb_cObject, rb_intern("Kernel"));
-      |  \n#{klass.name.split("::")[0..-2].map do |mod_name|
-        "  module_#{klass.struct_name} = rb_const_get(module_#{klass.struct_name}, " +
-          "rb_intern(\"#{mod_name}\"));"
-      end.join("\n")}
       SUBEND
       str.margin
     end
@@ -157,6 +151,8 @@ module Rod
           classes.each do |klass|
             builder.prefix(klass.typedef_struct)
           end
+
+          builder.prefix("const ALLOCATED_PAGES = 25;")
 
           str =<<-END
           |unsigned int page_size(){

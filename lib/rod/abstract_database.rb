@@ -108,7 +108,6 @@ module Rod
         self.classes.each do |klass|
           meta = metadata[klass.name] = {}
           meta[:count] = count(klass)
-          meta[:page_count] = send("_#{klass.struct_name}_page_count",@handler)
           next if special_class?(klass)
           # fields
           fields = meta[:fields] = {} unless klass.fields.empty?
