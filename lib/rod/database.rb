@@ -49,16 +49,6 @@ module Rod
         |
         |  // initialize the file descriptor to -1 to force its creation
         |  model_p->#{klass.struct_name}_lib_file = -1;
-        |\n#{klass.fields.map do |field,options|
-          if options[:index]
-            <<-SUBEND
-              |  model_p->#{klass.struct_name}_#{field}_index_length = 0;
-              |  model_p->#{klass.struct_name}_#{field}_index_offset = 0;
-            SUBEND
-          else
-            ""
-          end
-        end.join("\n|\n")}
         END
       end.join("\n").margin
     end
@@ -190,25 +180,15 @@ module Rod
           #########################################
           model_struct = model_struct_name(path);
           str = <<-END
-            |typedef struct {
-            |#{classes.map do |klass|
-              substruct = <<-SUBEND
+            |typedef struct {\n
+            #{classes.map do |klass|
+              <<-SUBEND
               |  #{klass.struct_name} * #{klass.struct_name}_table;
               |  unsigned long #{klass.struct_name}_page_count;
               |  unsigned long #{klass.struct_name}_count;
               |  int #{klass.struct_name}_lib_file;
               SUBEND
-              indices =
-                klass.fields.map do |field,options|
-                  if options[:index]
-                    str =<<-SUBEND
-                    |  unsigned long #{klass.struct_name}_#{field}_index_length;
-                    |  unsigned long #{klass.struct_name}_#{field}_index_offset;
-                    SUBEND
-                  end
-                end.join("\n")
-              (substruct + indices).margin
-            end.join("\n")}
+            end.join("\n|\n")}
             |  // the path to the DB
             |  char * path;
             |
@@ -395,24 +375,6 @@ module Rod
           |}
           END
           builder.c(str.margin)
-
-          #########################################
-          # Field indices
-          #########################################
-          classes.each do |klass|
-            next if special_class?(klass)
-            klass.fields.each do |field,options|
-              next unless options[:index]
-              self.class.field_reader("#{klass.struct_name}_#{field}_index_length",
-                                      "unsigned long",builder,model_struct)
-              self.class.field_writer("#{klass.struct_name}_#{field}_index_length",
-                                      "unsigned long",builder,model_struct)
-              self.class.field_reader("#{klass.struct_name}_#{field}_index_offset",
-                                      "unsigned long",builder,model_struct)
-              self.class.field_writer("#{klass.struct_name}_#{field}_index_offset",
-                                      "unsigned long",builder,model_struct)
-            end
-          end
 
           #########################################
           # Object accessors

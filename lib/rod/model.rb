@@ -495,10 +495,10 @@ module Rod
     end
 
     # The name of the file or directory (for given +relative_path+), which the
-    # index (with +type+) of the +field+ of this class is stored in.
-    def self.path_for_index(relative_path,field,type)
-      case type
-      when :flat
+    # index of the +field+ (with +options+) of this class is stored in.
+    def self.path_for_index(relative_path,field,options)
+      case options[:index]
+      when :flat,true
         "#{relative_path}#{self.struct_name}_#{field}.idx"
       when :segmented
         "#{relative_path}#{self.struct_name}_#{field}_idx/"
@@ -733,7 +733,7 @@ module Rod
             define_method(:index_for) do |field|
               index = instance_variable_get("@#{field}_index".to_sym)
               if index.nil?
-                index = database.read_index(self,field)
+                index = database.read_index(self,field,options)
                 instance_variable_set("@#{field}_index".to_sym,index)
               end
               index

@@ -36,9 +36,9 @@ end
 
 def get_value(value)
   case value
-  when /^\d+\.\d+$/
+  when /^(-)?\d+\.\d+$/
     value.to_f
-  when /^\d+$/
+  when /^(-)?\d+$/
     value.to_i
   when /^:/
     value[1..-1].to_sym
@@ -280,7 +280,7 @@ Then /^the (\w+) (\w+) should be identical with the (\w+) (\w+)$/ do |position1,
   instance1.object_id.should == instance2.object_id
 end
 
-Then /^there should be (\d+) (\w+)(\([^)]*\))? with '([^']+)' (\w+)$/ do |count,class_name,ignore,value,field|
+Then /^there should be (\d+) (\w+)(\([^)]*\))? with '([^']*)' (\w+)$/ do |count,class_name,ignore,value,field|
   get_class(class_name).send("find_all_by_#{field}",get_value(value)).count.should == count.to_i
 end
 
@@ -296,11 +296,14 @@ Then /^I should be able to find a (\w+) with '([^']*)' (\w+) and '([^']*)' (\w+)
   get_class(class_name).find{|e| e.send(field1) == get_value(value1) && e.send(field2) == get_value(value2)}.should_not == nil
 end
 
-Then /^there should be (\d+) (\w+)(\([^)]*\))? with (\w+) below (\d+)( with index below (\d+))?$/ do |count1,class_name,ignore,field,value,with_index,count2|
+Then /^there should be (\d+) (\w+)(\([^)]*\))? with (\w+) (below|above) (\d+)( with index (below|above) (\d+))?$/ do |count1,class_name,ignore,field,relation1,value,with_index,relation2,count2|
+  relation1 = relation1 == "below" ? :< : :>
+  relation2 = relation2 == "below" ? :< : :>
   if with_index
-    get_class(class_name).each.with_index.select{|e,i| e.send(field) < value.to_i && i < count2.to_i}.size.should == count1.to_i
+    get_class(class_name).each.with_index.select{|e,i| e.send(field).send(relation1,value.to_i) &&
+      i.send(relation2,count2.to_i)}.size.should == count1.to_i
   else
-    get_class(class_name).select{|e| e.send(field) < value.to_i}.size.should == count1.to_i
+    get_class(class_name).select{|e| e.send(field).send(relation1, value.to_i)}.size.should == count1.to_i
   end
 
 end

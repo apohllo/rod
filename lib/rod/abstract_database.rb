@@ -86,14 +86,6 @@ module Rod
           raise DatabaseError.new("Size of data file of #{klass} is invalid: #{file_size}")
         end
         set_page_count(klass,file_size / _page_size)
-        klass.fields.each do |field,options|
-          if options[:index]
-            send("_#{klass.struct_name()}_#{field}_index_length_equals",
-                 @handler, meta[:fields][field][:length])
-            send("_#{klass.struct_name()}_#{field}_index_offset_equals",
-                 @handler, meta[:fields][field][:offset])
-          end
-        end
       end
       _open(@handler)
     end
@@ -113,30 +105,25 @@ module Rod
         metadata = {}
         rod_data = metadata["Rod"] = {}
         rod_data[:version] = VERSION
-        # write the indices first for the string elements to have proper count
         self.classes.each do |klass|
           meta = metadata[klass.name] = {}
+          meta[:count] = count(klass)
+          meta[:page_count] = send("_#{klass.struct_name}_page_count",@handler)
+          next if special_class?(klass)
+          # fields
           fields = meta[:fields] = {} unless klass.fields.empty?
           klass.fields.each do |field,options|
             fields[field] = {}
             fields[field][:options] = options
-            if options[:index]
-              length, offset = write_index(klass,field)
-              fields[field][:length] = length
-              fields[field][:offset] = offset
-            end
+            write_index(klass,field,options) if options[:index]
           end
-        end
-        self.classes.each do |klass|
-          meta = metadata[klass.name]
-          meta[:count] = count(klass)
-          meta[:page_count] = send("_#{klass.struct_name}_page_count",@handler)
-          next if special_class?(klass)
+          # singular_associations
           has_one = meta[:has_one] = {} unless klass.singular_associations.empty?
           klass.singular_associations.each do |name,options|
             has_one[name] = {}
             has_one[name][:options] = options
           end
+          # plural_associations
           has_many = meta[:has_many] = {} unless klass.plural_associations.empty?
           klass.plural_associations.each do |name,options|
             has_many[name] = {}
@@ -248,20 +235,26 @@ module Rod
       send("_#{klass.struct_name}_page_count=",@handler,value)
     end
 
-    # Reads index of +field+ for +klass+.
-    def read_index(klass,field)
-      length = send("_#{klass.struct_name()}_#{field}_index_length", @handler)
-      offset = send("_#{klass.struct_name()}_#{field}_index_offset", @handler)
-      return {} if length == 0
-      marshalled = _read_string(length,offset,@handler)
-      Marshal.load(marshalled)
+    # Reads index of +field+ (with +options+) for +klass+.
+    def read_index(klass,field,options)
+      begin
+        File.open(klass.path_for_index(@path,field,options)) do |input|
+          return {} if input.size == 0
+          return Marshal.load(input)
+        end
+      rescue Errno::ENOENT
+        return {}
+      end
     end
 
-    # Store index of +field+ of +klass+ in the database.
-    def write_index(klass,field)
+    # Store index of +field+ (with +options+) of +klass+ in the database.
+    # Type is one of:
+    # * +:flat+ - marshalled index is stored in one file
+    def write_index(klass,field,options)
       raise DatabaseError.new("Readonly database.") if readonly_data?
-      marshalled = Marshal.dump(klass.index_for(field))
-      _set_string(marshalled,@handler)
+      File.open(klass.path_for_index(@path,field,options),"w") do |out|
+        out.puts(Marshal.dump(klass.index_for(field)))
+      end
     end
 
     # Store the object in the database.

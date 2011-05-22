@@ -19,12 +19,19 @@ Feature: model as a collection of objects
       | John | Smith   | john  | 12   |
       | Lara | Croft   | lara  | 23   |
       | Adam | Parker  | adam  | 17   |
+      | Adam |         | noob1 | 33   |
+      |      |         | noob2 | -1   |
     And I reopen database for reading
-    Then there should be 3 User(s)
+    Then there should be 5 User(s)
     And I should be able to iterate over these User(s)
     And I should be able to iterate with index over these User(s)
     And I should be able to find a User with '12' age and 'john' login
-    And there should be 2 User(s) with age below 20
+    And I should be able to find a User with '23' age and 'Croft' surname
+    And I should be able to find a User with '17' age and 'Adam' name
+    And I should be able to find a User with '' name and 'noob1' login
+    And I should be able to find a User with '' name and '' surname
+    And there should be 3 User(s) with age below 20
+    And there should be 2 User(s) with age above 20
     And there should be 1 User with age below 20 with index below 2
 
   Scenario: multiple object
@@ -49,31 +56,6 @@ Feature: model as a collection of objects
     Then there should be 2000 User(s)
     Then User(s) from 1 to 1000 should have 'John' name
     Then User(s) from 1001 to 2000 should have 'Lara' name
-
-  Scenario: multiple object with indexed fields
-      The database should properly store thausands of objects with some indexed fields.
-    Given the class space is cleared
-    And the model is connected with the default database
-    And a class User has a name field of type string with flat index
-    And a class User has a surname field of type string with flat index
-    And a class User has an age field of type integer
-    When database is created
-    And I create a User
-    And his name is 'John'
-    And his surname is 'Smith'
-    And his age is '21'
-    And I store him in the database 1000 times
-    And I create a User
-    And her name is 'Lara'
-    And her surname is 'Croft'
-    And her age is '23'
-    And I store her in the database 1000 times
-    And I reopen database for reading
-    Then there should be 2000 User(s)
-    Then there should be 1000 User(s) with 'John' name
-    Then there should be 1000 User(s) with 'Smith' surname
-    Then there should be 1000 User(s) with 'Lara' name
-    Then there should be 1000 User(s) with 'Croft' surname
 
   Scenario: multiple object with has one relationship
       The database should properly store thousands of objects with has many relationship.
