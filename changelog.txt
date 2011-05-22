@@ -1,3 +1,16 @@
+0.5.5
+- segmented index #31
+- don't cache objects when they are stored in the DB #19
+- #33 pre-allocate larger data segments
+- #42 storage of index in regular file
+- #23 change all runtime exceptions to RodExceptions
+- Chagne page_size variable to page_size call
+- #4 append of database (experimental)
+- Refactor index read and write #42
+- Add guards for read-only data
+- #39 remove page count from metadata
+- #38 invalid size for munmap when closing DB
+- #35 - meta-data is stored in yaml
 0.5.4
 - default implementation of to_s
 - DB data is stored in a DB, not a single file #36 #37
