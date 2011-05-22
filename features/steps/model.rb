@@ -89,9 +89,9 @@ Given /^a class (\w+) inherits from ([\w:]+)$/ do |name1,name2|
 end
 
 Given /^a class (\w+) has an? (\w+) field of type (\w+)( with (\w+) index)?$/ do |class_name,field,type,index,index_type|
-  # index_type is ignored so far
+  index_type = index_type == "flat" ? :flat : :segmented
   if index
-    get_class(class_name).send(:field,field.to_sym,type.to_sym,:index => true)
+    get_class(class_name).send(:field,field.to_sym,type.to_sym,:index => index_type)
   else
     get_class(class_name).send(:field,field.to_sym,type.to_sym)
   end

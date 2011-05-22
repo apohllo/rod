@@ -1,5 +1,6 @@
 require 'singleton'
 require 'yaml'
+require 'rod/segmented_index'
 
 module Rod
   # This class implements the database abstraction, i.e. it
@@ -237,13 +238,20 @@ module Rod
 
     # Reads index of +field+ (with +options+) for +klass+.
     def read_index(klass,field,options)
-      begin
-        File.open(klass.path_for_index(@path,field,options)) do |input|
-          return {} if input.size == 0
-          return Marshal.load(input)
+      case options[:index]
+      when :flat,true
+        begin
+          File.open(klass.path_for_index(@path,field,options)) do |input|
+            return {} if input.size == 0
+            return Marshal.load(input)
+          end
+        rescue Errno::ENOENT
+          return {}
         end
-      rescue Errno::ENOENT
-        return {}
+      when :segmented
+        return SegmentedIndex.new(klass.path_for_index(@path,field,options))
+      else
+        raise RodException.new("Invalid index type '#{options[:index]}'.")
       end
     end
 
@@ -252,8 +260,31 @@ module Rod
     # * +:flat+ - marshalled index is stored in one file
     def write_index(klass,field,options)
       raise DatabaseError.new("Readonly database.") if readonly_data?
-      File.open(klass.path_for_index(@path,field,options),"w") do |out|
-        out.puts(Marshal.dump(klass.index_for(field)))
+      case options[:index]
+      when :flat,true
+        File.open(klass.path_for_index(@path,field,options),"w") do |out|
+          out.puts(Marshal.dump(klass.index_for(field)))
+        end
+      when :segmented
+        path = klass.path_for_index(@path,field,options)
+        if File.exist?(path)
+          Dir.glob("#{path}*").each do |file_name|
+            File.delete(file_name) unless File.directory?(file_name)
+          end
+        else
+          Dir.mkdir(path)
+        end
+        class_index = klass.index_for(field)
+        if class_index.is_a?(Hash)
+          index = SegmentedIndex.new(path)
+          class_index.each{|k,v| index[k] = v}
+        else
+          index = class_index
+        end
+        index.save
+        index = nil
+      else
+        raise RodException.new("Invalid index type '#{options[:index]}'.")
       end
     end
 

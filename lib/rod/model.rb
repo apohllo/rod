@@ -109,7 +109,11 @@ module Rod
     # * +:string+
     # * +:object+ (value is marshaled durign storage, and unmarshaled during read)
     # Options:
-    # * +:index+ if set to true, builds a simple hash index for the field
+    # * +:index+ builds an index for the field and might be:
+    # ** +:flat+ simple hash index (+true+ works as well for backwards compatiblity)
+    # ** +:segmented+ index split for 1001 pieces for shorter load times (only
+    #   one piece is loaded on one look-up)
+    #
     # Warning!
     # rod_id is a predefined field
     def self.field(name, type, options={})
