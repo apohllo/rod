@@ -236,8 +236,6 @@ module Rod
         raise RodException.new("The object #{object} is allready stored!")
       end
       database.store(self,object)
-      # XXX a sort of 'memory leak' #19
-      cache[object.rod_id-1] = object
 
       # update indices
       self.fields.each do |field,options|

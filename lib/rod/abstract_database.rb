@@ -135,7 +135,8 @@ module Rod
       end
       _close(@handler)
       @handler = nil
-      # clear class information
+      # clear cached data
+      self.clear_cache
       if purge_classes
         @classes = self.class.special_classes
       end
