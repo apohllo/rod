@@ -712,6 +712,9 @@ module Rod
             value = instance_variable_get(("@" + field.to_s).to_sym)
             if value.nil? # first call
               length = send("_#{field}_length", @struct)
+              if length == 0
+                return (options[:type] == :object ? nil : "")
+              end
               offset = send("_#{field}_offset", @struct)
               value = database.read_string(length, offset)
               if options[:type] == :object

@@ -39,7 +39,8 @@ Feature: Store and load small amount of data from one class
     And a class Caveman has an identifier field of type ulong
     And a class Caveman has a height field of type float
     And a class Caveman has a symbol field of type object
-    And a class Caveman has a empty field of type string
+    And a class Caveman has a empty_string field of type string
+    And a class Caveman has a empty_object field of type object
     When database is created
     And I create a Caveman
     And his name is 'Fred'
@@ -49,7 +50,10 @@ Feature: Store and load small amount of data from one class
     And his symbol is ':fred'
     # nil is converted to an empty string, consider using object field
     # if you wish to store nil for string fields
-    And his empty is nil
+    And his empty_string is nil
+    # The field is not set to nil, but we assume that not set fields of
+    # type object are nils.
+    #And his empty_object is nil
     And I store him in the database
     And I reopen database for reading
     Then there should be 1 Caveman
@@ -58,7 +62,8 @@ Feature: Store and load small amount of data from one class
     And the identifier of the first Caveman should be '111122223333'
     And the height of the first Caveman should be '1.86'
     And the symbol of the first Caveman should be ':fred'
-    And the empty of the first Caveman should be ''
+    And the empty_string of the first Caveman should be ''
+    And the empty_object of the first Caveman should be nil
 
   Scenario: instance with string containing 0
       Rod should allow to store in the DB string values
