@@ -6,6 +6,7 @@ module Rod
     def initialize(path,buckets_count=1001)
       @path = path
       @buckets_count = buckets_count
+      @buckets_ceil = Math::log2(buckets_count).ceil
       @buckets = {}
     end
 
@@ -42,7 +43,22 @@ module Rod
 
     protected
     def bucket_for(key)
-      key.hash % @buckets_count
+      case key
+      when NilClass
+        1 % @buckets_count
+      when TrueClass
+        2 % @buckets_count
+      when FalseClass
+        3 % @buckets_count
+      when String
+        key.sum(@buckets_ceil) % @buckets_count
+      when Integer
+        key % @buckets_count
+      when Float
+        (key.numerator - key.denominator) % @buckets_count
+      else
+        raise RodException.new("Object of type '#{key.class}' not supported as a key of segmented index!")
+      end
     end
 
     def path_for(bucket_number)

@@ -13,7 +13,7 @@ module RodTest
     field :count, :integer
     field :precision, :float
     field :identifier, :ulong
-    field :title, :string, :index => true
+    field :title, :string, :index => :segmented
     field :title2, :string
     field :body, :string
     has_one :your_struct
