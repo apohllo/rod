@@ -22,22 +22,14 @@ module Rod
     # Return value for the key.
     def [](key)
       bucket_number = bucket_for(key)
-      unless @buckets[bucket_number]
-        if File.exist?(path_for(bucket_number))
-          File.open(path_for(bucket_number)) do |input|
-            @buckets[bucket_number] = Marshal.load(input)
-          end
-        else
-          @buckets[bucket_number] = {}
-        end
-      end
+      load_bucket(bucket_number) unless @buckets[bucket_number]
       @buckets[bucket_number][key]
     end
 
     # Set the value for the key.
     def []=(key,value)
       bucket_number = bucket_for(key)
-      @buckets[bucket_number] = {} unless @buckets[bucket_number]
+      load_bucket(bucket_number) unless @buckets[bucket_number]
       @buckets[bucket_number][key] = value
     end
 
@@ -63,6 +55,16 @@ module Rod
 
     def path_for(bucket_number)
       "#{@path}#{bucket_number}.idx"
+    end
+
+    def load_bucket(bucket_number)
+      if File.exist?(path_for(bucket_number))
+        File.open(path_for(bucket_number)) do |input|
+          @buckets[bucket_number] = Marshal.load(input)
+        end
+      else
+        @buckets[bucket_number] = {}
+      end
     end
   end
 end
