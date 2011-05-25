@@ -1,6 +1,6 @@
 require 'inline'
 require 'english/inflect'
-require 'weak_hash'
+require 'simple_weak_hash'
 require 'active_model'
 require 'active_support/dependencies'
 

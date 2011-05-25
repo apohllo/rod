@@ -455,7 +455,7 @@ module Rod
     # The object cache of this class.
     # XXX consider moving it to the database.
     def self.cache
-      @cache ||= WeakHash.new
+      @cache ||= SimpleWeakHash.new
     end
 
     # The module context of the class.
