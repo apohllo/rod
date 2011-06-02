@@ -289,7 +289,6 @@ module Rod
 
       unless reverse_references.blank?
         reverse_references.each do |referee, method_name, index|
-          referee = referee.class.find_by_rod_id(referee.rod_id)
           if index.nil?
             # singular association
             referee.update_singular_association(method_name, object)
