@@ -48,7 +48,7 @@ module Rod
       @path = canonicalize_path(path)
       # XXX maybe should be more careful?
       if File.exist?(@path)
-        Dir.glob("#{@path}*").each do |file_name|
+        Dir.glob("#{@path}**/*").each do |file_name|
           File.delete(file_name) unless File.directory?(file_name)
         end
       else

@@ -148,15 +148,15 @@ Feature: Access to objects with indexed fields
     And his height is '1.67'
     And I store him in the database
     And I create another Caveman
-    And his name is 'Willma'
+    And his name is 'Wilma'
     And his age is '25'
     And his identifier is '111122225555'
     And his height is '1.67'
-    And I store him in the database
+    And I store her in the database
     And I reopen database for reading
     Then there should be 3 Caveman(s)
     And there should be 1 Caveman with 'Fred' name
-    And there should be 1 Caveman with 'Willma' name
+    And there should be 1 Caveman with 'Wilma' name
     And there should be 1 Caveman with 'Barney' name
     And there should be 2 Caveman(s) with '25' age
     And there should be 1 Caveman with '26' age
@@ -165,6 +165,23 @@ Feature: Access to objects with indexed fields
     And there should be 1 Caveman with '111122225555' identifier
     And there should be 2 Caveman(s) with '1.67' height
     And there should be 1 Caveman with '1.86' height
+
+    # Test re-creation of the database
+    When database is created
+    And I create a Caveman
+    And his name is 'Fred'
+    And I store him in the database
+    And I create another Caveman
+    And his name is 'Barney'
+    And I store him in the database
+    And I create another Caveman
+    And his name is 'Willma'
+    And I store her in the database
+    And I reopen database for reading
+    Then there should be 3 Caveman(s)
+    And there should be 1 Caveman with 'Fred' name
+    And there should be 1 Caveman with 'Willma' name
+    And there should be 1 Caveman with 'Barney' name
 
   Scenario: indexing of fields with different DBs for the same model with segmented index
     The contents of indices should be fulshed when the database is reopened.
