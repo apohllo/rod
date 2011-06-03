@@ -175,12 +175,38 @@ Feature: Access to objects with indexed fields
     And his name is 'Barney'
     And I store him in the database
     And I create another Caveman
-    And his name is 'Willma'
+    And her name is 'Wilma'
     And I store her in the database
     And I reopen database for reading
     Then there should be 3 Caveman(s)
     And there should be 1 Caveman with 'Fred' name
-    And there should be 1 Caveman with 'Willma' name
+    And there should be 1 Caveman with 'Wilma' name
+    And there should be 1 Caveman with 'Barney' name
+
+  Scenario: extending the DB when segmented index is used
+      Rod should allow to extend the DB when the segmented index is used.
+      The index should be properly updated.
+    Given the class space is cleared
+    And the model is connected with the default database
+    And a class Caveman has a name field of type string with segmented index
+    When database is created
+    And I create a Caveman
+    And his name is 'Fred'
+    And I store him in the database
+    And I create another Caveman
+    And his name is 'Barney'
+    And I store him in the database
+    And I reopen database
+    And I create another Caveman
+    And her name is 'Wilma'
+    And I store her in the database
+    And I create another Caveman
+    And his name is 'Fred'
+    And I store him in the database
+    And I reopen database for reading
+    Then there should be 4 Caveman(s)
+    And there should be 1 Caveman with 'Wilma' name
+    And there should be 2 Caveman(s) with 'Fred' name
     And there should be 1 Caveman with 'Barney' name
 
   Scenario: indexing of fields with different DBs for the same model with segmented index

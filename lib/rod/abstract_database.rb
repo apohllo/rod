@@ -267,13 +267,6 @@ module Rod
         end
       when :segmented
         path = klass.path_for_index(@path,field,options)
-        if File.exist?(path)
-          Dir.glob("#{path}*").each do |file_name|
-            File.delete(file_name) unless File.directory?(file_name)
-          end
-        else
-          Dir.mkdir(path)
-        end
         class_index = klass.index_for(field)
         if class_index.is_a?(Hash)
           index = SegmentedIndex.new(path)

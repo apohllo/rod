@@ -12,6 +12,9 @@ module Rod
 
     # Stores the index at @path. Assumes the path exists.
     def save
+      unless File.exist?(@path)
+        Dir.mkdir(@path)
+      end
       @buckets.each do |bucket_number,hash|
         File.open(path_for(bucket_number),"w") do |out|
           out.puts(Marshal.dump(hash))
