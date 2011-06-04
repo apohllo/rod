@@ -172,11 +172,6 @@ module Rod
       @classes.delete(klass)
     end
 
-    # Returns the C structure with given index for given +klass+.
-    def get_structure(klass,index)
-      send("_#{klass.struct_name}_get", @handler,index)
-    end
-
     # Returns +count+ number of join indices starting from +offset+.
     # These are the indices for has many association of one type for one instance.
     def join_indices(offset, count)
@@ -292,7 +287,7 @@ module Rod
       end
       # set ids of objects referenced via singular associations
       object.class.singular_associations.each do |name,options|
-        object.update_singular_association(name,object.send(name),false)
+        object.update_singular_association(name,object.send(name))
       end
       # set ids of objects referenced via plural associations
       object.class.plural_associations.each do |name,options|
@@ -304,7 +299,7 @@ module Rod
         end
         object.update_count_and_offset(name,elements.size,offset)
         elements.each.with_index do |associated,index|
-          object.update_plural_association(name,associated,index,false)
+          object.update_plural_association(name,associated,index)
         end
       end
     end

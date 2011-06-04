@@ -7,28 +7,12 @@ module Rod
     include ActiveModel::Validations
     extend Enumerable
 
-    # Method _initialize must not be called for abstract Model class.
-    # This might happen if +build_structure+ was not called for the
-    # class.
-    def _initialize
-      raise RodException.new("Ensure that the +build_structure+ call was sent to concreate classes.\n" +
-                             "This won't happen if they are not linked with any database\n" +
-                             "or the database was not created/opened.")
-    end
-
-    private :_initialize
-
-    # Initializes instance of the model. If +struct+ is given,
-    # it is used as source (C-level, i.e. Rod::Model::Struct)
-    # of the data. Otherwise, a new struct is created.
-    #
-    # NOTE that for a time being, this method should be considered FINAL.
-    # You should not override it in any subclass.
-    def initialize(struct=nil)
-      if struct
-        @struct = struct
+    # If +options+ is an integer it is the @rod_id of the object.
+    def initialize(options=nil)
+      if options.is_a?(Integer)
+        @rod_id = options
       else
-        @struct = _initialize()
+        @rod_id = 0
       end
     end
 
@@ -58,7 +42,6 @@ module Rod
 
     # Default implementation of to_s.
     def to_s
-      class_name = self.class.to_s
       fields = self.class.fields.map{|n,o| "#{n}:#{self.send(n)}"}.join(",")
       singular = self.class.singular_associations.map{|n,o| "#{n}:#{self.send(n).class}"}.join(",")
       plural = self.class.plural_associations.map{|n,o| "#{n}:#{self.send(n).size}"}.join(",")
@@ -76,7 +59,6 @@ module Rod
     end
 
     # Iterates over object of this class stored in the database.
-    # The database must be opened for reading (see +open+).
     def self.each
       #TODO an exception if in wrong state?
       if block_given?
@@ -152,7 +134,7 @@ module Rod
 
     # A macro-style function used to link the model with specific
     # database class. See notes on Rod::Database for further
-    # informations why this is needed.
+    # information why this is needed.
     def self.database_class(klass)
       unless @database.nil?
         @database.remove_class(self)
@@ -166,19 +148,14 @@ module Rod
     #########################################################################
 
     public
-    # Update in the DB information about the +object+ which
+    # Update the DB information about the +object+ which
     # is referenced via singular association with +name+.
-    #
-    # The +sync+ flag indicates whether the object struct
-    # should be synced. This should happen, if the class
-    # was re-mmaped (during database creation).
-    def update_singular_association(name, object, sync=true)
-      sync_struct if sync
+    def update_singular_association(name, object)
       object_id = object.nil? ? 0 : object.rod_id
-      send("_#{name}=", @struct, object_id)
+      send("_#{name}=", @rod_id, object_id)
       if self.class.singular_associations[name][:polymorphic]
         class_id = object.nil? ? 0 : object.class.name_hash
-        send("_#{name}__class=", @struct, class_id)
+        send("_#{name}__class=", @rod_id, class_id)
       end
     end
 
@@ -186,15 +163,10 @@ module Rod
     # referenced via plural association with +name+.
     #
     # The name of the association is +name+, the referenced
-    # object id is +object_id+ and +index+ is the position
+    # object is +object+ and +index+ is the position
     # of the referenced object in the association.
-    #
-    # The +sync+ flag indicates whether the object struct
-    # should be synced. This should happen, if the class
-    # was re-mmaped (during database creation).
-    def update_plural_association(name, object, index, sync=true)
-      sync_struct if sync
-      offset = send("_#{name}_offset",@struct)
+    def update_plural_association(name, object, index)
+      offset = send("_#{name}_offset",@rod_id)
       object_id = object.nil? ? 0 : object.rod_id
       if self.class.plural_associations[name][:polymorphic]
         class_id = object.nil? ? 0 : object.class.name_hash
@@ -207,8 +179,8 @@ module Rod
 
     # Updates in the DB the +count+ and +offset+ of elements for +name+ association.
     def update_count_and_offset(name,count,offset)
-      send("_#{name}_count=",@struct,count)
-      send("_#{name}_offset=",@struct,offset)
+      send("_#{name}_count=",@rod_id,count)
+      send("_#{name}_offset=",@rod_id,offset)
     end
 
     # Updates in the DB the field +name+ to the actual value.
@@ -223,10 +195,10 @@ module Rod
           raise RodException.new("Unrecognised field type '#{self.class.fields[name][:type]}'!")
         end
         length, offset = database.set_string(value)
-        send("_#{name}_length=",@struct,length)
-        send("_#{name}_offset=",@struct,offset)
+        send("_#{name}_length=",@rod_id,length)
+        send("_#{name}_offset=",@rod_id,offset)
       else
-        send("_#{name}=",@struct,send(name))
+        send("_#{name}=",@rod_id,send(name))
       end
     end
 
@@ -304,12 +276,7 @@ module Rod
       self.to_s.underscore.gsub(/\//,"__")
     end
 
-    # The name of the struct class which is used to hold the C structs
-    # wrapped into Ruby classes.
-    def self.struct_class_name
-      self.to_s+"::Struct"
-    end
-
+    # Finder for rod_id.
     def self.find_by_rod_id(rod_id)
       unless rod_id != 0
         raise RodException.new("Requested id does not represent any object stored in the database!")
@@ -350,11 +317,20 @@ module Rod
     def self.get(position)
       object = cache[position]
       if object.nil?
-        struct = database.get_structure(self,position)
-        object = self.new(struct)
+        object = self.new(position + 1)
         cache[position] = object
       end
       object
+    end
+
+    # The pointer to the mmaped table of C structs.
+    def self.rod_pointer
+      @rod_pointer
+    end
+
+    # Writer for the pointer to the mmaped table of C structs.
+    def self.rod_pointer=(value)
+      @rod_pointer = value
     end
 
     # Used for establishing link with the DB.
@@ -364,7 +340,7 @@ module Rod
         subclass.add_to_class_space
         subclasses << subclass
       rescue MissingDatabase
-        # this might happen for classes which inherit directly from
+        # This might happen for classes which inherit directly from
         # the Rod::Model. Since the +inherited+ method is always called
         # before the +database_class+ call, they never have the DB set-up
         # when this is called.
@@ -443,14 +419,6 @@ module Rod
       @database
     end
 
-    # Synchronizes the structure held by the instance with the database
-    # structure.
-    def sync_struct
-      unless @rod_id.nil?
-        @struct = database.get_structure(self.class,@rod_id-1)
-      end
-    end
-
     # The object cache of this class.
     # XXX consider moving it to the database.
     def self.cache
@@ -508,6 +476,8 @@ module Rod
       end
     end
 
+    # Returns true if the type of the filed is string-like (i.e. stored as
+    # StringElement).
     def self.string_field?(type)
       string_types.include?(type)
     end
@@ -520,31 +490,31 @@ module Rod
     # The C structure representing this class.
     def self.typedef_struct
       result = <<-END
-          |typedef struct {
-          |  \n#{self.fields.map do |field,options|
-            unless string_field?(options[:type])
-              "|  #{TYPE_MAPPING[options[:type]]} #{field};"
-            else
-              <<-SUBEND
-              |  unsigned long #{field}_length;
-              |  unsigned long #{field}_offset;
-              SUBEND
-            end
-          end.join("\n|  \n") }
-          |  #{singular_associations.map do |name, options|
-            result = "unsigned long #{name};"
-            if options[:polymorphic]
-              result += "  unsigned long #{name}__class;"
-            end
-            result
-          end.join("\n|  ")}
-          |  \n#{plural_associations.map do |name, options|
-            result =
-              "|  unsigned long #{name}_offset;\n"+
-              "|  unsigned long #{name}_count;"
-            result
-          end.join("\n|  \n")}
-          |} #{struct_name()};
+      |typedef struct {
+      |  \n#{self.fields.map do |field,options|
+        unless string_field?(options[:type])
+          "|  #{TYPE_MAPPING[options[:type]]} #{field};"
+        else
+          <<-SUBEND
+          |  unsigned long #{field}_length;
+          |  unsigned long #{field}_offset;
+          SUBEND
+        end
+      end.join("\n|  \n") }
+      |  #{singular_associations.map do |name, options|
+        result = "unsigned long #{name};"
+        if options[:polymorphic]
+          result += "  unsigned long #{name}__class;"
+        end
+        result
+      end.join("\n|  ")}
+      |  \n#{plural_associations.map do |name, options|
+        result =
+          "|  unsigned long #{name}_offset;\n"+
+          "|  unsigned long #{name}_count;"
+        result
+      end.join("\n|  \n")}
+      |} #{struct_name()};
       END
       result.margin
     end
@@ -552,23 +522,23 @@ module Rod
     # Prints the memory layout of the structure.
     def self.layout
       result = <<-END
-        |  \n#{self.fields.map do |field,options|
-            unless string_field?(options[:type])
-              "|  printf(\"  size of '#{field}': %lu\\n\",sizeof(#{TYPE_MAPPING[options[:type]]}));"
-            else
-              <<-SUBEND
-              |  printf("  string '#{field}' length: %lu offset: %lu page: %lu\\n",
-              |    sizeof(unsigned long), sizeof(unsigned long), sizeof(unsigned long));
-              SUBEND
-            end
-          end.join("\n") }
-          |  \n#{singular_associations.map do |name, options|
-            "  printf(\"  singular assoc '#{name}': %lu\\n\",sizeof(unsigned long));"
-          end.join("\n|  ")}
-          |  \n#{plural_associations.map do |name, options|
-         "|  printf(\"  plural assoc '#{name}' offset: %lu, count %lu\\n\",\n"+
-         "|    sizeof(unsigned long),sizeof(unsigned long));"
-          end.join("\n|  \n")}
+      |  \n#{self.fields.map do |field,options|
+          unless string_field?(options[:type])
+            "|  printf(\"  size of '#{field}': %lu\\n\",sizeof(#{TYPE_MAPPING[options[:type]]}));"
+          else
+            <<-SUBEND
+            |  printf("  string '#{field}' length: %lu offset: %lu page: %lu\\n",
+            |    sizeof(unsigned long), sizeof(unsigned long), sizeof(unsigned long));
+            SUBEND
+          end
+        end.join("\n") }
+        |  \n#{singular_associations.map do |name, options|
+          "  printf(\"  singular assoc '#{name}': %lu\\n\",sizeof(unsigned long));"
+        end.join("\n|  ")}
+        |  \n#{plural_associations.map do |name, options|
+       "|  printf(\"  plural assoc '#{name}' offset: %lu, count %lu\\n\",\n"+
+       "|    sizeof(unsigned long),sizeof(unsigned long));"
+        end.join("\n|  \n")}
       END
       result.margin
     end
@@ -576,10 +546,11 @@ module Rod
     # Reads the value of a specified field of the C-structure.
     def self.field_reader(name,result_type,builder)
       str =<<-END
-      |#{result_type} _#{name}(VALUE struct_value){
-      |  #{struct_name()} * struct_p;
-      |  Data_Get_Struct(struct_value,#{struct_name()},struct_p);
-      |  return struct_p->#{name};
+      |#{result_type} _#{name}(unsigned long object_rod_id){
+      |  VALUE klass = rb_funcall(self,rb_intern("class"),0);
+      |  #{struct_name} * pointer = (#{struct_name} *)
+      |    NUM2ULONG(rb_funcall(klass,rb_intern("rod_pointer"),0));
+      |  return (pointer + object_rod_id - 1)->#{name};
       |}
       END
       builder.c(str.margin)
@@ -588,10 +559,11 @@ module Rod
     # Writes the value of a specified field of the C-structure.
     def self.field_writer(name,arg_type,builder)
       str =<<-END
-      |void _#{name}_equals(VALUE struct_value,#{arg_type} value){
-      |  #{struct_name()} * struct_p;
-      |  Data_Get_Struct(struct_value,#{struct_name()},struct_p);
-      |  struct_p->#{name} = value;
+      |void _#{name}_equals(unsigned long object_rod_id,#{arg_type} value){
+      |  VALUE klass = rb_funcall(self,rb_intern("class"),0);
+      |  #{struct_name} * pointer = (#{struct_name} *)
+      |    NUM2ULONG(rb_funcall(klass,rb_intern("rod_pointer"),0));
+      |  (pointer + object_rod_id - 1)->#{name} = value;
       |}
       END
       builder.c(str.margin)
@@ -608,39 +580,6 @@ module Rod
 
       inline(:C) do |builder|
         builder.prefix(typedef_struct)
-
-        str =<<-END
-        |VALUE _initialize(){
-        |  #{struct_name()} * result = ALLOC(#{struct_name()});
-        |  \n#{fields.map do |field, options|
-          unless string_field?(options[:type])
-            <<-SUBEND
-            |  result->#{field} = 0;
-            SUBEND
-          else
-            <<-SUBEND
-            |  result->#{field}_length = 0;
-            |  result->#{field}_offset = 0;
-            SUBEND
-          end
-        end.join("\n")}
-        |  \n#{singular_associations.map do |name,options|
-        <<-SUBEND
-        |  result->#{name} = 0; #{options[:polymorphic] ? "result->#{name}__class = 0;" : ""}
-        SUBEND
-        end.join("\n")}
-        |  \n#{plural_associations.map do |name, options|
-        <<-SUBEND
-        |  result->#{name}_count = 0;
-        |  result->#{name}_offset = 0;
-        SUBEND
-        end.join("\n")}
-        |  VALUE cClass = rb_define_class("#{struct_class_name()}",rb_cObject);
-        |  return Data_Wrap_Struct(cClass, 0, free, result);
-        |}
-        END
-        builder.c(str.margin)
-
         if Database.development_mode
           # This method is created to force rebuild of the C code, since
           # it is rebuild on the basis of methods' signatures change.
@@ -691,7 +630,11 @@ module Rod
           define_method(field) do
             value = instance_variable_get("@#{field}")
             if value.nil?
-              value = send("_#{field}",@struct)
+              if @rod_id == 0
+                value = nil
+              else
+                value = send("_#{field}",@rod_id)
+              end
               instance_variable_set("@#{field}".to_sym,value)
             end
             value
@@ -699,8 +642,6 @@ module Rod
 
           # setter
           define_method("#{field}=") do |value|
-            sync_struct
-            send("_#{field}=",@struct,value)
             instance_variable_set("@#{field}".to_sym,value)
             value
           end
@@ -710,17 +651,21 @@ module Rod
           define_method(field) do
             value = instance_variable_get(("@" + field.to_s).to_sym)
             if value.nil? # first call
-              length = send("_#{field}_length", @struct)
-              if length == 0
+              if @rod_id == 0
                 return (options[:type] == :object ? nil : "")
+              else
+                length = send("_#{field}_length", @rod_id)
+                if length == 0
+                  return (options[:type] == :object ? nil : "")
+                end
+                offset = send("_#{field}_offset", @rod_id)
+                value = database.read_string(length, offset)
+                if options[:type] == :object
+                  value = Marshal.load(value)
+                end
+                # caching Ruby representation
+                send("#{field}=",value)
               end
-              offset = send("_#{field}_offset", @struct)
-              value = database.read_string(length, offset)
-              if options[:type] == :object
-                value = Marshal.load(value)
-              end
-              # caching Ruby representation
-              send("#{field}=",value)
             end
             value
           end
@@ -774,13 +719,13 @@ module Rod
         define_method(name) do
           value = instance_variable_get(("@" + name.to_s).to_sym)
           if value.nil?
-            index = send("_#{name}",@struct)
+            index = send("_#{name}",@rod_id)
             # the indices are shifted by 1, to leave 0 for nil
             if index == 0
               value = nil
             else
               if options[:polymorphic]
-                klass = Model.get_class(send("_#{name}__class",@struct))
+                klass = Model.get_class(send("_#{name}__class",@rod_id))
                 value = klass.get(index-1)
               else
                 value = class_name.constantize.get(index-1)
@@ -810,19 +755,23 @@ module Rod
         define_method("#{name}") do
           values = instance_variable_get(("@" + name.to_s).to_sym)
           if values.nil?
-            count = self.send("_#{name}_count",@struct)
+            if @rod_id == 0
+              count = 0
+            else
+              count = self.send("_#{name}_count",@rod_id)
+            end
             return instance_variable_set(("@" + name.to_s).to_sym,[]) if count == 0
             unless options[:polymorphic]
               klass = class_name.constantize
               # the indices are shifted by 1, to leave 0 for nil
               values = database.
-                join_indices(self.send("_#{name}_offset",@struct),count).
+                join_indices(self.send("_#{name}_offset",@rod_id),count).
                 map do |index|
                 index == 0 ? nil : klass.get(index-1)
               end
             else
               values = database.
-                polymorphic_join_indices(self.send("_#{name}_offset",@struct),count).
+                polymorphic_join_indices(self.send("_#{name}_offset",@rod_id),count).
                 map do |index,class_id|
                 # the indices are shifted by 1, to leave 0 for nil
                 index == 0 ? nil : Model.get_class(class_id).get(index-1)
@@ -838,7 +787,7 @@ module Rod
           if (instance_variable_get(("@" + name.to_s).to_sym) != nil)
             return instance_variable_get(("@" + name.to_s).to_sym).count
           else
-            return send("_#{name}_count",@struct)
+            return send("_#{name}_count",@rod_id)
           end
         end
 

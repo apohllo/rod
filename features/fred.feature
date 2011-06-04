@@ -10,6 +10,9 @@ Feature: ROD Storage
     And a class Fred has a sex field of type string with flat index
 
   Scenario Outline: Store Fred and modify his age
+      So far Rod doesn't support changing of objects (especially
+      plural associations). To keep the behavior consisten for
+      all types of data, fields shouldn't be modifiable as well.
     When database is created
     And I create a Fred
     And his age is '<init_age>'
@@ -17,7 +20,7 @@ Feature: ROD Storage
     And his age is '<grown_age>'
     And I reopen database for reading
     Then there should be 1 Fred
-    And the age of the first Fred should be '<grown_age>'
+    And the age of the first Fred should be '<init_age>'
 
     Examples:
       | init_age  | grown_age |

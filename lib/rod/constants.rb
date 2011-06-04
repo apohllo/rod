@@ -26,7 +26,7 @@ module Rod
     :string => 'rb_str_new2',
     :integer => 'INT2NUM',
     :float => 'rb_float_new',
-    :ulong => 'INT2NUM'
+    :ulong => 'ULONG2NUM'
   }
 
 end

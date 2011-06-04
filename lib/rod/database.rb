@@ -74,9 +74,25 @@ module Rod
       str.margin
     end
 
+    # Updates the pointer to table of structs for a given +klass+ when
+    # the klass is (re)mmaped.
+    def update_pointer(klass)
+      str =<<-END
+      |  {
+      |    VALUE cClass = rb_cObject;
+      |    #{klass.to_s.split("::").map do |name|
+          "cClass = rb_const_get(cClass, rb_intern(\"#{name}\"));"
+        end.join("\n|    ")}
+      |    rb_funcall(cClass, rb_intern("rod_pointer="),1,
+      |      ULONG2NUM((unsigned long)model_p->#{klass.struct_name}_table));
+      |  }
+      END
+      str.margin
+    end
+
     # Mmaps the class to its page during database creation.
     def mmap_class(klass)
-      str =<<-SUBEND
+      str =<<-END
       |  //printf("mmaping #{klass}\\n");
       |  //unmap the segment(s) first
       |  if(model_p->#{klass.struct_name}_table != NULL){
@@ -122,8 +138,8 @@ module Rod
       |    perror(NULL);
       |    rb_raise(rodException(),"Could not mmap segment for #{klass.struct_name}.");
       |  }
-      |
-      SUBEND
+      |#{update_pointer(klass) unless special_class?(klass)}
+      END
       str.margin
     end
 
@@ -384,18 +400,6 @@ module Rod
                                     "unsigned long",builder,model_struct)
             self.class.field_writer("#{klass.struct_name}_page_count",
                                     "unsigned long",builder,model_struct)
-
-            next if special_class?(klass)
-            str = <<-END
-            |VALUE _#{klass.struct_name}_get(VALUE handler, unsigned long index){
-            |  #{model_struct} * model_p;
-            |  Data_Get_Struct(handler,#{model_struct},model_p);
-            |  VALUE cClass = rb_define_class("#{klass.struct_class_name}",rb_cObject);
-            |  return Data_Wrap_Struct(cClass,0,0,
-            |    model_p->#{klass.struct_name}_table + index);
-            |}
-            END
-            builder.c(str.margin)
           end
 
           #########################################
@@ -417,14 +421,11 @@ module Rod
             |    model_p->#{klass.struct_name}_count;
             |  //printf("struct assigned\\n");
             |  model_p->#{klass.struct_name}_count++;
-            |  VALUE sClass = rb_funcall(object, rb_intern("class"),0);
-            |  VALUE struct_object = Data_Wrap_Struct(sClass, 0, 0, struct_p);
             |
             |  //the number is incresed by 1, because 0 indicates that the
             |  //(referenced) object is nil
             |  struct_p->rod_id = model_p->#{klass.struct_name}_count;
             |  rb_iv_set(object, \"@rod_id\",UINT2NUM(struct_p->rod_id));
-            |  rb_iv_set(object,"@struct",struct_object);
             |}
             END
             builder.c(str.margin)
@@ -486,6 +487,7 @@ module Rod
              |      perror(NULL);
              |      rb_raise(rodException(),"Could not mmap class '#{klass}'.");
              |    }
+             |  #{update_pointer(klass) unless special_class?(klass)}
              |  } else {
              |    model_p->#{klass.struct_name}_table = NULL;
              |  }
