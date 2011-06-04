@@ -595,7 +595,7 @@ module Rod
     def self.build_structure
       self.fields.each do |name, options|
         if options[:index]
-          instance_variable_set("@#{name}_index".to_sym,nil)
+          instance_variable_set("@#{name}_index",nil)
         end
       end
       return if @structure_built
@@ -642,9 +642,9 @@ module Rod
         # adding new private fields visible from Ruby
         # they are lazily initialized based on the C representation
         unless string_field?(options[:type])
-          private "_#{field}".to_sym, "_#{field}=".to_sym
+          private "_#{field}", "_#{field}="
         else
-          private "_#{field}_length".to_sym, "_#{field}_offset".to_sym
+          private "_#{field}_length", "_#{field}_offset"
         end
 
         unless string_field?(options[:type])
@@ -657,21 +657,21 @@ module Rod
               else
                 value = send("_#{field}",@rod_id)
               end
-              instance_variable_set("@#{field}".to_sym,value)
+              instance_variable_set("@#{field}",value)
             end
             value
           end
 
           # setter
           define_method("#{field}=") do |value|
-            instance_variable_set("@#{field}".to_sym,value)
+            instance_variable_set("@#{field}",value)
             value
           end
         else
           # string-type fields
           # getter
           define_method(field) do
-            value = instance_variable_get(("@" + field.to_s).to_sym)
+            value = instance_variable_get(("@" + field.to_s))
             if value.nil? # first call
               if @rod_id == 0
                 return (options[:type] == :object ? nil : "")
@@ -694,7 +694,7 @@ module Rod
 
           # setter
           define_method("#{field}=") do |value|
-            instance_variable_set("@#{field}".to_sym,value)
+            instance_variable_set("@#{field}",value)
           end
         end
 
@@ -702,22 +702,22 @@ module Rod
           (class << self; self; end).class_eval do
             # Read index for the +field+ from the database.
             define_method(:index_for) do |field|
-              index = instance_variable_get("@#{field}_index".to_sym)
+              index = instance_variable_get("@#{field}_index")
               if index.nil?
                 index = database.read_index(self,field,options)
-                instance_variable_set("@#{field}_index".to_sym,index)
+                instance_variable_set("@#{field}_index",index)
               end
               index
             end
 
             # Find all objects with given +value+ of the +field.
-            define_method("find_all_by_#{field}".to_sym) do |value|
-              (index_for(field.to_sym)[value] || []).map{|i| self.get(i-1)}
+            define_method("find_all_by_#{field}") do |value|
+              (index_for(field)[value] || []).map{|i| self.get(i-1)}
             end
 
             # Find first object with given +value+ of the +field.
-            define_method("find_by_#{field}".to_sym) do |value|
-              objects_ids = self.index_for(field.to_sym)[value]
+            define_method("find_by_#{field}") do |value|
+              objects_ids = self.index_for(field)[value]
               if objects_ids
                 self.get(objects_ids[0]-1)
               else
@@ -729,7 +729,7 @@ module Rod
       end
 
       singular_associations.each do |name, options|
-        private "_#{name}".to_sym, "_#{name}=".to_sym
+        private "_#{name}", "_#{name}="
         class_name =
           if options[:class_name]
             options[:class_name]
@@ -739,7 +739,7 @@ module Rod
 
         #getter
         define_method(name) do
-          value = instance_variable_get(("@" + name.to_s).to_sym)
+          value = instance_variable_get(("@" + name.to_s))
           if value.nil?
             index = send("_#{name}",@rod_id)
             # the indices are shifted by 1, to leave 0 for nil
@@ -760,7 +760,7 @@ module Rod
 
         #setter
         define_method("#{name}=") do |value|
-          instance_variable_set(("@" + name.to_s).to_sym, value)
+          instance_variable_set(("@" + name.to_s), value)
         end
       end
 
@@ -775,14 +775,14 @@ module Rod
 
         # getter
         define_method("#{name}") do
-          values = instance_variable_get(("@" + name.to_s).to_sym)
+          values = instance_variable_get(("@" + name.to_s))
           if values.nil?
             if @rod_id == 0
               count = 0
             else
               count = self.send("_#{name}_count",@rod_id)
             end
-            return instance_variable_set(("@" + name.to_s).to_sym,[]) if count == 0
+            return instance_variable_set(("@" + name.to_s),[]) if count == 0
             unless options[:polymorphic]
               klass = class_name.constantize
               # the indices are shifted by 1, to leave 0 for nil
@@ -799,15 +799,15 @@ module Rod
                 index == 0 ? nil : Model.get_class(class_id).get(index-1)
               end
             end
-            instance_variable_set(("@" + name.to_s).to_sym, values)
+            instance_variable_set(("@" + name.to_s), values)
           end
           values
         end
 
         # count getter
         define_method("#{name}_count") do
-          if (instance_variable_get(("@" + name.to_s).to_sym) != nil)
-            return instance_variable_get(("@" + name.to_s).to_sym).count
+          if (instance_variable_get(("@" + name.to_s)) != nil)
+            return instance_variable_get(("@" + name.to_s)).count
           else
             return send("_#{name}_count",@rod_id)
           end
@@ -815,7 +815,7 @@ module Rod
 
         # setter
         define_method("#{name}=") do |value|
-          instance_variable_set(("@" + name.to_s).to_sym, value)
+          instance_variable_set(("@" + name.to_s), value)
         end
       end
       @structure_built = true
