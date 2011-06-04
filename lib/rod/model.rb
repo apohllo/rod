@@ -159,21 +159,43 @@ module Rod
       end
     end
 
-    # Update in the DB information about the +object+ which is
+    # Update in the DB information about the +object+ (or objects) which is (are)
     # referenced via plural association with +name+.
     #
     # The name of the association is +name+, the referenced
-    # object is +object+ and +index+ is the position
-    # of the referenced object in the association.
-    def update_plural_association(name, object, index)
+    # object(s) is (are) +object+.
+    # +index+ is the position of the referenced object in the association.
+    # If there are many objects, the index is ignored.
+    def update_plural_association(name, object, index=nil)
       offset = send("_#{name}_offset",@rod_id)
-      object_id = object.nil? ? 0 : object.rod_id
       if self.class.plural_associations[name][:polymorphic]
-        class_id = object.nil? ? 0 : object.class.name_hash
-        database.set_polymorphic_join_element_id(offset, index, object_id,
-                                                class_id)
+        # Don't refactor this code. This is due to performance hit.
+        if object.respond_to?(:each)
+          objects = object
+          objects.each.with_index do |object,index|
+            object_id = object.nil? ? 0 : object.rod_id
+            class_id = object.nil? ? 0 : object.class.name_hash
+            database.set_polymorphic_join_element_id(offset, index, object_id,
+                                                     class_id)
+          end
+        else
+          object_id = object.nil? ? 0 : object.rod_id
+          class_id = object.nil? ? 0 : object.class.name_hash
+          database.set_polymorphic_join_element_id(offset, index, object_id,
+                                                   class_id)
+        end
       else
-        database.set_join_element_id(offset, index, object_id)
+        # Don't refactor this code. This is due to performance hit.
+        if object.respond_to?(:each)
+          objects = object
+          objects.each.with_index do |object,index|
+            object_id = object.nil? ? 0 : object.rod_id
+            database.set_join_element_id(offset, index, object_id)
+          end
+        else
+          object_id = object.nil? ? 0 : object.rod_id
+          database.set_join_element_id(offset, index, object_id)
+        end
       end
     end
 

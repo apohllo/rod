@@ -298,9 +298,7 @@ module Rod
           offset = _allocate_join_elements(elements.size,@handler)
         end
         object.update_count_and_offset(name,elements.size,offset)
-        elements.each.with_index do |associated,index|
-          object.update_plural_association(name,associated,index)
-        end
+        object.update_plural_association(name,elements)
       end
     end
 
