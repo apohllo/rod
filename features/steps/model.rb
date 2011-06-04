@@ -186,6 +186,10 @@ When /^I access the (\w+) (\w+) index$/ do |class_name,field|
   get_class(class_name).send("find_by_#{field}",nil)
 end
 
+When /^I remember the (\w+) (\w+)$/ do |position,class_name|
+  @remembered = get_instance(class_name,position)
+end
+
 ################################################################
 # Then
 ################################################################
@@ -193,7 +197,7 @@ Then /^there should be (\d+) (\w+)(\([^)]*\))?$/ do |count,class_name,ignore|
   get_class(class_name).count.should == count.to_i
 end
 
-Then /^the (\w+) of the (\w+) (\w+) should be '([^']*)'$/ do |field, position, class_name,value|
+Then /^the (\w+) of the (\w+) ([A-Z]\w+) should be '([^']*)'$/ do |field, position, class_name,value|
   get_instance(class_name,position).send(field.to_sym).should == get_value(value)
 end
 
@@ -203,6 +207,14 @@ Then /^the (\w+) of the (\w+) (\w+) should be '([^']*)'( multiplied (\d+) times)
     value *= multiplier.to_i
   end
   get_instance(class_name,position).send(field.to_sym).should == value
+end
+
+Then /^the (\w+) of the remembered instance should be '([^']*)'( multiplied (\d+) times)?$/ do |field, value,multi,multiplier|
+  value = get_value(value)
+  if multi
+    value *= multiplier.to_i
+  end
+  @remembered.send(field.to_sym).should == value
 end
 
 Then /^the (\w+) (\w+) should not have a (\w+) field$/ do |position, class_name, field|

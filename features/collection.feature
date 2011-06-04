@@ -84,7 +84,7 @@ Feature: model as a collection of objects
       The database should properly store thousands of objects with has many relationship.
     Given the class space is cleared
     And the model is connected with the default database
-    And a class Automobile has a name field of type string 
+    And a class Automobile has a name field of type string
     And a class User has a name field of type string
     And a class User has a surname field of type string
     And a class User has an age field of type integer

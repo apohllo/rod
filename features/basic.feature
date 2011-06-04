@@ -107,6 +107,16 @@ Feature: Store and load small amount of data from one class
     And his identifier should be '111122223333'
     And his height should be '1.86'
 
+    When database is created
+    And I create a Caveman
+    And his name is 'Fred'
+    And I store him in the database
+    And I remember the first Caveman
+    And I create another Caveman
+    And his name is 'Fred'
+    And I store him in the database 4000 times
+    Then the name of the remembered instance should be 'Fred'
+
   Scenario: referential integrity and simple indexing
       Rod should allow to access objects via simple indexing
       (i.e. Model[index]).
