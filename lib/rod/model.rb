@@ -639,6 +639,8 @@ module Rod
 
       ## accessors for fields, plural and singular relationships follow
       self.fields.each do |field, options|
+        # optimization
+        field = field.to_s
         # adding new private fields visible from Ruby
         # they are lazily initialized based on the C representation
         unless string_field?(options[:type])
@@ -671,7 +673,7 @@ module Rod
           # string-type fields
           # getter
           define_method(field) do
-            value = instance_variable_get(("@" + field.to_s))
+            value = instance_variable_get("@#{field}")
             if value.nil? # first call
               if @rod_id == 0
                 return (options[:type] == :object ? nil : "")
@@ -729,17 +731,19 @@ module Rod
       end
 
       singular_associations.each do |name, options|
+        # optimization
+        name = name.to_s
         private "_#{name}", "_#{name}="
         class_name =
           if options[:class_name]
             options[:class_name]
           else
-            "#{self.scope_name}::#{name.to_s.camelcase}"
+            "#{self.scope_name}::#{name.camelcase}"
           end
 
         #getter
         define_method(name) do
-          value = instance_variable_get(("@" + name.to_s))
+          value = instance_variable_get("@#{name}")
           if value.nil?
             index = send("_#{name}",@rod_id)
             # the indices are shifted by 1, to leave 0 for nil
@@ -760,29 +764,31 @@ module Rod
 
         #setter
         define_method("#{name}=") do |value|
-          instance_variable_set(("@" + name.to_s), value)
+          instance_variable_set("@#{name}", value)
         end
       end
 
       plural_associations.each do |name, options|
+        # optimization
+        name = name.to_s
         class_name =
           if options[:class_name]
             options[:class_name]
           else
             "#{self.scope_name}::#{::English::Inflect.
-              singular(name.to_s).camelcase}"
+              singular(name).camelcase}"
           end
 
         # getter
         define_method("#{name}") do
-          values = instance_variable_get(("@" + name.to_s))
+          values = instance_variable_get("@#{name}")
           if values.nil?
             if @rod_id == 0
               count = 0
             else
               count = self.send("_#{name}_count",@rod_id)
             end
-            return instance_variable_set(("@" + name.to_s),[]) if count == 0
+            return instance_variable_set("@#{name}",[]) if count == 0
             unless options[:polymorphic]
               klass = class_name.constantize
               # the indices are shifted by 1, to leave 0 for nil
@@ -799,15 +805,15 @@ module Rod
                 index == 0 ? nil : Model.get_class(class_id).get(index-1)
               end
             end
-            instance_variable_set(("@" + name.to_s), values)
+            instance_variable_set("@#{name}", values)
           end
           values
         end
 
         # count getter
         define_method("#{name}_count") do
-          if (instance_variable_get(("@" + name.to_s)) != nil)
-            return instance_variable_get(("@" + name.to_s)).count
+          if (instance_variable_get("@#{name}") != nil)
+            return instance_variable_get("@#{name}").count
           else
             return send("_#{name}_count",@rod_id)
           end
@@ -815,7 +821,7 @@ module Rod
 
         # setter
         define_method("#{name}=") do |value|
-          instance_variable_set(("@" + name.to_s), value)
+          instance_variable_set("@#{name}", value)
         end
       end
       @structure_built = true
