@@ -295,7 +295,13 @@ module Rod
 
     # The name of the C struct for this class.
     def self.struct_name
-      self.to_s.underscore.gsub(/\//,"__")
+      return @struct_name unless @struct_name.nil?
+      name = self.to_s.underscore.gsub(/\//,"__")
+      unless name =~ /^\#/
+        # not an anonymous class
+        @struct_name = name
+      end
+      name
     end
 
     # Finder for rod_id.
