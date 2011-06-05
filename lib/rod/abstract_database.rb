@@ -125,12 +125,14 @@ module Rod
           klass.singular_associations.each do |name,options|
             has_one[name] = {}
             has_one[name][:options] = options
+            write_index(klass,name,options) if options[:index]
           end
           # plural_associations
           has_many = meta[:has_many] = {} unless klass.plural_associations.empty?
           klass.plural_associations.each do |name,options|
             has_many[name] = {}
             has_many[name][:options] = options
+            write_index(klass,name,options) if options[:index]
           end
         end
         File.open(@path + DATABASE_FILE,"w") do |out|
@@ -259,9 +261,9 @@ module Rod
     # There are two types of indices:
     # * +:flat+ - marshalled index is stored in one file
     # * +:segmented+ - marshalled index is stored in many files
-    def write_index(klass,field,options)
+    def write_index(klass,property,options)
       raise DatabaseError.new("Readonly database.") if readonly_data?
-      class_index = klass.index_for(field)
+      class_index = klass.index_for(property,options)
       class_index.each do |key,ids|
         unless ids.is_a?(CollectionProxy)
           proxy = CollectionProxy.new(ids[1]) do |index|
@@ -278,11 +280,11 @@ module Rod
       end
       case options[:index]
       when :flat,true
-        File.open(klass.path_for_index(@path,field,options),"w") do |out|
+        File.open(klass.path_for_index(@path,property,options),"w") do |out|
           out.puts(Marshal.dump(class_index))
         end
       when :segmented
-        path = klass.path_for_index(@path,field,options)
+        path = klass.path_for_index(@path,property,options)
         if class_index.is_a?(Hash)
           index = SegmentedIndex.new(path)
           class_index.each{|k,v| index[k] = v}

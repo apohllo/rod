@@ -13,10 +13,10 @@ Feature: Store and load data from multiple databases
     And a class Automobile is connected to Database2
     When Database1 is created
     And Database2 is created
-    And I create a Caveman 
+    And I create a Caveman
     And his name is 'Fred'
     And I store him in the database
-    And I create an Automobile 
+    And I create an Automobile
     And its name is 'Prehistoric'
     And I store him in the database
     And I reopen Database1 for reading

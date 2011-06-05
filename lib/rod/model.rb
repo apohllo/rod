@@ -155,7 +155,7 @@ module Rod
     end
 
     #########################################################################
-    # 'Private' API
+    # 'Private' instance methods
     #########################################################################
 
     public
@@ -235,6 +235,10 @@ module Rod
       end
     end
 
+    #########################################################################
+    # 'Private' class methods
+    #########################################################################
+
     # Stores given +object+ in the database. The object must be an
     # instance of this class.
     def self.store(object)
@@ -247,24 +251,32 @@ module Rod
       database.store(self,object)
 
       # update indices
-      self.fields.each do |field,options|
+      properties.each do |property,options|
         if options[:index]
-          rod_ids = self.index_for(field)[object.send(field)]
-          if rod_ids.nil?
-            rod_ids = self.index_for(field)[object.send(field)] =
-              CollectionProxy.new(0) do |index|
-                [database.join_index(offset,index), self]
+          keys =
+            if field?(property)
+              [object.send(property)]
+            elsif singular_association?(property)
+              [object.send(property).rod_id]
+            else
+              object.send(property).map{|o| o.rod_id}
+            end
+          keys.each do |key|
+            proxy = self.index_for(property,options,key)
+            if proxy.nil?
+              proxy = self.set_values_for(property,options,key,0) do |index|
+                raise RodException.new("Calling fetch block for an empty proxy!")
               end
-          else
-            unless rod_ids.is_a?(CollectionProxy)
-              offset, count = rod_ids
-              rod_ids = self.index_for(field)[object.send(field)] =
-                CollectionProxy.new(count) do |index|
-                [database.join_index(offset,index), self]
+            else
+              unless proxy.is_a?(CollectionProxy)
+                offset, count = proxy
+                proxy = self.set_values_for(property,options,key,count) do |index|
+                  [database.join_index(offset,index), self]
+                end
               end
             end
+            proxy << [object.rod_id,object.class]
           end
-          rod_ids << [object.rod_id,object.class]
         end
       end
 
@@ -487,7 +499,7 @@ module Rod
     end
 
     #########################################################################
-    # C-oriented API
+    # DB-oriented API
     #########################################################################
 
     # The SHA2 digest of the class name
@@ -615,6 +627,10 @@ module Rod
       builder.c(str.margin)
     end
 
+    #########################################################################
+    # Generated methods
+    #########################################################################
+
     # This code intializes the class. It adds C routines and dynamic Ruby accessors.
     def self.build_structure
       self.fields.each do |name, options|
@@ -724,38 +740,6 @@ module Rod
           end
         end
 
-        if options[:index]
-          (class << self; self; end).class_eval do
-            # Read index for the +field+ from the database.
-            define_method(:index_for) do |field|
-              index = instance_variable_get("@#{field}_index")
-              if index.nil?
-                index = database.read_index(self,field,options)
-                instance_variable_set("@#{field}_index",index)
-              end
-              index
-            end
-
-            # Find all objects with given +value+ of the +field.
-            define_method("find_all_by_#{field}") do |value|
-              offset,count = index_for(field)[value]
-              return [] if offset.nil?
-              CollectionProxy.new(count) do |index|
-                [database.join_index(offset,index),self]
-              end
-            end
-
-            # Find first object with given +value+ of the +field+.
-            define_method("find_by_#{field}") do |value|
-              offset,count = index_for(field)[value]
-              if offset.nil?
-                nil
-              else
-                get(database.join_index(offset,0))
-              end
-            end
-          end
-        end
       end
 
       singular_associations.each do |name, options|
@@ -848,10 +832,83 @@ module Rod
           instance_variable_set("@#{name}", value)
         end
       end
+
+      # indices
+      properties.each do |property,options|
+        # optimization
+        property = property.to_s
+        if options[:index]
+          (class << self; self; end).class_eval do
+            # Find all objects with given +value+ of the +property+.
+            define_method("find_all_by_#{property}") do |value|
+              value = value.rod_id if value.is_a?(Model)
+              offset,count = index_for(property,options,value)
+              return [] if offset.nil?
+              CollectionProxy.new(count) do |index|
+                [database.join_index(offset,index),self]
+              end
+            end
+
+            # Find first object with given +value+ of the +property+.
+            define_method("find_by_#{property}") do |value|
+              offset,count = index_for(property,options)[value]
+              if offset.nil?
+                nil
+              else
+                get(database.join_index(offset,0))
+              end
+            end
+          end
+        end
+      end
       @structure_built = true
     end
 
     class << self
+      # Fields, singular and plural associations.
+      def properties
+        self.fields.merge(self.singular_associations.merge(self.plural_associations))
+      end
+
+      # Returns true if the +name+ (as symbol) is a name of a field.
+      def field?(name)
+        self.fields.keys.include?(name)
+      end
+
+      # Returns true if the +name+ (as symbol) is a name of a singular association.
+      def singular_association?(name)
+        self.singular_associations.keys.include?(name)
+      end
+
+      # Returns true if the +name+ (as symbol) is a name of a plural association.
+      def plural_association?(name)
+        self.plural_associations.keys.include?(name)
+      end
+
+      # Read index for the +property+ with +options+ from the database.
+      # If +key+ is given, the value for the key is returned.
+      # accessing the values for that key.
+      def index_for(property,options,key=nil)
+        index = instance_variable_get("@#{property}_index")
+        if index.nil?
+          index = database.read_index(self,property,options)
+          instance_variable_set("@#{property}_index",index)
+        end
+        if key
+          index[key]
+        else
+          index
+        end
+      end
+
+      # Sets the values in the index of the +property+ for
+      # the particular +key+. Method expects +fetch+ block and
+      # creates a CollectionProxy based on that block.
+      # The size of the collection is given as +count+.
+      def set_values_for(property,options,key,count,&fetch)
+        index_for(property,options)[key] = CollectionProxy.new(count,&fetch)
+      end
+
       private
       # Returns object of this class stored in the DB with given +rod_id+.
       # Warning! If wrong rod_id is specified it might cause segmentation fault exception!
@@ -863,6 +920,7 @@ module Rod
         end
         object
       end
+
     end
   end
 end

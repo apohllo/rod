@@ -97,7 +97,7 @@ Given /^a class (\w+) has an? (\w+) field of type (\w+)( with (\w+) index)?$/ do
   end
 end
 
-Given /^a class (\w+) has one (\w+ )?(\w+)$/ do |class_name,type,assoc|
+Given /^a class (\w+) has one (\w+ )?(\w+)( with (\w+) index)?$/ do |class_name,type,assoc,index,index_type|
   options = {}
   unless type.nil?
     case type
@@ -105,16 +105,24 @@ Given /^a class (\w+) has one (\w+ )?(\w+)$/ do |class_name,type,assoc|
       options[:polymorphic] = true
     end
   end
+  unless index.nil?
+    index_type = (index_type == "flat" ? :flat : :segmented)
+    options[:index] = index_type
+  end
   get_class(class_name).send(:has_one,assoc.to_sym,options)
 end
 
-Given /^a class (\w+) has many (\w+ )?(\w+)$/ do |class_name,type,assoc|
+Given /^a class (\w+) has many (\w+ )?(\w+)( with (\w+) index)?$/ do |class_name,type,assoc,index,index_type|
   options = {}
   unless type.nil?
     case type
     when /polymorphic/
       options[:polymorphic] = true
     end
+  end
+  unless index.nil?
+    index_type = (index_type == "flat" ? :flat : :segmented)
+    options[:index] = index_type
   end
   get_class(class_name).send(:has_many,assoc.to_sym,options)
 end
@@ -311,6 +319,10 @@ end
 
 Then /^there should be (\d+) (\w+)(\([^)]*\))? with '([^']*)' (\w+)$/ do |count,class_name,ignore,value,field|
   get_class(class_name).send("find_all_by_#{field}",get_value(value)).count.should == count.to_i
+end
+
+Then /^there should be (\d+) (\w+)(\([^)]*\))? with the (\w+) (\w+) as (\w+)$/ do |count,class1,ignore,position,class2,assoc|
+  get_class(class1).send("find_all_by_#{assoc}",get_instance(class2,position)).count.should == count.to_i
 end
 
 Then /^I should be able to iterate( with index)? over these (\w+)\(s\)$/ do |with_index,class_name|
