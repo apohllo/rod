@@ -260,6 +260,8 @@ module Rod
             end
             referenced_objects[referenced].push([object, name])
           end
+          # clear references, allowing for garbage collection
+          object.send("#{name}=",nil)
         end
       end
 
@@ -276,6 +278,8 @@ module Rod
               referenced_objects[element].push([object, name, index])
             end
           end
+          # clear references, allowing for garbage collection
+          object.send("#{name}=",nil)
         end
       end
 
