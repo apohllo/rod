@@ -258,7 +258,8 @@ module Rod
             unless referenced_objects.has_key?(referenced)
               referenced_objects[referenced] = []
             end
-            referenced_objects[referenced].push([object, name])
+            referenced_objects[referenced].push([object.rod_id, name,
+                                                object.class.name_hash])
           end
           # clear references, allowing for garbage collection
           object.send("#{name}=",nil)
@@ -275,7 +276,8 @@ module Rod
               unless referenced_objects.has_key?(element)
                 referenced_objects[element] = []
               end
-              referenced_objects[element].push([object, name, index])
+              referenced_objects[element].push([object.rod_id, name,
+                                               object.class.name_hash, index])
             end
           end
           # clear references, allowing for garbage collection
@@ -286,7 +288,9 @@ module Rod
       reverse_references = referenced_objects.delete(object)
 
       unless reverse_references.blank?
-        reverse_references.each do |referee, method_name, index|
+        reverse_references.each do |referee_rod_id, method_name, class_id, index|
+          referee = Model.get_class(class_id).find_by_rod_id(referee_rod_id)
+          self.cache.send(:__get_hash__).delete(referee_rod_id)
           if index.nil?
             # singular association
             referee.update_singular_association(method_name, object)
@@ -411,7 +415,7 @@ module Rod
       @class_space ||= {}
       klass = @class_space[klass_hash]
       if klass.nil?
-        raise RodException.new("There is no class with classname hash '#{klass_hash}'!\n" +
+        raise RodException.new("There is no class with name hash '#{klass_hash}'!\n" +
                               "Check if all needed classes are loaded.")
       end
       klass
