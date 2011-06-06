@@ -1,4 +1,5 @@
-require File.join(File.dirname(__FILE__),'constants')
+require 'rod/constants'
+require 'rod/collection_proxy'
 
 module Rod
 
@@ -63,7 +64,7 @@ module Rod
       #TODO an exception if in wrong state?
       if block_given?
         self.count.times do |index|
-          yield self.get(index)
+          yield get(index+1)
         end
       else
         enum_for(:each)
@@ -74,7 +75,7 @@ module Rod
     # This call is scope-checked.
     def self.[](index)
       if index >= 0 && index < self.count
-        get(index)
+        get(index+1)
       else
         raise IndexError.
           new("The index #{index} is out of the scope [0...#{self.count}] for #{self}")
@@ -314,10 +315,10 @@ module Rod
 
     # Finder for rod_id.
     def self.find_by_rod_id(rod_id)
-      unless rod_id != 0
-        raise RodException.new("Requested id does not represent any object stored in the database!")
+      if rod_id <= 0 || rod_id > self.count
+        return nil
       end
-      get(rod_id - 1)
+      get(rod_id)
     end
 
     # Returns the fields of this class.
@@ -348,17 +349,6 @@ module Rod
     end
 
     protected
-
-    # Returns object of this class stored in the DB at given +position+.
-    def self.get(position)
-      object = cache[position]
-      if object.nil?
-        object = self.new(position + 1)
-        cache[position] = object
-      end
-      object
-    end
-
     # The pointer to the mmaped table of C structs.
     def self.rod_pointer
       @rod_pointer
@@ -728,14 +718,14 @@ module Rod
 
             # Find all objects with given +value+ of the +field.
             define_method("find_all_by_#{field}") do |value|
-              (index_for(field)[value] || []).map{|i| self.get(i-1)}
+              (index_for(field)[value] || []).map{|i| get(i)}
             end
 
             # Find first object with given +value+ of the +field.
             define_method("find_by_#{field}") do |value|
               objects_ids = self.index_for(field)[value]
               if objects_ids
-                self.get(objects_ids[0]-1)
+                get(objects_ids[0])
               else
                 nil
               end
@@ -759,16 +749,16 @@ module Rod
         define_method(name) do
           value = instance_variable_get("@#{name}")
           if value.nil?
-            index = send("_#{name}",@rod_id)
+            rod_id = send("_#{name}",@rod_id)
             # the indices are shifted by 1, to leave 0 for nil
-            if index == 0
+            if rod_id == 0
               value = nil
             else
               if options[:polymorphic]
                 klass = Model.get_class(send("_#{name}__class",@rod_id))
-                value = klass.get(index-1)
+                value = klass.find_by_rod_id(rod_id)
               else
-                value = class_name.constantize.get(index-1)
+                value = class_name.constantize.find_by_rod_id(rod_id)
               end
             end
             send("#{name}=",value)
@@ -805,18 +795,16 @@ module Rod
             return instance_variable_set("@#{name}",[]) if count == 0
             unless options[:polymorphic]
               klass = class_name.constantize
-              # the indices are shifted by 1, to leave 0 for nil
               values = database.
                 join_indices(self.send("_#{name}_offset",@rod_id),count).
-                map do |index|
-                index == 0 ? nil : klass.get(index-1)
+                map do |rod_id|
+                rod_id == 0 ? nil : klass.find_by_rod_id(rod_id)
               end
             else
               values = database.
                 polymorphic_join_indices(self.send("_#{name}_offset",@rod_id),count).
-                map do |index,class_id|
-                # the indices are shifted by 1, to leave 0 for nil
-                index == 0 ? nil : Model.get_class(class_id).get(index-1)
+                map do |rod_id,class_id|
+                rod_id == 0 ? nil : Model.get_class(class_id).find_by_rod_id(rod_id)
               end
             end
             instance_variable_set("@#{name}", values)
@@ -839,6 +827,20 @@ module Rod
         end
       end
       @structure_built = true
+    end
+
+    class << self
+      private
+      # Returns object of this class stored in the DB with given +rod_id+.
+      # Warning! If wrong rod_id is specified it might cause segmentation fault exception!
+      def get(rod_id)
+        object = cache[rod_id]
+        if object.nil?
+          object = self.new(rod_id)
+          cache[rod_id] = object
+        end
+        object
+      end
     end
   end
 end

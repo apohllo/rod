@@ -20,9 +20,9 @@ class ModelTest < Test::Unit::TestCase
       "Referential integrity not working for find_by " +
       "#{struct1.object_id}:#{struct2.object_id}")
 
-    struct3 = RodTest::YourStruct.get(0)
+    struct3 = RodTest::YourStruct[0]
     assert(not(struct3.nil?))
-    struct4 = RodTest::HisStruct.get(0)
+    struct4 = RodTest::HisStruct[0]
     assert(not(struct4.nil?))
     assert(struct3.his_structs[0].object_id == struct4.object_id,
       "Referential integrity not working for has_many " +
