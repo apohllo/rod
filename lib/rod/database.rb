@@ -212,34 +212,32 @@ module Rod
           # Join indices
           #########################################
           str =<<-END
-          |VALUE _join_element_indices(unsigned long element_offset, unsigned long count, VALUE handler){
+          |VALUE _join_element_index(unsigned long element_offset, unsigned long element_index, VALUE handler){
           |  #{model_struct} * model_p;
           |  Data_Get_Struct(handler,#{model_struct},model_p);
-          |  _join_element * element_p;
-          |  unsigned long element_index;
-          |  VALUE result = rb_ary_new();
-          |  for(element_index = 0; element_index < count; element_index++){
-          |    element_p = model_p->_join_element_table + element_offset + element_index;
-          |    rb_ary_push(result,UINT2NUM(element_p->offset));
-          |  }
-          |  return result;
+          |  return UINT2NUM((model_p->_join_element_table + element_offset + element_index)->offset);
           |}
           END
           builder.c(str.margin)
 
           str =<<-END
-          |VALUE _polymorphic_join_element_indices(unsigned long element_offset, unsigned long count, VALUE handler){
+          |VALUE _polymorphic_join_element_index(unsigned long element_offset,
+          |  unsigned long element_index, VALUE handler){
           |  #{model_struct} * model_p;
           |  Data_Get_Struct(handler,#{model_struct},model_p);
-          |  _polymorphic_join_element * element_p;
-          |  unsigned long element_index;
-          |  VALUE result = rb_ary_new();
-          |  for(element_index = 0; element_index < count; element_index++){
-          |    element_p = model_p->_polymorphic_join_element_table + element_offset + element_index;
-          |    rb_ary_push(result,UINT2NUM(element_p->offset));
-          |    rb_ary_push(result,UINT2NUM(element_p->class));
-          |  }
-          |  return result;
+          |  return UINT2NUM((model_p->_polymorphic_join_element_table +
+          |    element_offset + element_index)->offset);
+          |}
+          END
+          builder.c(str.margin)
+
+          str =<<-END
+          |VALUE _polymorphic_join_element_class(unsigned long element_offset,
+          |  unsigned long element_index, VALUE handler){
+          |  #{model_struct} * model_p;
+          |  Data_Get_Struct(handler,#{model_struct},model_p);
+          |  return UINT2NUM((model_p->_polymorphic_join_element_table +
+          |    element_offset + element_index)->class);
           |}
           END
           builder.c(str.margin)

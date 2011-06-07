@@ -172,21 +172,23 @@ module Rod
       @classes.delete(klass)
     end
 
-    # Returns +count+ number of join indices starting from +offset+.
-    # These are the indices for has many association of one type for one instance.
-    def join_indices(offset, count)
-      _join_element_indices(offset, count, @handler)
+    # Returns join index with +index+ and +offset+.
+    def join_index(offset, index)
+      _join_element_index(offset, index, @handler)
     end
 
-    # Returns +count+ number of polymorphic join indices starting from +offset+.
-    # These are the indices for has many association of one type for one instance.
-    # Each index is a pair of object index and object class id (classname_hash).
-    def polymorphic_join_indices(offset, count)
-      table = _polymorphic_join_element_indices(offset, count, @handler)
-      if table.size % 2 != 0
-        raise DatabaseError.new("Polymorphic join indices table is not even!")
-      end
-      (table.size/2).times.map{|i| [table[i*2],table[i*2+1]]}
+    # Returns polymorphic join index with +index+ and +offset+.
+    # This is the rod_id of the object referenced via
+    # a polymorphic has many association for one instance.
+    def polymorphic_join_index(offset, index)
+      _polymorphic_join_element_index(offset, index, @handler)
+    end
+
+    # Returns polymorphic join class id with +index+ and +offset+.
+    # This is the class_id (name_hash) of the object referenced via
+    # a polymorphic has many association for one instance.
+    def polymorphic_join_class(offset, index)
+      _polymorphic_join_element_class(offset, index, @handler)
     end
 
     # Sets the +object_id+ of the join element with +offset+ and +index+.

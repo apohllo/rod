@@ -779,37 +779,36 @@ module Rod
           if options[:class_name]
             options[:class_name]
           else
-            "#{self.scope_name}::#{::English::Inflect.
-              singular(name).camelcase}"
+            "#{self.scope_name}::#{::English::Inflect.singular(name).camelcase}"
           end
+        klass = class_name.constantize unless options[:polymorphic]
 
         # getter
         define_method("#{name}") do
-          values = instance_variable_get("@#{name}")
-          if values.nil?
+          proxy = instance_variable_get("@#{name}")
+          if proxy.nil?
             if @rod_id == 0
               count = 0
             else
               count = self.send("_#{name}_count",@rod_id)
             end
             return instance_variable_set("@#{name}",[]) if count == 0
+            offset = self.send("_#{name}_offset",@rod_id)
             unless options[:polymorphic]
-              klass = class_name.constantize
-              values = database.
-                join_indices(self.send("_#{name}_offset",@rod_id),count).
-                map do |rod_id|
-                rod_id == 0 ? nil : klass.find_by_rod_id(rod_id)
+              proxy = CollectionProxy.new(count) do |index|
+                rod_id = database.join_index(offset,index)
+                result = rod_id == 0 ? nil : klass.find_by_rod_id(rod_id)
               end
             else
-              values = database.
-                polymorphic_join_indices(self.send("_#{name}_offset",@rod_id),count).
-                map do |rod_id,class_id|
-                rod_id == 0 ? nil : Model.get_class(class_id).find_by_rod_id(rod_id)
+              proxy = CollectionProxy.new(count) do |index|
+                rod_id = database.polymorphic_join_index(offset,index)
+                class_id = database.polymorphic_join_class(offset,index)
+                result = rod_id == 0 ? nil : Model.get_class(class_id).find_by_rod_id(rod_id)
               end
             end
-            instance_variable_set("@#{name}", values)
+            instance_variable_set("@#{name}", proxy)
           end
-          values
+          proxy
         end
 
         # count getter
