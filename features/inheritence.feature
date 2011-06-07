@@ -186,3 +186,26 @@ Feature: Store and load data for classes with inheritence relation
     And the second of dogs of the first User should be equal to the second Dog
     And the first of accounts of the first User should be equal to the first Account
     And the second of accounts of the first User should be equal to the second Account
+
+  Scenario: inheritence and polymorphic associations
+      It should be possible to access instances of a class inheriting
+      directly form Model via polymorhpic association.
+    Given the class space is cleared
+    And a class Automobile inherits from Rod::Model
+    And a class Automobile has a name field of type string
+    And a class Automobile is connected to Database1
+    And a class Person inherits from Rod::Model
+    And a class Person has a name field of type string
+    And a class Person has one polymorphic automobile
+    And a class Person is connected to Database1
+    When Database1 is created
+    And I create an Automobile
+    And its name is 'Modern'
+    And I store him in the database
+    And I create a Person
+    And his name is 'John'
+    And his automobile is the first Automobile created
+    And I store him in the database
+    Then there should be 1 Person
+    And there should be 1 Automobile
+    And the automobile of the first Person should be equal to the first Automobile

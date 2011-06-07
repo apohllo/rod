@@ -361,10 +361,10 @@ module Rod
 
     # Used for establishing link with the DB.
     def self.inherited(subclass)
+      subclass.add_to_class_space
+      subclasses << subclass
       begin
         subclass.add_to_database
-        subclass.add_to_class_space
-        subclasses << subclass
       rescue MissingDatabase
         # This might happen for classes which inherit directly from
         # the Rod::Model. Since the +inherited+ method is always called
