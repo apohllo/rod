@@ -30,6 +30,7 @@ class ModelTest < Test::Unit::TestCase
   end
 
   def test_print_system_error
+    puts "Test system error:"
     RodTest::Database.instance.print_system_error
   end
 end

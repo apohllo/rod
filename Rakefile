@@ -36,7 +36,8 @@ desc "Run tests and specs"
 task :test do
   sh "ruby tests/save_struct.rb"
   sh "ruby tests/load_struct.rb"
-  sh "ruby tests/unit/*.rb"
+  sh "ruby tests/unit/model.rb"
+  sh "ruby tests/unit/abstract_database.rb"
 end
 
 # Should be removed some time -- specs should cover all these cases

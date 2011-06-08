@@ -74,6 +74,9 @@ module Rod
       File.open(@path + DATABASE_FILE) do |input|
         metadata = YAML::load(input)
       end
+      unless valid_version?(metadata["Rod"][:version])
+        raise RodException.new("Incompatible versions - library #{VERSION} vs. file #{metatdata["Rod"][:version]}")
+      end
       @handler = _init_handler(@path)
       self.classes.each do |klass|
         meta = metadata[klass.name]
@@ -332,6 +335,19 @@ module Rod
     end
 
     protected
+
+    # Checks if the version of the library is valid.
+    # Consult https://github.com/apohllo/rod/wiki for versioning scheme.
+    def valid_version?(version)
+      file = version.split(".")
+      library = VERSION.split(".")
+      return false if file[0] != library[0] || file[1] != library[1]
+      if library[1].to_i.even?
+        return true
+      else
+        return file[2] == library[2]
+      end
+    end
 
     # Returns collected subclasses.
     def classes
