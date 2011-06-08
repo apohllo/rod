@@ -37,6 +37,7 @@ task :test do
   sh "ruby tests/save_struct.rb"
   sh "ruby tests/load_struct.rb"
   sh "ruby tests/unit/model.rb"
+  sh "ruby tests/unit/model_tests.rb"
   sh "ruby tests/unit/abstract_database.rb"
 end
 
