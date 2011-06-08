@@ -36,6 +36,18 @@ module Rod
       @buckets[bucket_number][key] = value
     end
 
+    def each
+      if block_given?
+        @buckets.each do |bucket_number,hash|
+          hash.each do |key,value|
+            yield key, value
+          end
+        end
+      else
+        enum_for(:each)
+      end
+    end
+
     protected
     def bucket_for(key)
       case key

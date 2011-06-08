@@ -152,8 +152,8 @@ module Rod
     # Update the DB information about the +object+ which
     # is referenced via singular association with +name+.
     def update_singular_association(name, object)
-      object_id = object.nil? ? 0 : object.rod_id
-      send("_#{name}=", @rod_id, object_id)
+      rod_id = object.nil? ? 0 : object.rod_id
+      send("_#{name}=", @rod_id, rod_id)
       if self.class.singular_associations[name][:polymorphic]
         class_id = object.nil? ? 0 : object.class.name_hash
         send("_#{name}__class=", @rod_id, class_id)
@@ -170,32 +170,32 @@ module Rod
     def update_plural_association(name, object, index=nil)
       offset = send("_#{name}_offset",@rod_id)
       if self.class.plural_associations[name][:polymorphic]
-        # Don't refactor this code. This is due to performance hit.
+        # If you wish to refactor this code, ensure performance is preserved.
         if object.respond_to?(:each)
           objects = object
           objects.each.with_index do |object,index|
-            object_id = object.nil? ? 0 : object.rod_id
+            rod_id = object.nil? ? 0 : object.rod_id
             class_id = object.nil? ? 0 : object.class.name_hash
-            database.set_polymorphic_join_element_id(offset, index, object_id,
+            database.set_polymorphic_join_element_id(offset, index, rod_id,
                                                      class_id)
           end
         else
-          object_id = object.nil? ? 0 : object.rod_id
+          rod_id = object.nil? ? 0 : object.rod_id
           class_id = object.nil? ? 0 : object.class.name_hash
-          database.set_polymorphic_join_element_id(offset, index, object_id,
+          database.set_polymorphic_join_element_id(offset, index, rod_id,
                                                    class_id)
         end
       else
-        # Don't refactor this code. This is due to performance hit.
+        # If you wish to refactor this code, ensure performance is preserved.
         if object.respond_to?(:each)
           objects = object
           objects.each.with_index do |object,index|
-            object_id = object.nil? ? 0 : object.rod_id
-            database.set_join_element_id(offset, index, object_id)
+            rod_id = object.nil? ? 0 : object.rod_id
+            database.set_join_element_id(offset, index, rod_id)
           end
         else
-          object_id = object.nil? ? 0 : object.rod_id
-          database.set_join_element_id(offset, index, object_id)
+          rod_id = object.nil? ? 0 : object.rod_id
+          database.set_join_element_id(offset, index, rod_id)
         end
       end
     end
@@ -239,12 +239,22 @@ module Rod
       # update indices
       self.fields.each do |field,options|
         if options[:index]
-          if self.index_for(field)[object.send(field)].nil?
-            # We don't use the hash default value approach,
-            # since it forces the rebuild of the array
-            self.index_for(field)[object.send(field)] = []
+          rod_ids = self.index_for(field)[object.send(field)]
+          if rod_ids.nil?
+            rod_ids = self.index_for(field)[object.send(field)] =
+              CollectionProxy.new(0) do |index|
+                [database.join_index(offset,index), self]
+              end
+          else
+            unless rod_ids.is_a?(CollectionProxy)
+              offset, count = rod_ids
+              rod_ids = self.index_for(field)[object.send(field)] =
+                CollectionProxy.new(count) do |index|
+                [database.join_index(offset,index), self]
+              end
+            end
           end
-          self.index_for(field)[object.send(field)] << object.rod_id
+          rod_ids << [object.rod_id,object.class]
         end
       end
 
@@ -718,16 +728,20 @@ module Rod
 
             # Find all objects with given +value+ of the +field.
             define_method("find_all_by_#{field}") do |value|
-              (index_for(field)[value] || []).map{|i| get(i)}
+              offset,count = index_for(field)[value]
+              return [] if offset.nil?
+              CollectionProxy.new(count) do |index|
+                [database.join_index(offset,index),self]
+              end
             end
 
-            # Find first object with given +value+ of the +field.
+            # Find first object with given +value+ of the +field+.
             define_method("find_by_#{field}") do |value|
-              objects_ids = self.index_for(field)[value]
-              if objects_ids
-                get(objects_ids[0])
-              else
+              offset,count = index_for(field)[value]
+              if offset.nil?
                 nil
+              else
+                get(database.join_index(offset,0))
               end
             end
           end
@@ -796,14 +810,13 @@ module Rod
             offset = self.send("_#{name}_offset",@rod_id)
             unless options[:polymorphic]
               proxy = CollectionProxy.new(count) do |index|
-                rod_id = database.join_index(offset,index)
-                result = rod_id == 0 ? nil : klass.find_by_rod_id(rod_id)
+                [database.join_index(offset,index), klass]
               end
             else
               proxy = CollectionProxy.new(count) do |index|
                 rod_id = database.polymorphic_join_index(offset,index)
                 class_id = database.polymorphic_join_class(offset,index)
-                result = rod_id == 0 ? nil : Model.get_class(class_id).find_by_rod_id(rod_id)
+                [rod_id, rod_id == 0 ? 0 : Model.get_class(class_id)]
               end
             end
             instance_variable_set("@#{name}", proxy)

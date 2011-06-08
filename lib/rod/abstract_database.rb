@@ -253,18 +253,33 @@ module Rod
     end
 
     # Store index of +field+ (with +options+) of +klass+ in the database.
-    # Type is one of:
+    # There are two types of indices:
     # * +:flat+ - marshalled index is stored in one file
+    # * +:segmented+ - marshalled index is stored in many files
     def write_index(klass,field,options)
       raise DatabaseError.new("Readonly database.") if readonly_data?
+      class_index = klass.index_for(field)
+      class_index.each do |key,ids|
+        unless ids.is_a?(CollectionProxy)
+          proxy = CollectionProxy.new(ids[1]) do |index|
+            [join_index(ids[0],index), klass]
+          end
+        else
+          proxy = ids
+        end
+        offset = _allocate_join_elements(proxy.size,@handler)
+        proxy.each_id.with_index do |rod_id,index|
+          set_join_element_id(offset, index, rod_id)
+        end
+        class_index[key] = [offset,proxy.size]
+      end
       case options[:index]
       when :flat,true
         File.open(klass.path_for_index(@path,field,options),"w") do |out|
-          out.puts(Marshal.dump(klass.index_for(field)))
+          out.puts(Marshal.dump(class_index))
         end
       when :segmented
         path = klass.path_for_index(@path,field,options)
-        class_index = klass.index_for(field)
         if class_index.is_a?(Hash)
           index = SegmentedIndex.new(path)
           class_index.each{|k,v| index[k] = v}
