@@ -122,10 +122,27 @@ end
 ################################################################
 # When
 ################################################################
-When /^I create a(nother|n)? (\w+)$/ do |ignore,class_name|
+# When I create a Caveman
+When /^I create a(?:nother|n)? (\w+)$/ do |class_name|
   @instance = get_class(class_name).new
   @instances[class_name] ||= []
   @instances[class_name] << @instance
+end
+
+# When I create a Caveman with 'Fred' name and 'Flintstone' surname
+When /^I create a(?:nother|n)? (\w+) with (.*)$/ do |class_name,rest|
+  hash = {}
+  rest.split(/\s+and\s+/).each do |pair|
+    matched = pair.match(/'(?<value>[^']*)' (?<name>\w+)/)
+    hash[matched[:name].to_sym] =  get_value(matched[:value])
+  end
+  begin
+    @instance = get_class(class_name).new(hash)
+    @instances[class_name] ||= []
+    @instances[class_name] << @instance
+  rescue Exception => ex
+    @error = ex
+  end
 end
 
 When /^I create and store the following (\w+)\(s\):$/ do |class_name,table|
@@ -318,4 +335,8 @@ Then /^there should be (\d+) (\w+)(\([^)]*\))? with (\w+) (below|above) (\d+)( w
     get_class(class_name).select{|e| e.send(field).send(relation1, value.to_i)}.size.should == count1.to_i
   end
 
+end
+
+Then /^([\w:]+) should be raised$/ do |exception|
+  @error.class.to_s.should == exception
 end

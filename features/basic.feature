@@ -155,3 +155,21 @@ Feature: Store and load small amount of data from one class
     And I reopen database for reading
     Then there should be 1 Caveman
     And there should be 0 Automobile(s)
+
+  Scenario: ActiveRecord-style initialization
+      A new instance of a model should accept hash of key-value pairs,
+      used to initialize its fields.
+    Given the class space is cleared
+    And the model is connected with the default database
+    And a class Caveman has a name field of type string
+    And a class Caveman has a surname field of type string
+    When database is created
+    And I create a Caveman with 'Fred' name and 'Flintstone' surname
+    And I store him in the database
+    Then there should be 1 Caveman
+    And his name should be 'Fred'
+    And his surname should be 'Flintstone'
+
+    When database is created
+    And I create a Caveman with 'Fred' name and 'Flintstone' age
+    Then Rod::RodException should be raised

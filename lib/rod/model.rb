@@ -10,8 +10,18 @@ module Rod
 
     # If +options+ is an integer it is the @rod_id of the object.
     def initialize(options=nil)
-      if options.is_a?(Integer)
+      case options
+      when Integer
         @rod_id = options
+      when Hash
+        options.each do |key,value|
+          begin
+            self.send("#{key}=",value)
+          rescue NoMethodError
+            raise RodException.new("There is no field or association with name #{key}!")
+          end
+        end
+        @rod_id = 0
       else
         @rod_id = 0
       end
