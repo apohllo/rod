@@ -1,3 +1,29 @@
+0.6.0
+- #64 index for associations
+- Update legacy test to new API
+- #26 check version of Rod library agains file version
+- #1 initialization form hash (ActiveRecord style)
+- #68 the indexed objects are stored in a collection proxy and are laizly fetched
+- #9 has_many is lazy
+  no referenced element representation is created, utill the element is accessed
+- #69 fix inheritence and polymorphic associations
+- Refactoring (API change): change all internal calls to pass rod_id instead of position
+- #46 Store only rod_id and class_id for referenced objects
+- #66 after storing an object, clear it singular and plural associations to allow later garbage collection
+- #57 better implementation of struct_name
+- #61 excessive Symbol#to_s calls removal
+- #61 excessive String#to_sym calls removal
+- #58 compact implementation of update_plural
+- #41 structs associated with the object is not wrapped into another object
+- Tests for #56
+- #55 associated object is fetched from DB, even though it is present
+- Change Willma to Wilma in tests
+- #52 load bucket for segmented index during DB creation
+- Don't delete old buckets when the DB is closed
+- Fix: load bucket when the segmented index is created
+- #59 Change WeakHash to SimpleWeakHash
+- #54 don't relay on Ruby#hash in implementation of segmented index
+- #53 Remove segmented index files when the DB is created
 0.5.5
 - segmented index #31
 - don't cache objects when they are stored in the DB #19

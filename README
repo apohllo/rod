@@ -4,30 +4,33 @@
 
 == DESCRIPTION
 
-ROD (Ruby Object Database) is library which aims at providing fast
-access for data, which rarely changes. 
+ROD (Ruby Object Database) is library which aims at providing
+fast access for data, which rarely changes.
 
 == FEATURES/PROBLEMS:
 
-* written mostly in C
+* nice Ruby interface which mimicks Active Record
+* Ruby-to-C on-the-fly translation based on mmap
 * optimized for speed
-* has nice Ruby interface which mimicks Active Record
-* uses mmap for maximum speed 
+* weak reference collections for easy memory reclaims
+* segmented indices for short start-up time
+
 * doesn't work on Windows
 
 == SYNOPSIS:
 
 ROD is designed for storing and accessing data which rarely changes.
 It is an opposite of RDBMS as the data is not normalized.
-It is an opposite of in-memory databases, since it is designed to cover 
+It is an opposite of in-memory databases, since it is designed to cover
 out of core data sets (10 GB and more).
 
 The primary reason for designing it was to create storage facility for
-natural language dictionaries. The data in a fully fledged dictionary
+natural language dictionaries and corpora. The data in a fully fledged dictionary
 is interconnected in many ways, thus the relational model (joins) introduces
-unacceptable performance hit. The in-memory data bases, on the other hand,
+unacceptable performance hit. The size of corpora forces them to be kept
+on disks. The in-memory data bases are unacceptable for larg corpora and
 would require the data to be kept mostly in the operational memory,
-which is not needed, while processing text (in most cases only a friction
+which is not needed, while accessing dictionaries (in most cases only a friction
 of the data is needed). That's why a storage facility which minimizes the
 number of disk reads was designed. The Ruby interface facilitates it's
 usage.
@@ -41,7 +44,9 @@ usage.
 
 == INSTALL
 
-TODO (pull from github, will push to gemcutter shortly).
+Grab from rubygems:
+
+  gem install rod
 
 == BASIC USAGE:
 
@@ -71,7 +76,7 @@ TODO (pull from github, will push to gemcutter shortly).
    field :data, :string
  end
 
- MyDatabase.create_database("data/db.dat")
+ MyDatabase.create_database("data")
  user = User.new
  user.name = 'Fred'
  user.surname = 'Smith'
@@ -95,7 +100,7 @@ TODO (pull from github, will push to gemcutter shortly).
  file2.store
  MyDatabase.close_database
 
- MyDatabase.open_database("data/db.dat")
+ MyDatabase.open_database("data")
  User.each do |user|
    puts "Name: #{user.name} surname: #{user.surname}"
    puts "login: #{user.account.login} e-mail: #{user.account.email}"
@@ -110,7 +115,7 @@ TODO (pull from github, will push to gemcutter shortly).
  File[0].user                      # won't work - the data is not normalized
 
 == LICENSE:
- 
+
 (The MIT License)
 
 Copyright (c) 2008-2010 Aleksander Pohl
