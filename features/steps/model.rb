@@ -317,11 +317,16 @@ Then /^the (\w+) (\w+) should be identical with the (\w+) (\w+)$/ do |position1,
   instance1.object_id.should == instance2.object_id
 end
 
-Then /^there should be (\d+) (\w+)(\([^)]*\))? with '([^']*)' (\w+)$/ do |count,class_name,ignore,value,field|
+Then /^there should be (\d+) (\w+)(?:\([^)]*\))? with '([^']*)' (\w+)$/ do |count,class_name,value,field|
   get_class(class_name).send("find_all_by_#{field}",get_value(value)).count.should == count.to_i
 end
 
-Then /^there should be (\d+) (\w+)(\([^)]*\))? with the (\w+) (\w+) as (\w+)$/ do |count,class1,ignore,position,class2,assoc|
+# Then there should exist a User with 'Adam' name
+Then /^there should exist a(?:n)? (\w+) with '([^']*)' (\w+)$/ do |class_name,value,field|
+  get_class(class_name).send("find_by_#{field}",get_value(value)).should_not == nil
+end
+
+Then /^there should be (\d+) (\w+)(?:\([^)]*\))? with the (\w+) (\w+) as (\w+)$/ do |count,class1,position,class2,assoc|
   get_class(class1).send("find_all_by_#{assoc}",get_instance(class2,position)).count.should == count.to_i
 end
 

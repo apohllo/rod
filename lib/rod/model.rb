@@ -842,20 +842,30 @@ module Rod
             # Find all objects with given +value+ of the +property+.
             define_method("find_all_by_#{property}") do |value|
               value = value.rod_id if value.is_a?(Model)
-              offset,count = index_for(property,options,value)
-              return [] if offset.nil?
-              CollectionProxy.new(count) do |index|
-                [database.join_index(offset,index),self]
+              proxy = index_for(property,options,value)
+              if proxy.is_a?(CollectionProxy)
+                proxy
+              else
+                offset,count = proxy
+                return [] if offset.nil?
+                CollectionProxy.new(count) do |index|
+                  [database.join_index(offset,index),self]
+                end
               end
             end
 
             # Find first object with given +value+ of the +property+.
             define_method("find_by_#{property}") do |value|
-              offset,count = index_for(property,options)[value]
-              if offset.nil?
-                nil
+              proxy = index_for(property,options)[value]
+              if proxy.is_a?(CollectionProxy)
+                proxy[0]
               else
-                get(database.join_index(offset,0))
+                offset,count = index_for(property,options)[value]
+                if offset.nil?
+                  nil
+                else
+                  get(database.join_index(offset,0))
+                end
               end
             end
           end

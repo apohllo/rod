@@ -126,4 +126,15 @@ Feature: Access to objects with indexed fields
     Then there should be 1000 User(s) with 'Lara' name
     Then there should be 1000 User(s) with 'Croft' surname
 
-
+  Scenario: reading indices when the DB is created
+      It should be possible to access indices for objects which are already
+      stored in the DB.
+    Given the class space is cleared
+    And the model is connected with the default database
+    And a class User has a name field of type string with flat index
+    When database is created
+    And I create a User
+    And his name is 'John'
+    And I store him in the database
+    Then there should exist a User with 'John' name
+    And there should be 1 User with 'John' name
