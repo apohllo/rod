@@ -251,32 +251,30 @@ module Rod
       database.store(self,object)
 
       # update indices
-      properties.each do |property,options|
-        if options[:index]
-          keys =
-            if field?(property)
-              [object.send(property)]
-            elsif singular_association?(property)
-              [object.send(property).rod_id]
-            else
-              object.send(property).map{|o| o.rod_id}
-            end
-          keys.each do |key|
-            proxy = self.index_for(property,options,key)
-            if proxy.nil?
-              proxy = self.set_values_for(property,options,key,0) do |index|
-                raise RodException.new("Calling fetch block for an empty proxy!")
-              end
-            else
-              unless proxy.is_a?(CollectionProxy)
-                offset, count = proxy
-                proxy = self.set_values_for(property,options,key,count) do |index|
-                  [database.join_index(offset,index), self]
-                end
-              end
-            end
-            proxy << [object.rod_id,object.class]
+      indexed_properties.each do |property,options|
+        keys =
+          if field?(property)
+            [object.send(property)]
+          elsif singular_association?(property)
+            [object.send(property).rod_id]
+          else
+            object.send(property).map{|o| o.rod_id}
           end
+        keys.each do |key|
+          proxy = self.index_for(property,options,key)
+          if proxy.nil?
+            proxy = self.set_values_for(property,options,key,0) do |index|
+              raise RodException.new("Calling fetch block for an empty proxy!")
+            end
+          else
+            unless proxy.is_a?(CollectionProxy)
+              offset, count = proxy
+              proxy = self.set_values_for(property,options,key,count) do |index|
+                [database.join_index(offset,index), self]
+              end
+            end
+          end
+          proxy << [object.rod_id,object.class]
         end
       end
 
@@ -834,38 +832,36 @@ module Rod
       end
 
       # indices
-      properties.each do |property,options|
+      indexed_properties.each do |property,options|
         # optimization
         property = property.to_s
-        if options[:index]
-          (class << self; self; end).class_eval do
-            # Find all objects with given +value+ of the +property+.
-            define_method("find_all_by_#{property}") do |value|
-              value = value.rod_id if value.is_a?(Model)
-              proxy = index_for(property,options,value)
-              if proxy.is_a?(CollectionProxy)
-                proxy
-              else
-                offset,count = proxy
-                return [] if offset.nil?
-                CollectionProxy.new(count) do |index|
-                  [database.join_index(offset,index),self]
-                end
+        (class << self; self; end).class_eval do
+          # Find all objects with given +value+ of the +property+.
+          define_method("find_all_by_#{property}") do |value|
+            value = value.rod_id if value.is_a?(Model)
+            proxy = index_for(property,options,value)
+            if proxy.is_a?(CollectionProxy)
+              proxy
+            else
+              offset,count = proxy
+              return [] if offset.nil?
+              CollectionProxy.new(count) do |index|
+                [database.join_index(offset,index),self]
               end
             end
+          end
 
-            # Find first object with given +value+ of the +property+.
-            define_method("find_by_#{property}") do |value|
-              proxy = index_for(property,options)[value]
-              if proxy.is_a?(CollectionProxy)
-                proxy[0]
+          # Find first object with given +value+ of the +property+.
+          define_method("find_by_#{property}") do |value|
+            proxy = index_for(property,options)[value]
+            if proxy.is_a?(CollectionProxy)
+              proxy[0]
+            else
+              offset,count = index_for(property,options)[value]
+              if offset.nil?
+                nil
               else
-                offset,count = index_for(property,options)[value]
-                if offset.nil?
-                  nil
-                else
-                  get(database.join_index(offset,0))
-                end
+                get(database.join_index(offset,0))
               end
             end
           end
@@ -878,6 +874,11 @@ module Rod
       # Fields, singular and plural associations.
       def properties
         self.fields.merge(self.singular_associations.merge(self.plural_associations))
+      end
+
+      # Returns (and caches) only properties which are indexed.
+      def indexed_properties
+        @indexed_properties ||= self.properties.select{|p,o| o[:index]}
       end
 
       # Returns true if the +name+ (as symbol) is a name of a field.
