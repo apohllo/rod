@@ -280,7 +280,7 @@ module Rod
           builder.c(str.margin)
 
           str =<<-END
-          |unsigned long _allocate_join_elements(VALUE size, VALUE handler){
+          |unsigned long _allocate_join_elements(unsigned long size, VALUE handler){
           |  _join_element * element;
           |  unsigned long index;
           |  #{model_struct} * model_p;
@@ -302,7 +302,7 @@ module Rod
           builder.c(str.margin)
 
           str =<<-END
-          |unsigned long _allocate_polymorphic_join_elements(VALUE size, VALUE handler){
+          |unsigned long _allocate_polymorphic_join_elements(unsigned long size, VALUE handler){
           |  _polymorphic_join_element * element;
           |  unsigned long index;
           |  #{model_struct} * model_p;
