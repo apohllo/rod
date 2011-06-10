@@ -264,19 +264,22 @@ module Rod
     def write_index(klass,property,options)
       raise DatabaseError.new("Readonly database.") if readonly_data?
       class_index = klass.index_for(property,options)
-      class_index.each do |key,ids|
-        unless ids.is_a?(CollectionProxy)
-          proxy = CollectionProxy.new(ids[1]) do |index|
-            [join_index(ids[0],index), klass]
+      # Only rewrite the index, without (re)storing the values.
+      unless options[:rewrite]
+        class_index.each do |key,ids|
+          unless ids.is_a?(CollectionProxy)
+            proxy = CollectionProxy.new(ids[1]) do |index|
+              [join_index(ids[0],index), klass]
+            end
+          else
+            proxy = ids
           end
-        else
-          proxy = ids
+          offset = _allocate_join_elements(proxy.size,@handler)
+          proxy.each_id.with_index do |rod_id,index|
+            set_join_element_id(offset, index, rod_id)
+          end
+          class_index[key] = [offset,proxy.size]
         end
-        offset = _allocate_join_elements(proxy.size,@handler)
-        proxy.each_id.with_index do |rod_id,index|
-          set_join_element_id(offset, index, rod_id)
-        end
-        class_index[key] = [offset,proxy.size]
       end
       case options[:index]
       when :flat,true
