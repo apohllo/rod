@@ -245,22 +245,24 @@ module Rod
       unless object.is_a?(self)
         raise RodException.new("Incompatible object class #{object.class}.")
       end
-      unless object.rod_id == 0
-        raise RodException.new("The object #{object} is allready stored!")
-      end
+      new_object = (object.rod_id == 0)
       database.store(self,object)
 
       # update indices
       indexed_properties.each do |property,options|
         keys =
-          if field?(property)
-            [object.send(property)]
-          elsif singular_association?(property)
-            [object.send(property).rod_id]
-          else
+          if new_object
+            if field?(property)
+              [object.send(property)]
+            elsif singular_association?(property)
+              [object.send(property).rod_id]
+            else
+              object.send(property).map{|o| o.rod_id}
+            end
+          elsif plural_association?(property)
             object.send(property).map{|o| o.rod_id}
           end
-        keys.each do |key|
+        keys.each.with_index do |key,key_index|
           proxy = self.index_for(property,options,key)
           if proxy.nil?
             proxy = self.set_values_for(property,options,key,0) do |index|
@@ -274,7 +276,9 @@ module Rod
               end
             end
           end
-          proxy << [object.rod_id,object.class]
+          if new_object || plural_association?(property) && proxy[key_index].nil?
+            proxy << object
+          end
         end
       end
 

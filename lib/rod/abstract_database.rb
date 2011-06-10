@@ -304,15 +304,18 @@ module Rod
     # Store the object in the database.
     def store(klass,object)
       raise DatabaseError.new("Readonly database.") if readonly_data?
-      send("_store_" + klass.struct_name,object,@handler)
-      # set fields' values
-      object.class.fields.each do |name,options|
-        # rod_id is set during _store
-        object.update_field(name) unless name == "rod_id"
-      end
-      # set ids of objects referenced via singular associations
-      object.class.singular_associations.each do |name,options|
-        object.update_singular_association(name,object.send(name))
+      new_object = (object.rod_id == 0)
+      if new_object
+        send("_store_" + klass.struct_name,object,@handler)
+        # set fields' values
+        object.class.fields.each do |name,options|
+          # rod_id is set during _store
+          object.update_field(name) unless name == "rod_id"
+        end
+        # set ids of objects referenced via singular associations
+        object.class.singular_associations.each do |name,options|
+          object.update_singular_association(name,object.send(name))
+        end
       end
       # set ids of objects referenced via plural associations
       object.class.plural_associations.each do |name,options|

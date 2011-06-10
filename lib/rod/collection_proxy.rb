@@ -28,8 +28,8 @@ module Rod
     end
 
     # Appends element to the end of the collection.
-    def <<(rod_id_and_class)
-      @appended << rod_id_and_class
+    def <<(element)
+      @appended << [element.rod_id,element.class]
       @size += 1
     end
 

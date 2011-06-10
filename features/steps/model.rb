@@ -153,6 +153,14 @@ When /^I create a(?:nother|n)? (\w+) with (.*)$/ do |class_name,rest|
   end
 end
 
+# When I fetch the first Caveman
+When /^I fetch the (\w+) (\w+)$/ do |position,class_name|
+  @instance = get_instance(class_name,position)
+end
+
+# When I create and store the following Caveman(s):
+#   | name | surname    |
+#   | Fred | Flintstone |
 When /^I create and store the following (\w+)\(s\):$/ do |class_name,table|
   klass = get_class(class_name)
   table.hashes.each do |attributes|
