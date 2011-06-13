@@ -262,6 +262,7 @@ module Rod
           elsif plural_association?(property)
             object.send(property).map{|o| o.rod_id}
           end
+        next if keys.nil?
         keys.each.with_index do |key,key_index|
           proxy = self.index_for(property,options,key)
           if proxy.nil?
