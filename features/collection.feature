@@ -46,16 +46,16 @@ Feature: model as a collection of objects
     And his name is 'John'
     And his surname is 'Smith'
     And his age is '21'
-    And I store him in the database 1000 times
+    And I store him in the database 10000 times
     And I create a User
     And her name is 'Lara'
     And her surname is 'Croft'
     And her age is '23'
-    And I store her in the database 1000 times
+    And I store her in the database 10000 times
     And I reopen database for reading
-    Then there should be 2000 User(s)
-    Then User(s) from 1 to 1000 should have 'John' name
-    Then User(s) from 1001 to 2000 should have 'Lara' name
+    Then there should be 20000 User(s)
+    Then User(s) from 1 to 10000 should have 'John' name
+    Then User(s) from 10001 to 20000 should have 'Lara' name
 
   Scenario: multiple object with has one relationship
       The database should properly store thousands of objects with has many relationship.
@@ -75,10 +75,10 @@ Feature: model as a collection of objects
     And his surname is 'Smith'
     And his age is '21'
     And his automobile is the first Automobile created
-    And I store him in the database 1000 times
+    And I store him in the database 10000 times
     And I reopen database for reading
-    Then there should be 1000 User(s)
-    Then User(s) from 1 to 1000 should have an automobile equal to the first Automobile
+    Then there should be 10000 User(s)
+    Then User(s) from 1 to 10000 should have an automobile equal to the first Automobile
 
   Scenario: multiple object with has many relationship
       The database should properly store thousands of objects with has many relationship.
@@ -102,7 +102,70 @@ Feature: model as a collection of objects
     And his age is '21'
     And his automobiles contain the first Automobile created
     And his automobiles contain the second Automobile created
-    And I store him in the database 1000 times
-    Then User(s) from 1 to 1000 should have 2 automobiles
-    And User(s) from 1 to 1000 should have first of automobiles equal to the first Automobile created
-    And User(s) from 1 to 1000 should have second of automobiles equal to the second Automobile created
+    And I store him in the database 10000 times
+    Then User(s) from 1 to 10000 should have 2 automobiles
+    And User(s) from 1 to 10000 should have first of automobiles equal to the first Automobile created
+    And User(s) from 1 to 10000 should have second of automobiles equal to the second Automobile created
+
+  Scenario: multiple object with has one polymorphic relationship
+      The database should properly store thousands of objects with has many relationship.
+    Given the class space is cleared
+    And the model is connected with the default database
+    And a class Automobile has a name field of type string 
+    And a class Dog has a nickname field of type string
+    And a class User has a name field of type string
+    And a class User has one polymorphic item
+    When database is created
+    And I create an Automobile
+    And its name is 'Modern car'
+    And I store it in the database
+    And I create a User
+    And his name is 'John'
+    And his item is the first Automobile created
+    And I store him in the database 10000 times
+    And I create a Dog
+    And its nickname is 'Snoopy'
+    And I store it in the database
+    And I create a User
+    And her name is 'Amy'
+    And her item is the first Dog created
+    And I store her in the database 10000 times
+    And I reopen database for reading
+    Then there should be 20000 User(s)
+    Then User(s) from 1 to 10000 should have an item equal to the first Automobile
+    Then User(s) from 10001 to 20000 should have an item equal to the first Dog
+
+  Scenario: multiple object with has many polymorphic relationship
+      The database should properly store thousands of objects with has many relationship.
+    Given the class space is cleared
+    And the model is connected with the default database
+    And a class Automobile has a name field of type string
+    And a class Dog has a nickname field of type string
+    And a class User has a name field of type string
+    And a class User has many polymorphic items
+    When database is created
+    And I create an Automobile
+    And its name is 'Prehistoric car'
+    And I store it in the database
+    And I create another Automobile
+    And its name is 'Modern car'
+    And I store it in the database
+    And I create a User
+    And his name is 'John'
+    And his items contain the first Automobile created
+    And his items contain the second Automobile created
+    And I store him in the database 10000 times
+    And I create a Dog
+    And its nickname is 'Snoopy'
+    And I store it in the database
+    And I create a User
+    And her name is 'Amy'
+    And her items contain the first Automobile created
+    And her items contain the second Automobile created
+    And her items contain the first Dog created
+    And I store her in the database 10000 times
+    Then User(s) from 1 to 10000 should have 2 items
+    And User(s) from 10001 to 20000 should have 3 items
+    And User(s) from 1 to 20000 should have first of items equal to the first Automobile created
+    And User(s) from 1 to 20000 should have second of items equal to the second Automobile created
+    And User(s) from 10001 to 20000 should have third of items equal to the first Dog created

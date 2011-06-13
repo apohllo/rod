@@ -287,7 +287,7 @@ module Rod
           |  Data_Get_Struct(handler,#{model_struct},model_p);
           |  unsigned long result = model_p->_join_element_count;
           |  for(index = 0; index < size; index++){
-          |    if(model_p->_join_element_count * sizeof(_join_element) >=
+          |    if((model_p->_join_element_count + 1) * sizeof(_join_element) >=
           |      page_size() * model_p->_join_element_page_count){
           |      \n#{mmap_class(JoinElement)}
           |    }
@@ -309,7 +309,7 @@ module Rod
           |  Data_Get_Struct(handler,#{model_struct},model_p);
           |  unsigned long result = model_p->_polymorphic_join_element_count;
           |  for(index = 0; index < size; index++){
-          |    if(model_p->_polymorphic_join_element_count *
+          |    if((model_p->_polymorphic_join_element_count + 1) *
           |      sizeof(_polymorphic_join_element) >=
           |      page_size() * model_p->_polymorphic_join_element_page_count){
           |      \n#{mmap_class(PolymorphicJoinElement)}
