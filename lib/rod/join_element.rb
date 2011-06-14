@@ -35,7 +35,7 @@ module Rod
     end
 
     def self.cache
-      @cache ||= SimpleWeakHash.new
+      @cache ||= Cache.new
     end
   end
 

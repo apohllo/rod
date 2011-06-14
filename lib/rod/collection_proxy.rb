@@ -16,13 +16,11 @@ module Rod
       @klass = klass
       @offset = offset
       @appended = []
-      @proxy = SimpleWeakHash.new
     end
 
     # Returns an object with given +index+.
     def [](index)
       return nil if index >= @size
-      return @proxy[index] unless @proxy[index].nil?
       rod_id = id_for(index)
       result =
         if rod_id == 0
@@ -30,7 +28,6 @@ module Rod
         else
           class_for(index).find_by_rod_id(rod_id)
         end
-      @proxy[index] = result
     end
 
     # Appends element to the end of the collection.

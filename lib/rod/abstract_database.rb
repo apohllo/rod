@@ -150,7 +150,7 @@ module Rod
 
     # Clears the cache of the database.
     def clear_cache
-      classes.each{|c| c.cache.send(:__get_hash__).clear}
+      classes.each{|c| c.cache.clear }
     end
 
     #########################################################################

@@ -322,7 +322,7 @@ module Rod
       unless reverse_references.blank?
         reverse_references.each do |referee_rod_id, method_name, class_id, index|
           referee = Model.get_class(class_id).find_by_rod_id(referee_rod_id)
-          self.cache.send(:__get_hash__).delete(referee_rod_id)
+          self.cache.delete(referee_rod_id)
           if index.nil?
             # singular association
             referee.update_singular_association(method_name, object)
@@ -479,7 +479,7 @@ module Rod
     # The object cache of this class.
     # XXX consider moving it to the database.
     def self.cache
-      @cache ||= SimpleWeakHash.new
+      @cache ||= Cache.new
     end
 
     # The module context of the class.
