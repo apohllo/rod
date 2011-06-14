@@ -266,15 +266,11 @@ module Rod
         keys.each.with_index do |key,key_index|
           proxy = self.index_for(property,options,key)
           if proxy.nil?
-            proxy = self.set_values_for(property,options,key,0) do |index|
-              raise RodException.new("Calling fetch block for an empty proxy!")
-            end
+            proxy = self.set_values_for(property,options,key,0,database,nil)
           else
             unless proxy.is_a?(CollectionProxy)
               offset, count = proxy
-              proxy = self.set_values_for(property,options,key,count) do |index|
-                [database.join_index(offset,index), self]
-              end
+              proxy = self.set_values_for(property,options,key,count,database,offset)
             end
           end
           if new_object || plural_association?(property) && proxy[key_index].nil?
@@ -792,7 +788,7 @@ module Rod
           else
             "#{self.scope_name}::#{::English::Inflect.singular(name).camelcase}"
           end
-        klass = class_name.constantize unless options[:polymorphic]
+        klass = options[:polymorphic] ? nil : class_name.constantize
 
         # getter
         define_method("#{name}") do
@@ -805,17 +801,7 @@ module Rod
             end
             return instance_variable_set("@#{name}",[]) if count == 0
             offset = self.send("_#{name}_offset",@rod_id)
-            unless options[:polymorphic]
-              proxy = CollectionProxy.new(count) do |index|
-                [database.join_index(offset,index), klass]
-              end
-            else
-              proxy = CollectionProxy.new(count) do |index|
-                rod_id = database.polymorphic_join_index(offset,index)
-                class_id = database.polymorphic_join_class(offset,index)
-                [rod_id, rod_id == 0 ? 0 : Model.get_class(class_id)]
-              end
-            end
+            proxy = CollectionProxy.new(count,database,offset,klass)
             instance_variable_set("@#{name}", proxy)
           end
           proxy
@@ -850,9 +836,7 @@ module Rod
             else
               offset,count = proxy
               return [] if offset.nil?
-              CollectionProxy.new(count) do |index|
-                [database.join_index(offset,index),self]
-              end
+              CollectionProxy.new(count,database,offset,self)
             end
           end
 
@@ -921,8 +905,8 @@ module Rod
       # the particular +key+. Method expects +fetch+ block and
       # creates a CollectionProxy based on that block.
       # The size of the collection is given as +count+.
-      def set_values_for(property,options,key,count,&fetch)
-        index_for(property,options)[key] = CollectionProxy.new(count,&fetch)
+      def set_values_for(property,options,key,count,database,offset)
+        index_for(property,options)[key] = CollectionProxy.new(count,database,offset,self)
       end
 
       private

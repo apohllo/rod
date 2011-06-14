@@ -268,9 +268,7 @@ module Rod
       unless options[:rewrite]
         class_index.each do |key,ids|
           unless ids.is_a?(CollectionProxy)
-            proxy = CollectionProxy.new(ids[1]) do |index|
-              [join_index(ids[0],index), klass]
-            end
+            proxy = CollectionProxy.new(ids[1],self,ids[0],klass)
           else
             proxy = ids
           end
