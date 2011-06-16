@@ -358,7 +358,7 @@ module Rod
       library = VERSION.split(".")
       return false if file[0] != library[0] || file[1] != library[1]
       if library[1].to_i.even?
-        return true
+        return file[2].to_i <= library[2].to_i
       else
         return file[2] == library[2]
       end

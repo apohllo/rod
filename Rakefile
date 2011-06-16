@@ -49,7 +49,7 @@ task :regression_test do
 end
 
 task :spec do
-  sh "bundle exec cucumber features/*"
+  sh "bundle exec cucumber --tags ~@ignore features/*"
 end
 
 desc "Clean"

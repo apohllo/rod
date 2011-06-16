@@ -16,5 +16,9 @@ class AbstractDatabaseTest < Test::Unit::TestCase
     Rod::VERSION.sub!(/.*/,"0.2.1")
     file = "0.2.0"
     assert(database.send(:valid_version?,file))
+
+    Rod::VERSION.sub!(/.*/,"0.2.0")
+    file = "0.2.1"
+    assert(!database.send(:valid_version?,file))
   end
 end
