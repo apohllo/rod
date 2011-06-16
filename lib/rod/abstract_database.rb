@@ -120,6 +120,7 @@ module Rod
         self.classes.each do |klass|
           meta = metadata[klass.name] = {}
           meta[:count] = count(klass)
+          meta[:superclass] = klass.superclass.name
           next if special_class?(klass)
           # fields
           fields = meta[:fields] = {} unless klass.fields.empty?

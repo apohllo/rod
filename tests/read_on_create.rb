@@ -30,11 +30,10 @@ MAGNITUDO.times do |index|
   # validate object referenced previously
   validate(index,my_structures[index])
   # validate referential integrity
-  # XXX this causes a serious performence hit and is disabled
-#  if struct.object_id != my_structures[index].object_id
-#    raise "Object stored and recived are different #{struct.object_id} " +
-#      "#{my_structures[index].object_id}"
-#  end
+  if struct.object_id != my_structures[index].object_id
+    raise "Object stored and recived are different #{struct.object_id} " +
+      "#{my_structures[index].object_id}"
+  end
   if struct != my_structures[index]
     raise "Object stored and recived are different #{struct} " +
       "#{my_structures[index]}"
