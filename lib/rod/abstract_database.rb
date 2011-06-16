@@ -12,6 +12,9 @@ module Rod
     # a given model (set of classes).
     include Singleton
 
+    # The meta-data of the DataBase.
+    attr_reader :metadata
+
     # Initializes the classes linked with this database and the handler.
     def initialize
       @classes ||= self.class.special_classes
@@ -55,6 +58,9 @@ module Rod
         Dir.mkdir(@path)
       end
       generate_c_code(@path, classes)
+      @metadata = {}
+      @metadata["Rod"] = {}
+      @metadata["Rod"][:created_at] = Time.now
       @handler = _init_handler(@path)
       _create(@handler)
     end
@@ -70,16 +76,16 @@ module Rod
       self.classes.each{|s| s.send(:build_structure)}
       @path = canonicalize_path(path)
       generate_c_code(@path, classes)
-      metadata = {}
+      @metadata = {}
       File.open(@path + DATABASE_FILE) do |input|
-        metadata = YAML::load(input)
+        @metadata = YAML::load(input)
       end
-      unless valid_version?(metadata["Rod"][:version])
+      unless valid_version?(@metadata["Rod"][:version])
         raise RodException.new("Incompatible versions - library #{VERSION} vs. file #{metatdata["Rod"][:version]}")
       end
       @handler = _init_handler(@path)
       self.classes.each do |klass|
-        meta = metadata[klass.name]
+        meta = @metadata[klass.name]
         if meta.nil?
           # new class
           next
@@ -109,6 +115,8 @@ module Rod
         metadata = {}
         rod_data = metadata["Rod"] = {}
         rod_data[:version] = VERSION
+        rod_data[:created_at] = self.metadata["Rod"][:created_at]
+        rod_data[:updated_at] = Time.now
         self.classes.each do |klass|
           meta = metadata[klass.name] = {}
           meta[:count] = count(klass)

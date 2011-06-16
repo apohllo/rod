@@ -2,7 +2,7 @@ $:.unshift("lib")
 require 'test/unit'
 require 'rod'
 
-class ModelTest < Test::Unit::TestCase
+class AbstractDatabaseTest < Test::Unit::TestCase
   def test_version_validity
     database = Rod::AbstractDatabase.instance
     Rod::VERSION.sub!(/.*/,"0.1.0")
