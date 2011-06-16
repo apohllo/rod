@@ -22,17 +22,22 @@ module Rod
     def [](index)
       return nil if index >= @size
       rod_id = id_for(index)
-      result =
-        if rod_id == 0
-          nil
-        else
-          class_for(index).find_by_rod_id(rod_id)
-        end
+      if rod_id.is_a?(Model)
+        rod_id
+      elsif rod_id == 0
+        nil
+      else
+        class_for(index).find_by_rod_id(rod_id)
+      end
     end
 
     # Appends element to the end of the collection.
     def <<(element)
-      @appended << [element.rod_id,element.class]
+      if element.rod_id == 0
+        @appended << [element,element.class]
+      else
+        @appended << [element.rod_id,element.class]
+      end
       @size += 1
     end
 
@@ -51,7 +56,12 @@ module Rod
     def each_id
       if block_given?
         @size.times do |index|
-          yield id_for(index)
+          id = id_for(index)
+          if id.is_a?(Model)
+            raise IdException.new(id)
+          else
+            yield id
+          end
         end
       else
         enum_for(:each_id)

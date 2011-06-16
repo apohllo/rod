@@ -177,3 +177,40 @@ Feature: database with append
     And the second of automobiles of the first Caveman should be equal to the second Automobile
     And there should be 1 Caveman with the first Automobile as automobiles
     And there should be 1 Caveman with the second Automobile as automobiles
+
+  # Enable for #94
+  @ignore
+  Scenario: append of has many associations with indexing with and unstored object
+      Same as above, but with an object which is appended to the collection
+      while it is not yet stored in the DB.
+    Given the class space is cleared
+    And the model is connected with the default database
+    And a class Automobile has a name field of type string
+    And a class Caveman has a name field of type string
+    And a class Caveman has many automobiles with flat index
+    When the database is created
+    And I create an Automobile
+    And its name is 'Prehistoric car'
+    And I store it in the database
+    And I create a Caveman
+    And his name is 'Fred'
+    And his automobiles contain the first Automobile created
+    And I store him in the database
+    And I create an Automobile
+    And its name is 'Modern car'
+    And I fetch the first Caveman
+    And his automobiles contain the second Automobile created
+    And I store him in the database
+    And I fetch the second Automobile created
+    And I store it in the database
+    And I reopen database for reading
+    Then there should be 1 Caveman
+    And there should be 2 Automobile(s)
+    And the name of the first Caveman should be 'Fred'
+    And the name of the first Automobile should be 'Prehistoric car'
+    And the name of the second Automobile should be 'Modern car'
+    And the first Caveman should have 2 automobiles
+    And the first of automobiles of the first Caveman should be equal to the first Automobile
+    And the second of automobiles of the first Caveman should be equal to the second Automobile
+    And there should be 1 Caveman with the first Automobile as automobiles
+    And there should be 1 Caveman with the second Automobile as automobiles

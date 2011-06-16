@@ -153,9 +153,10 @@ When /^I create a(?:nother|n)? (\w+) with (.*)$/ do |class_name,rest|
   end
 end
 
-# When I fetch the first Caveman
-When /^I fetch the (\w+) (\w+)$/ do |position,class_name|
-  @instance = get_instance(class_name,position)
+# When I fetch the first Caveman (created)
+When /^I fetch the (\w+) (\w+)( created)?$/ do |position,class_name,created|
+  created = !created.nil?
+  @instance = get_instance(class_name,position,created)
 end
 
 # When I create and store the following Caveman(s):

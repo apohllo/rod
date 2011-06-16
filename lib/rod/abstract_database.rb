@@ -324,6 +324,7 @@ module Rod
         end
       end
       # set ids of objects referenced via plural associations
+      # TODO should be disabled, when there are no new elements
       object.class.plural_associations.each do |name,options|
         elements = object.send(name) || []
         if options[:polymorphic]

@@ -247,23 +247,28 @@ module Rod
       end
       new_object = (object.rod_id == 0)
       database.store(self,object)
+      cache[object.rod_id] = object
+
+      referenced_objects ||= database.referenced_objects
 
       # update indices
       indexed_properties.each do |property,options|
+        # singular and plural associations with nil as value are not indexed
         keys =
           if new_object
             if field?(property)
               [object.send(property)]
             elsif singular_association?(property)
-              [object.send(property).rod_id]
+              [object.send(property)].compact
             else
-              object.send(property).map{|o| o.rod_id}
+              object.send(property).to_a.compact
             end
           elsif plural_association?(property)
-            object.send(property).map{|o| o.rod_id}
+            object.send(property).to_a.compact
           end
         next if keys.nil?
-        keys.each.with_index do |key,key_index|
+        keys.each.with_index do |key_or_object,key_index|
+          key = (key_or_object.is_a?(Model) ? key_or_object.rod_id : key_or_object)
           proxy = self.index_for(property,options,key)
           if proxy.nil?
             proxy = self.set_values_for(property,options,key,0,database,nil)
@@ -274,13 +279,15 @@ module Rod
             end
           end
           if new_object || plural_association?(property) && proxy[key_index].nil?
+            if plural_association?(property) && key == 0
+              # TODO #94 devise method for reference rebuilding
+            end
             proxy << object
           end
         end
       end
 
       # update object that references the stored object
-      referenced_objects ||= database.referenced_objects
       # ... via singular associations
       singular_associations.each do |name, options|
         referenced = object.send(name)

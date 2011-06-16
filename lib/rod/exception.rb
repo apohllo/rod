@@ -53,4 +53,16 @@ module Rod
       "The value '#@value' of the #@type is invalid!"
     end
   end
+
+  # This exception is throw when an objects id is needed, but it is not
+  # yet stored in the database. The object might be accessed via +object+
+  # attribute of the exception.
+  class IdException < RodException
+    attr_reader :object
+
+    def initialize(message,object)
+      super("The object has not been stored in the DB and its rod_id == 0")
+      @object = object
+    end
+  end
 end
