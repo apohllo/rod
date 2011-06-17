@@ -10,6 +10,7 @@ require 'active_support/dependencies'
 ActiveSupport::Dependencies.mechanism = :require
 
 require 'rod/abstract_database'
+require 'rod/abstract_model'
 require 'rod/constants'
 require 'rod/database'
 require 'rod/exception'

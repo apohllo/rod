@@ -81,7 +81,8 @@ module Rod
         @metadata = YAML::load(input)
       end
       unless valid_version?(@metadata["Rod"][:version])
-        raise RodException.new("Incompatible versions - library #{VERSION} vs. file #{metatdata["Rod"][:version]}")
+        raise IncompatibleVersion.new("Incompatible versions - library #{VERSION} vs. " +
+                                      "file #{metatdata["Rod"][:version]}")
       end
       @handler = _init_handler(@path)
       self.classes.each do |klass|
@@ -89,6 +90,10 @@ module Rod
         if meta.nil?
           # new class
           next
+        end
+        unless klass.compatible?(meta,self)
+          raise IncompatibleVersion.new("Definition of #{klass.name} in database " +
+                                        "and runtime are different.")
         end
         set_count(klass,meta[:count])
         file_size = File.new(klass.path_for_data(@path)).size
@@ -118,30 +123,9 @@ module Rod
         rod_data[:created_at] = self.metadata["Rod"][:created_at]
         rod_data[:updated_at] = Time.now
         self.classes.each do |klass|
-          meta = metadata[klass.name] = {}
-          meta[:count] = count(klass)
-          meta[:superclass] = klass.superclass.name
-          next if special_class?(klass)
-          # fields
-          fields = meta[:fields] = {} unless klass.fields.empty?
-          klass.fields.each do |field,options|
-            fields[field] = {}
-            fields[field][:options] = options
-            write_index(klass,field,options) if options[:index]
-          end
-          # singular_associations
-          has_one = meta[:has_one] = {} unless klass.singular_associations.empty?
-          klass.singular_associations.each do |name,options|
-            has_one[name] = {}
-            has_one[name][:options] = options
-            write_index(klass,name,options) if options[:index]
-          end
-          # plural_associations
-          has_many = meta[:has_many] = {} unless klass.plural_associations.empty?
-          klass.plural_associations.each do |name,options|
-            has_many[name] = {}
-            has_many[name][:options] = options
-            write_index(klass,name,options) if options[:index]
+          metadata[klass.name] = klass.metadata(self)
+          klass.indexed_properties.each do |property,options|
+            write_index(klass,property,options)
           end
         end
         File.open(@path + DATABASE_FILE,"w") do |out|

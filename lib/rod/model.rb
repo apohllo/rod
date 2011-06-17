@@ -1,10 +1,11 @@
 require 'rod/constants'
 require 'rod/collection_proxy'
+require 'rod/abstract_model'
 
 module Rod
 
   # Abstract class representing a model entity. Each storable class has to derieve from +Model+.
-  class Model
+  class Model < AbstractModel
     include ActiveModel::Validations
     extend Enumerable
 
@@ -384,6 +385,30 @@ module Rod
       else
         @plural_associations ||= superclass.plural_associations.dup
       end
+    end
+
+    # Metadata for the model class.
+    def self.metadata(database)
+      meta = super(database)
+      # fields
+      fields = meta[:fields] = {} unless self.fields.empty?
+      self.fields.each do |field,options|
+        fields[field] = {}
+        fields[field][:options] = options
+      end
+      # singular_associations
+      has_one = meta[:has_one] = {} unless self.singular_associations.empty?
+      self.singular_associations.each do |name,options|
+        has_one[name] = {}
+        has_one[name][:options] = options
+      end
+      # plural_associations
+      has_many = meta[:has_many] = {} unless self.plural_associations.empty?
+      self.plural_associations.each do |name,options|
+        has_many[name] = {}
+        has_many[name][:options] = options
+      end
+      meta
     end
 
     protected

@@ -36,6 +36,8 @@ desc "Run tests and specs"
 task :test do
   sh "ruby tests/save_struct.rb"
   sh "ruby tests/load_struct.rb"
+  sh "ruby tests/create_class_compatibility.rb"
+  sh "ruby tests/verify_class_compatibility.rb"
   sh "ruby tests/unit/model.rb"
   sh "ruby tests/unit/model_tests.rb"
   sh "ruby tests/unit/database.rb"
@@ -49,6 +51,11 @@ end
 
 task :spec do
   sh "bundle exec cucumber --tags ~@ignore features/*"
+end
+
+# Work in progress
+task :wip do
+  sh "bundle exec cucumber --tags @wip features/*"
 end
 
 desc "Clean"

@@ -65,4 +65,12 @@ module Rod
       @object = object
     end
   end
+
+  # This exception is thrown if the database is not compatible with
+  # the library or the runtime definition of classes.
+  class IncompatibleVersion < RodException
+    def initialize(message)
+      super(message)
+    end
+  end
 end
