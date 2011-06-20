@@ -33,8 +33,10 @@ Given /^the class space is cleared$/ do
     RodTest.send(:remove_const,constant)
   end
   # TODO separate step?
-  if Dir.glob("/home/fox/.ruby_inline/Inline_Rod*").size > 0
-    `rm /home/fox/.ruby_inline/Inline_Rod*`
+  if (files = Dir.glob("#{Inline.directory}/Inline_Rod*")).size > 0
+    files.each do |file|
+      File.delete(file) unless File.directory?(file)
+    end
   end
   # TODO separate step?
   default_db = Class.new(Rod::Database)
