@@ -146,7 +146,7 @@ module Rod
     # Returns true if the class is one of speciall classes
     # (JoinElement, PolymorphicJoinElement, StringElement).
     def special_class?(klass)
-      self.class.special_classes.include?(klass)
+      self.special_classes.include?(klass)
     end
 
     #########################################################################

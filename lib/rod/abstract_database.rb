@@ -17,7 +17,7 @@ module Rod
 
     # Initializes the classes linked with this database and the handler.
     def initialize
-      @classes ||= self.class.special_classes
+      @classes ||= self.special_classes
       @handler = nil
     end
 
@@ -65,17 +65,18 @@ module Rod
       _create(@handler)
     end
 
-    # Opens the database at +path+ for readonly mode. This allows
+    # Opens the database at +path+ with +options+. This allows
     # for Rod::Model.count, Rod::Model.each, and similar calls.
-    #
-    # By default the database is opened in +readonly+ mode. You
-    # can change it by passing +false+ as the second argument.
-    def open_database(path,readonly=true)
+    # Options:
+    # * +:readonly+ - no modifiaction (append of models and has many association)
+    #   is allowed (defaults to +true+)
+    # * +:generate+ - value could be true or a module. If present, generates
+    #   the classes from the database metadata.
+    def open_database(path,options={:readonly => true})
       raise DatabaseError.new("Database already opened.") unless @handler.nil?
-      @readonly = readonly
-      self.classes.each{|s| s.send(:build_structure)}
+      options = convert_options(options)
+      @readonly = options[:readonly]
       @path = canonicalize_path(path)
-      generate_c_code(@path, classes)
       @metadata = {}
       File.open(@path + DATABASE_FILE) do |input|
         @metadata = YAML::load(input)
@@ -84,6 +85,12 @@ module Rod
         raise IncompatibleVersion.new("Incompatible versions - library #{VERSION} vs. " +
                                       "file #{metatdata["Rod"][:version]}")
       end
+      if options[:generate]
+        module_instance = (options[:generate] == true ? Object : options[:generate])
+        generate_classes(module_instance)
+      end
+      self.classes.each{|s| s.send(:build_structure)}
+      generate_c_code(@path, self.classes)
       @handler = _init_handler(@path)
       self.classes.each do |klass|
         meta = @metadata[klass.name]
@@ -91,7 +98,7 @@ module Rod
           # new class
           next
         end
-        unless klass.compatible?(meta,self)
+        unless klass.compatible?(meta,self) || options[:generate]
           raise IncompatibleVersion.new("Definition of #{klass.name} in database " +
                                         "and runtime are different.")
         end
@@ -137,7 +144,7 @@ module Rod
       # clear cached data
       self.clear_cache
       if purge_classes
-        @classes = self.class.special_classes
+        @classes = self.special_classes
       end
     end
 
@@ -360,8 +367,54 @@ module Rod
     end
 
     # Special classes used by the database.
-    def self.special_classes
+    def special_classes
       [JoinElement, PolymorphicJoinElement, StringElement]
+    end
+
+    def convert_options(options)
+      result = {}
+      case options
+      when true,false
+        result[:readonly] = options
+      when Hash
+        result = options
+      else
+        result[:readonly] = true
+      end
+      result
+    end
+
+    def generate_classes(module_instance)
+      special_names = special_classes.map{|k| k.name}
+      special_names << "Rod"
+      superclasses = {}
+      @metadata.reject{|k,o| special_names.include?(k)}.each do |k,o|
+        superclasses[k] = o[:superclass]
+      end
+      superclass_tree = {}
+      superclasses.each do |klass,superclass|
+        superclass_tree[klass] = []
+        current_superclass = superclass
+        loop do
+          break if current_superclass.nil?
+          superclass_tree[klass] << current_superclass
+          break if current_superclass == "Rod::Model"
+          current_superclass = superclasses[current_superclass]
+        end
+      end
+      superclasses.keys.sort do |klass1,klass2|
+        if superclass_tree[klass1].include?(klass2)
+          1
+        elsif superclass_tree[klass2].include?(klass1)
+          -1
+        else
+          klass1 <=> klass2
+        end
+      end.each do |klass_name|
+        klass = Model.generate_class(klass_name,@metadata[klass_name],module_instance)
+        @classes << klass
+        klass.database_class(self.class)
+      end
     end
   end
 end

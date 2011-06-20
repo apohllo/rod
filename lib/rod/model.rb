@@ -391,8 +391,9 @@ module Rod
     def self.metadata(database)
       meta = super(database)
       # fields
-      fields = meta[:fields] = {} unless self.fields.empty?
+      fields = meta[:fields] = {} unless self.fields.size == 1
       self.fields.each do |field,options|
+        next if field == "rod_id"
         fields[field] = {}
         fields[field][:options] = options
       end
@@ -409,6 +410,26 @@ module Rod
         has_many[name][:options] = options
       end
       meta
+    end
+
+    # Generates the model class based on the metadata and places
+    # it in the +module_instance+ or Object (default scope) if module is nil.
+    def self.generate_class(class_name,metadata,module_instance=nil)
+      module_instance = (module_instance.nil? ? Object : module_instance)
+      superclass = metadata[:superclass].constantize
+      klass = Class.new(superclass)
+      module_instance.const_set(class_name,klass)
+      [:fields,:has_one,:has_many].each do |type|
+        (metadata[type] || []).each do |name,options|
+          if type == :fields
+            field_type = options[:options].delete(:type)
+            klass.send(:field,name,field_type,options[:options])
+          else
+            klass.send(type,name,options[:options])
+          end
+        end
+      end
+      klass
     end
 
     protected
