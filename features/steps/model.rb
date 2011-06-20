@@ -335,9 +335,16 @@ Then /^there should exist a(?:n)? (\w+) with '([^']*)' (\w+)$/ do |class_name,va
   get_class(class_name).send("find_by_#{field}",get_value(value)).should_not == nil
 end
 
+# Then there should be 5 User(s) with the first Dog as dog
 Then /^there should be (\d+) (\w+)(?:\([^)]*\))? with the (\w+) (\w+) as (\w+)$/ do |count,class1,position,class2,assoc|
   get_class(class1).send("find_all_by_#{assoc}",get_instance(class2,position)).count.should == count.to_i
 end
+
+# Then there should exist a User with the first Dog as dog
+Then /^there should exist a(?:n)? (\w+) with the (\w+) (\w+) as (\w+)$/ do |class1,position,class2,assoc|
+  get_class(class1).send("find_by_#{assoc}",get_instance(class2,position)).should_not == nil
+end
+
 
 Then /^I should be able to iterate( with index)? over these (\w+)\(s\)$/ do |with_index,class_name|
   if with_index

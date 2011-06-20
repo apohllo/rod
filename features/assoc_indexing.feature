@@ -31,6 +31,7 @@ Feature: Access to objects with indexed associations
     And I reopen Database2 for reading
     Then there should be 1 Caveman
     And there should be 1 Automobile
+    And there should exist a Caveman with the first Automobile as automobile
     And there should be 1 Caveman with the first Automobile as automobile
 
   Scenario: indexing of plural associations
@@ -59,6 +60,7 @@ Feature: Access to objects with indexed associations
     And I reopen Database2 for reading
     Then there should be 1 Caveman
     And there should be 2 Automobile(s)
+    And there should exist a Caveman with the first Automobile as automobiles
+    And there should exist a Caveman with the second Automobile as automobiles
     And there should be 1 Caveman with the first Automobile as automobiles
     And there should be 1 Caveman with the second Automobile as automobiles
-

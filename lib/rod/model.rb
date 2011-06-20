@@ -874,6 +874,7 @@ module Rod
 
           # Find first object with given +value+ of the +property+.
           define_method("find_by_#{property}") do |value|
+            value = value.rod_id if value.is_a?(Model)
             proxy = index_for(property,options)[value]
             if proxy.is_a?(CollectionProxy)
               proxy[0]
