@@ -71,7 +71,8 @@ module Rod
     # * +:readonly+ - no modifiaction (append of models and has many association)
     #   is allowed (defaults to +true+)
     # * +:generate+ - value could be true or a module. If present, generates
-    #   the classes from the database metadata.
+    #   the classes from the database metadata. If module given, the classes
+    #   are generated withing the module.
     def open_database(path,options={:readonly => true})
       raise DatabaseError.new("Database already opened.") unless @handler.nil?
       options = convert_options(options)
@@ -379,11 +380,18 @@ module Rod
       when Hash
         result = options
       else
+        raise RodException.new("Invalid options for open_database: #{options}!")
+      end
+      if result[:readonly].nil?
         result[:readonly] = true
       end
       result
     end
 
+    # Generates the classes for the data using the metadata from database.yml
+    # +module_instance+ is the module in which the classes are generated.
+    # This allows for embedding them in a separate namespace and use the same model
+    # with different databases in the same time.
     def generate_classes(module_instance)
       special_names = special_classes.map{|k| k.name}
       special_names << "Rod"
@@ -411,7 +419,28 @@ module Rod
           klass1 <=> klass2
         end
       end.each do |klass_name|
-        klass = Model.generate_class(klass_name,@metadata[klass_name],module_instance)
+        metadata = @metadata[klass_name]
+        original_name = klass_name
+        if module_instance != Object
+          prefix = module_instance.name + "::"
+          if superclasses.keys.include?(metadata[:superclass])
+            metadata[:superclass] = prefix + metadata[:superclass]
+          end
+          [:fields,:has_one,:has_many].each do |property_type|
+            next if metadata[property_type].nil?
+            metadata[property_type].each do |property,options|
+              if superclasses.keys.include?(options[:options][:class_name])
+                metadata[property_type][property][:options][:class_name] = prefix + options[:options][:class_name]
+              end
+            end
+          end
+          # klass name
+          klass_name = prefix + klass_name
+          @metadata.delete(original_name)
+          @metadata[klass_name] = metadata
+        end
+        klass = Model.generate_class(klass_name,metadata)
+        klass.model_path = Model.struct_name_for(original_name)
         @classes << klass
         klass.database_class(self.class)
       end

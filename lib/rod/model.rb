@@ -344,12 +344,17 @@ module Rod
     # The name of the C struct for this class.
     def self.struct_name
       return @struct_name unless @struct_name.nil?
-      name = self.to_s.underscore.gsub(/\//,"__")
+      name = struct_name_for(self.to_s)
       unless name =~ /^\#/
         # not an anonymous class
         @struct_name = name
       end
       name
+    end
+
+    # Returns the struct name for the class +name+.
+    def self.struct_name_for(name)
+      name.underscore.gsub(/\//,"__")
     end
 
     # Finder for rod_id.
@@ -414,11 +419,11 @@ module Rod
 
     # Generates the model class based on the metadata and places
     # it in the +module_instance+ or Object (default scope) if module is nil.
-    def self.generate_class(class_name,metadata,module_instance=nil)
-      module_instance = (module_instance.nil? ? Object : module_instance)
+    def self.generate_class(class_name,metadata)
       superclass = metadata[:superclass].constantize
+      namespace = class_name.split("::")[0..-2].join("::").constantize
       klass = Class.new(superclass)
-      module_instance.const_set(class_name,klass)
+      namespace.const_set(class_name.split("::")[-1],klass)
       [:fields,:has_one,:has_many].each do |type|
         (metadata[type] || []).each do |name,options|
           if type == :fields
@@ -567,10 +572,23 @@ module Rod
         to_s.to_i(16) % 2 ** 32
     end
 
+    # Allows for setting arbitrary name for the model path, i.e.
+    # the model-specific fragment of the path to the model files.
+    # By default it is the same as Model.struct_name
+    def self.model_path=(path)
+      @model_path = path
+    end
+
+    # Returns the model path, i.e. the model-specific fragment of
+    # the path to the model files (data, indices, etc.).
+    def self.model_path
+      @model_path || self.struct_name
+    end
+
     # The name of the file (for given +relative_path+), which the data of this class
     # is stored in.
     def self.path_for_data(relative_path)
-      "#{relative_path}#{self.struct_name}.dat"
+      "#{relative_path}#{model_path}.dat"
     end
 
     # The name of the file or directory (for given +relative_path+), which the
@@ -578,9 +596,9 @@ module Rod
     def self.path_for_index(relative_path,field,options)
       case options[:index]
       when :flat,true
-        "#{relative_path}#{self.struct_name}_#{field}.idx"
+        "#{relative_path}#{model_path}_#{field}.idx"
       when :segmented
-        "#{relative_path}#{self.struct_name}_#{field}_idx/"
+        "#{relative_path}#{model_path}_#{field}_idx/"
       else
         raise RodException.new("Invalid index type #{type}")
       end
@@ -900,7 +918,7 @@ module Rod
             if proxy.is_a?(CollectionProxy)
               proxy[0]
             else
-              offset,count = index_for(property,options)[value]
+              offset,count = proxy
               if offset.nil?
                 nil
               else

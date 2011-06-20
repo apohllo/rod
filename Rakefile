@@ -37,7 +37,7 @@ task :test do
   sh "ruby tests/save_struct.rb"
   sh "ruby tests/load_struct.rb"
   sh "ruby tests/class_compatibility_create.rb"
-  sh "ruby tests/class_compatibility_verify_.rb"
+  sh "ruby tests/class_compatibility_verify.rb"
   sh "ruby tests/generate_classes_create.rb"
   sh "ruby tests/generate_classes_verify.rb"
   sh "ruby tests/unit/model.rb"
