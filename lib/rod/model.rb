@@ -745,6 +745,14 @@ module Rod
           field_writer("#{name}_count","unsigned long",builder)
           field_writer("#{name}_offset","unsigned long",builder)
         end
+
+        self.instance_variable_set("@inline_file_pattern",
+                                   builder.so_name.sub(INLINE_PATTERN_RE,"*"))
+
+        # Ruby inline generated file pattern.
+        def self.inline_file_pattern
+          @inline_file_pattern
+        end
       end
 
       ## accessors for fields, plural and singular relationships follow

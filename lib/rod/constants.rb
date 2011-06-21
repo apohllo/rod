@@ -29,4 +29,6 @@ module Rod
     :ulong => 'ULONG2NUM'
   }
 
+  INLINE_PATTERN_RE = /\h+\.\w+$/
+
 end

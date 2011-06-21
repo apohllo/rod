@@ -566,6 +566,15 @@ module Rod
             # it is rebuild on the basis of methods' signatures change.
             builder.c_singleton("void __unused_method_#{rand(1000)}(){}")
           end
+
+          # This has to be at the very end of builder definition!
+          self.instance_variable_set("@inline_library",builder.so_name)
+
+          # Ruby inline generated shared library.
+          def self.inline_library
+            @inline_library
+          end
+
         end
         @code_generated = true
       end

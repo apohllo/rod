@@ -47,17 +47,29 @@ module Rod
     def create_database(path)
       raise DatabaseError.new("Database already opened.") unless @handler.nil?
       @readonly = false
-      self.classes.each{|s| s.send(:build_structure)}
       @path = canonicalize_path(path)
-      # XXX maybe should be more careful?
       if File.exist?(@path)
-        Dir.glob("#{@path}**/*").each do |file_name|
-          File.delete(file_name) unless File.directory?(file_name)
-        end
+        remove_file("#{@path}database.yml")
       else
         Dir.mkdir(@path)
       end
+      self.classes.each do |klass|
+        klass.send(:build_structure)
+        remove_file(klass.path_for_data(@path))
+        klass.indexed_properties.each do |property,options|
+          path = klass.path_for_index(@path,property,options)
+          if test(?d,path)
+            remove_files(path + "*")
+          elsif test(?f,path)
+            remove_file(path)
+          end
+        end
+        next if special_class?(klass)
+        remove_files(klass.inline_file_pattern)
+      end
       generate_c_code(@path, classes)
+      remove_files(self.inline_library.sub(INLINE_PATTERN_RE,"*"),
+                   self.inline_library)
       @metadata = {}
       @metadata["Rod"] = {}
       @metadata["Rod"][:created_at] = Time.now
@@ -430,7 +442,8 @@ module Rod
             next if metadata[property_type].nil?
             metadata[property_type].each do |property,options|
               if superclasses.keys.include?(options[:options][:class_name])
-                metadata[property_type][property][:options][:class_name] = prefix + options[:options][:class_name]
+                metadata[property_type][property][:options][:class_name] =
+                  prefix + options[:options][:class_name]
               end
             end
           end
@@ -443,6 +456,22 @@ module Rod
         klass.model_path = Model.struct_name_for(original_name)
         @classes << klass
         klass.database_class(self.class)
+      end
+    end
+
+    # Removes single file.
+    def remove_file(file_name)
+      if test(?f,file_name)
+        File.delete(file_name)
+        puts "Removing #{file_name}" if $ROD_DEBUG
+      end
+    end
+
+    # Removes files matching path +pattern+. If +skip+ given,
+    # the file with that name is not removed.
+    def remove_files(pattern,skip=nil)
+      Dir.glob(pattern).each do |file_name|
+        remove_file(file_name) unless file_name == skip
       end
     end
   end

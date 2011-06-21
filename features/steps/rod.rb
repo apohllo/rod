@@ -1,5 +1,7 @@
 require File.join(File.dirname(__FILE__),"test_helper")
 
+#$ROD_DEBUG = true
+
 Given /^the library works in development mode$/ do
   Rod::Database.development_mode = true
 end
@@ -31,12 +33,6 @@ Given /^the class space is cleared$/ do
       end
     end
     RodTest.send(:remove_const,constant)
-  end
-  # TODO separate step?
-  if (files = Dir.glob("#{Inline.directory}/Inline_Rod*")).size > 0
-    files.each do |file|
-      File.delete(file) unless File.directory?(file)
-    end
   end
   # TODO separate step?
   default_db = Class.new(Rod::Database)
