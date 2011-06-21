@@ -746,12 +746,12 @@ module Rod
           field_writer("#{name}_offset","unsigned long",builder)
         end
 
-        self.instance_variable_set("@inline_file_pattern",
-                                   builder.so_name.sub(INLINE_PATTERN_RE,"*"))
+        # This has to be the last position in the builder!
+        self.instance_variable_set("@inline_library",builder.so_name)
 
-        # Ruby inline generated file pattern.
-        def self.inline_file_pattern
-          @inline_file_pattern
+        # Ruby inline generated shared library.
+        def self.inline_library
+          @inline_library
         end
       end
 

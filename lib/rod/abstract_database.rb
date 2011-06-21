@@ -65,11 +65,10 @@ module Rod
           end
         end
         next if special_class?(klass)
-        remove_files(klass.inline_file_pattern)
+        remove_files_but(klass.inline_library)
       end
       generate_c_code(@path, classes)
-      remove_files(self.inline_library.sub(INLINE_PATTERN_RE,"*"),
-                   self.inline_library)
+      remove_files_but(self.inline_library)
       @metadata = {}
       @metadata["Rod"] = {}
       @metadata["Rod"][:created_at] = Time.now
@@ -102,7 +101,13 @@ module Rod
         module_instance = (options[:generate] == true ? Object : options[:generate])
         generate_classes(module_instance)
       end
-      self.classes.each{|s| s.send(:build_structure)}
+      self.classes.each do |klass|
+        klass.send(:build_structure)
+        next if special_class?(klass)
+        if options[:generate] && module_instance != Object
+          remove_files_but(klass.inline_library)
+        end
+      end
       generate_c_code(@path, self.classes)
       @handler = _init_handler(@path)
       self.classes.each do |klass|
@@ -467,12 +472,19 @@ module Rod
       end
     end
 
-    # Removes files matching path +pattern+. If +skip+ given,
-    # the file with that name is not removed.
+    # Remove all files matching the +pattern+.
+    # If +skip+ given, the file with the given name is not deleted.
     def remove_files(pattern,skip=nil)
       Dir.glob(pattern).each do |file_name|
         remove_file(file_name) unless file_name == skip
       end
+    end
+
+    # Removes all files which are similar (i.e. are generated
+    # by RubyInline for the same class) to +name+
+    # excluding the file with exactly the name given.
+    def remove_files_but(name)
+      remove_files(name.sub(INLINE_PATTERN_RE,"*"),name)
     end
   end
 end
