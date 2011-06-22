@@ -120,8 +120,10 @@ module Rod
           next
         end
         unless klass.compatible?(meta,self) || options[:generate] || options[:migrate]
-            raise IncompatibleVersion.new("Definition of #{klass.name} in database\n" +
-                                          "and runtime are different.")
+            raise IncompatibleVersion.
+              new("Incompatible definition of '#{klass.name}' class.\n" +
+                  "Database and runtime versions are different:\n" +
+                  "  #{meta}\n  #{klass.metadata(self)}")
         end
         set_count(klass,meta[:count])
         file_size = File.new(klass.path_for_data(@path)).size
