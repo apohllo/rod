@@ -421,7 +421,7 @@ module Rod
     # it in the +module_instance+ or Object (default scope) if module is nil.
     def self.generate_class(class_name,metadata)
       superclass = metadata[:superclass].constantize
-      namespace = class_name.split("::")[0..-2].join("::").constantize
+      namespace = define_context(class_name)
       klass = Class.new(superclass)
       namespace.const_set(class_name.split("::")[-1],klass)
       [:fields,:has_one,:has_many].each do |type|
@@ -437,6 +437,9 @@ module Rod
       klass
     end
 
+    # Migrates the class to the new model, i.e. it copies all the
+    # values of properties that both belong to the class in the old
+    # and the new model.
     def self.migrate
       new_class = self.name.sub(/^#{LEGACY_MODULE}::/,"").constantize
       self.each do |object|
@@ -597,6 +600,22 @@ module Rod
         self.module_context.to_s
       end
     end
+
+    # Defines the namespace (contex) for given +class_name+ - if the constants
+    # (modules and classes) are defined, they are just digged into,
+    # if not - they are defined as modules.
+    def self.define_context(class_name)
+      class_name.split("::")[0..-2].inject(Object) do |mod,segment|
+        begin
+          mod.const_get(segment,false)
+        rescue NameError
+          new_mod = Module.new
+          mod.const_set(segment,new_mod)
+          new_mod
+        end
+      end
+    end
+
 
     #########################################################################
     # DB-oriented API
@@ -1047,3 +1066,5 @@ module Rod
     end
   end
 end
+
+
