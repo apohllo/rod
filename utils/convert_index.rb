@@ -27,5 +27,5 @@ klass = class_name.split("::").inject(Object) do |mod,name|
 end
 index = db.read_index(class_name.constantize,property,{:index => :flat})
 klass.instance_variable_set("@#{property}_index",index)
-db.write_index(klass,property,{:index => :segmented, :rewrite => true})
+db.write_index(klass,property,{:index => :segmented, :convert => true})
 #Rod::Database.instance.close_database

@@ -298,8 +298,8 @@ module Rod
     def write_index(klass,property,options)
       raise DatabaseError.new("Readonly database.") if readonly_data?
       class_index = klass.index_for(property,options)
-      # Only rewrite the index, without (re)storing the values.
-      unless options[:rewrite]
+      # Only convert the index, without (re)storing the values.
+      unless options[:convert]
         class_index.each do |key,ids|
           unless ids.is_a?(CollectionProxy)
             proxy = CollectionProxy.new(ids[1],self,ids[0],klass)
@@ -541,5 +541,3 @@ module Rod
     end
   end
 end
-
-
