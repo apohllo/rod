@@ -1,6 +1,7 @@
 require 'singleton'
 require 'yaml'
 require 'rod/segmented_index'
+require 'fileutils'
 
 module Rod
   # This class implements the database abstraction, i.e. it
@@ -100,6 +101,8 @@ module Rod
       if options[:generate]
         module_instance = (options[:generate] == true ? Object : options[:generate])
         generate_classes(module_instance)
+      elsif options[:migrate]
+        create_legacy_classes
       end
       self.classes.each do |klass|
         klass.send(:build_structure)
@@ -116,9 +119,9 @@ module Rod
           # new class
           next
         end
-        unless klass.compatible?(meta,self) || options[:generate]
-          raise IncompatibleVersion.new("Definition of #{klass.name} in database " +
-                                        "and runtime are different.")
+        unless klass.compatible?(meta,self) || options[:generate] || options[:migrate]
+            raise IncompatibleVersion.new("Definition of #{klass.name} in database\n" +
+                                          "and runtime are different.")
         end
         set_count(klass,meta[:count])
         file_size = File.new(klass.path_for_data(@path)).size
@@ -128,6 +131,23 @@ module Rod
         set_page_count(klass,file_size / _page_size)
       end
       _open(@handler)
+      if options[:migrate]
+        self.classes.each do |klass|
+          next unless klass.to_s =~ /^#{LEGACY_MODULE}::/
+          klass.migrate
+          current_file_name = klass.path_for_data(@path)
+          legacy_file_name = current_file_name + LEGACY_DATA_SUFFIX
+          new_class = klass.name.sub(/^#{LEGACY_MODULE}::/,"").constantize
+          new_file_name = new_class.path_for_data(@path)
+          FileUtils.mv(current_file_name,legacy_file_name)
+          FileUtils.mv(new_file_name,current_file_name)
+          @classes.delete(klass)
+          new_class.model_path = nil
+        end
+        close_database(false,true)
+        options.delete(:migrate)
+        open_database(path,options)
+      end
     end
 
     # Closes the database.
@@ -135,26 +155,22 @@ module Rod
     # If the +purge_classes+ flag is set to true, the information about the classes
     # linked with this database is removed. This is important for testing, when
     # classes with same names have different definitions.
-    def close_database(purge_classes=false)
+    #
+    # If the +skip_indeces+ flat is set to true, the indices are not written.
+    def close_database(purge_classes=false,skip_indices=false)
       raise DatabaseError.new("Database not opened.") if @handler.nil?
 
       unless readonly_data?
         unless referenced_objects.select{|k, v| not v.empty?}.size == 0
           raise DatabaseError.new("Not all associations have been stored: #{referenced_objects.size} objects")
         end
-        metadata = {}
-        rod_data = metadata["Rod"] = {}
-        rod_data[:version] = VERSION
-        rod_data[:created_at] = self.metadata["Rod"][:created_at]
-        rod_data[:updated_at] = Time.now
-        self.classes.each do |klass|
-          metadata[klass.name] = klass.metadata(self)
-          klass.indexed_properties.each do |property,options|
-            write_index(klass,property,options)
+        write_metadata
+        unless skip_indices
+          self.classes.each do |klass|
+            klass.indexed_properties.each do |property,options|
+              write_index(klass,property,options)
+            end
           end
-        end
-        File.open(@path + DATABASE_FILE,"w") do |out|
-          out.puts(YAML::dump(metadata))
         end
       end
       _close(@handler)
@@ -400,7 +416,11 @@ module Rod
         raise RodException.new("Invalid options for open_database: #{options}!")
       end
       if result[:readonly].nil?
-        result[:readonly] = true
+        if options[:migrate]
+          result[:readonly] = false
+        else
+          result[:readonly] = true
+        end
       end
       result
     end
@@ -464,6 +484,24 @@ module Rod
       end
     end
 
+    # During migration it creats the classes which are used to read
+    # the legacy data. It also changes the path for the
+    # actual classes not to conflict with paths of legacy data.
+    def create_legacy_classes
+      legacy_module = nil
+      begin
+        legacy_module = Object.const_get(LEGACY_MODULE)
+      rescue NameError
+        legacy_module = Module.new
+        Object.const_set(LEGACY_MODULE,legacy_module)
+      end
+      self.classes.each do |klass|
+        next if special_class?(klass)
+        klass.model_path = Model.struct_name_for(klass.name) + NEW_DATA_SUFFIX
+      end
+      generate_classes(legacy_module)
+    end
+
     # Removes single file.
     def remove_file(file_name)
       if test(?f,file_name)
@@ -486,5 +524,21 @@ module Rod
     def remove_files_but(name)
       remove_files(name.sub(INLINE_PATTERN_RE,"*"),name)
     end
+
+    # Writes the metadata to the database.yml file.
+    def write_metadata
+      metadata = {}
+      rod_data = metadata["Rod"] = {}
+      rod_data[:version] = VERSION
+      rod_data[:created_at] = self.metadata["Rod"][:created_at]
+      rod_data[:updated_at] = Time.now
+      self.classes.each do |klass|
+        metadata[klass.name] = klass.metadata(self)
+      end
+      File.open(@path + DATABASE_FILE,"w") do |out|
+        out.puts(YAML::dump(metadata))
+      end
+    end
   end
 end
+

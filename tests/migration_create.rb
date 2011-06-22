@@ -1,11 +1,11 @@
 $:.unshift("lib")
 require 'rod'
-require File.join(".",File.dirname(__FILE__),"generate_classes_model")
+require File.join(".",File.dirname(__FILE__),"migration_model1")
 
 Rod::Database.development_mode = true
 
 
-Database.instance.create_database("tmp/generate_classes")
+Database.instance.create_database("tmp/migration")
 
 files = 10.times.map{|i| UserFile.new(:data => "#{i} data")}
 files.each{|f| f.store}

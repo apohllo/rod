@@ -31,4 +31,8 @@ module Rod
 
   INLINE_PATTERN_RE = /\h+\.\w+$/
 
+  LEGACY_DATA_SUFFIX = ".old"
+  NEW_DATA_SUFFIX = ".new"
+  LEGACY_MODULE = "Legacy"
+
 end

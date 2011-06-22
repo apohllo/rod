@@ -437,6 +437,49 @@ module Rod
       klass
     end
 
+    def self.migrate
+      new_class = self.name.sub(/^#{LEGACY_MODULE}::/,"").constantize
+      self.each do |object|
+        new_object = new_class.new
+        new_object.store
+        self.properties.each do |name,options|
+          next unless new_class.properties.keys.include?(name)
+          next if name == "rod_id"
+          if options.map{|k,v| [k,v.to_s.sub(/^#{LEGACY_MODULE}::/,"")]} !=
+            new_class.properties[name].map{|k,v| [k,v.to_s]}
+            raise IncompatibleVersion.
+              new("Incompatible definition of property '#{name}'\n" +
+                  "Definition is different in the old and "+
+                  "the new schema for '#{new_class}':\n" +
+                  "  #{options} \n" +
+                  "  #{new_class.properties[name]}")
+          end
+          if self.field?(name)
+            if self.string_field?(options[:type])
+              length = object.send("_#{name}_length",object.rod_id)
+              new_object.send("_#{name}_length=",new_object.rod_id,length)
+              new_object.send("_#{name}_offset=",new_object.rod_id,
+                              object.send("_#{name}_offset",object.rod_id))
+            else
+              new_object.send("_#{name}=",new_object.rod_id,
+                              object.send("_#{name}",object.rod_id))
+            end
+          elsif self.singular_association?(name)
+            new_object.send("_#{name}=",new_object.rod_id,
+                            object.send("_#{name}",object.rod_id))
+            if options[:polymorphic]
+              new_object.send("_#{name}__class=",new_object.rod_id,
+                              object.send("_#{name}__class",object.rod_id))
+            end
+          else
+            new_object.update_count_and_offset(name,
+              object.send("_#{name}_count",object.rod_id),
+              object.send("_#{name}_offset",object.rod_id))
+          end
+        end
+      end
+    end
+
     protected
     # The pointer to the mmaped table of C structs.
     def self.rod_pointer

@@ -1,7 +1,7 @@
 $:.unshift "lib"
 require 'rod/constants'
 
-task :default => [:install]
+task :default => [:all_tests]
 
 $gem_name = "rod"
 
@@ -39,7 +39,12 @@ task :test do
   sh "ruby tests/class_compatibility_create.rb"
   sh "ruby tests/class_compatibility_verify.rb"
   sh "ruby tests/generate_classes_create.rb"
+  sh "ruby tests/generate_classes_rewrite.rb"
+  sh "ruby tests/generate_classes_rewrite.rb"
   sh "ruby tests/generate_classes_verify.rb"
+  sh "ruby tests/migration_create.rb"
+  sh "ruby tests/migration_migrate.rb"
+  sh "ruby tests/migration_verify.rb"
   sh "ruby tests/unit/model.rb"
   sh "ruby tests/unit/model_tests.rb"
   sh "ruby tests/unit/database.rb"

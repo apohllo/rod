@@ -487,7 +487,7 @@ module Rod
              |    }
              |  #{update_pointer(klass) unless special_class?(klass)}
              |  } else {
-             |    model_p->#{klass.struct_name}_table = NULL;
+             |    #{mmap_class(klass)}
              |  }
              SUBEND
           end.join("\n")}
