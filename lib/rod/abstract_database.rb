@@ -164,7 +164,6 @@ module Rod
         unless referenced_objects.select{|k, v| not v.empty?}.size == 0
           raise DatabaseError.new("Not all associations have been stored: #{referenced_objects.size} objects")
         end
-        write_metadata
         unless skip_indices
           self.classes.each do |klass|
             klass.indexed_properties.each do |property,options|
@@ -172,6 +171,7 @@ module Rod
             end
           end
         end
+        write_metadata
       end
       _close(@handler)
       @handler = nil
@@ -541,4 +541,5 @@ module Rod
     end
   end
 end
+
 
