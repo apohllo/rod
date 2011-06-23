@@ -549,7 +549,7 @@ module Rod
       metadata = {}
       rod_data = metadata["Rod"] = {}
       rod_data[:version] = VERSION
-      rod_data[:created_at] = self.metadata["Rod"][:created_at]
+      rod_data[:created_at] = self.metadata["Rod"][:created_at] || Time.now
       rod_data[:updated_at] = Time.now
       self.classes.each do |klass|
         metadata[klass.name] = klass.metadata(self)
