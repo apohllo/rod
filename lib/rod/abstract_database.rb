@@ -132,18 +132,34 @@ module Rod
           raise DatabaseError.new("Size of data file of #{klass} is invalid: #{file_size}")
         end
         set_page_count(klass,file_size / _page_size)
+        if options[:migrate]
+          next unless klass.name =~ LEGACY_RE
+          new_class = klass.name.sub(LEGACY_RE,"").constantize
+          set_count(new_class,meta[:count])
+          pages = (meta[:count] * new_class.struct_size / _page_size.to_f).ceil
+          set_page_count(new_class,pages)
+        end
       end
       _open(@handler)
       if options[:migrate]
+        empty_data = "\0" * _page_size
         self.classes.each do |klass|
-          next unless klass.to_s =~ /^#{LEGACY_MODULE}::/
-          klass.migrate
-          current_file_name = klass.path_for_data(@path)
-          legacy_file_name = current_file_name + LEGACY_DATA_SUFFIX
-          new_class = klass.name.sub(/^#{LEGACY_MODULE}::/,"").constantize
-          new_file_name = new_class.path_for_data(@path)
-          FileUtils.mv(current_file_name,legacy_file_name)
-          FileUtils.mv(new_file_name,current_file_name)
+          next unless klass.to_s =~ LEGACY_RE
+          new_class = klass.name.sub(LEGACY_RE,"").constantize
+          old_metadata = klass.metadata(self)
+          old_metadata.merge!({:superclass => old_metadata[:superclass].sub(LEGACY_RE,"")})
+          unless new_class.compatible?(old_metadata,self)
+            File.open(new_class.path_for_data(@path),"w") do |out|
+              send("_#{new_class.struct_name}_page_count",@handler).
+                times{|i| out.print(empty_data)}
+            end
+            klass.migrate
+            current_file_name = klass.path_for_data(@path)
+            legacy_file_name = current_file_name + LEGACY_DATA_SUFFIX
+            new_file_name = new_class.path_for_data(@path)
+            FileUtils.mv(current_file_name,legacy_file_name)
+            FileUtils.mv(new_file_name,current_file_name)
+          end
           @classes.delete(klass)
           new_class.model_path = nil
         end

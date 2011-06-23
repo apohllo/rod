@@ -476,7 +476,6 @@ module Rod
           |  \n#{classes.map do |klass|
              <<-SUBEND
              |  model_p->#{klass.struct_name}_lib_file = -1;
-             |
              |  if(model_p->#{klass.struct_name}_page_count > 0){
              |    \n#{open_class_file(klass)}
              |    if((model_p->#{klass.struct_name}_table = mmap(NULL,

@@ -441,45 +441,56 @@ module Rod
     # values of properties that both belong to the class in the old
     # and the new model.
     def self.migrate
-      new_class = self.name.sub(/^#{LEGACY_MODULE}::/,"").constantize
-      self.each do |object|
-        new_object = new_class.new
-        new_object.store
-        self.properties.each do |name,options|
-          next unless new_class.properties.keys.include?(name)
-          next if name == "rod_id"
-          if options.map{|k,v| [k,v.to_s.sub(/^#{LEGACY_MODULE}::/,"")]} !=
-            new_class.properties[name].map{|k,v| [k,v.to_s]}
-            raise IncompatibleVersion.
-              new("Incompatible definition of property '#{name}'\n" +
-                  "Definition is different in the old and "+
-                  "the new schema for '#{new_class}':\n" +
-                  "  #{options} \n" +
-                  "  #{new_class.properties[name]}")
-          end
-          if self.field?(name)
-            if self.string_field?(options[:type])
-              length = object.send("_#{name}_length",object.rod_id)
-              new_object.send("_#{name}_length=",new_object.rod_id,length)
-              new_object.send("_#{name}_offset=",new_object.rod_id,
-                              object.send("_#{name}_offset",object.rod_id))
-            else
-              new_object.send("_#{name}=",new_object.rod_id,
-                              object.send("_#{name}",object.rod_id))
-            end
-          elsif self.singular_association?(name)
-            new_object.send("_#{name}=",new_object.rod_id,
-                            object.send("_#{name}",object.rod_id))
-            if options[:polymorphic]
-              new_object.send("_#{name}__class=",new_object.rod_id,
-                              object.send("_#{name}__class",object.rod_id))
+      new_class = self.name.sub(LEGACY_RE,"").constantize
+      old_object = self.new
+      new_object = new_class.new
+      puts "Migrating #{new_class}" if $ROD_DEBUG
+      self.properties.each do |name,options|
+        next unless new_class.properties.keys.include?(name)
+        print "-  #{name}... " if $ROD_DEBUG
+        if options.map{|k,v| [k,v.to_s.sub(LEGACY_RE,"")]} !=
+          new_class.properties[name].map{|k,v| [k,v.to_s]}
+          raise IncompatibleVersion.
+            new("Incompatible definition of property '#{name}'\n" +
+                "Definition is different in the old and "+
+                "the new schema for '#{new_class}':\n" +
+                "  #{options} \n" +
+                "  #{new_class.properties[name]}")
+        end
+        if self.field?(name)
+          if self.string_field?(options[:type])
+            self.count.times do |position|
+              new_object.send("_#{name}_length=",position+1,
+                              old_object.send("_#{name}_length",position+1))
+              new_object.send("_#{name}_offset=",position+1,
+                              old_object.send("_#{name}_offset",position+1))
             end
           else
-            new_object.update_count_and_offset(name,
-              object.send("_#{name}_count",object.rod_id),
-              object.send("_#{name}_offset",object.rod_id))
+            self.count.times do |position|
+              new_object.send("_#{name}=",position + 1,
+                              old_object.send("_#{name}",position + 1))
+            end
+          end
+        elsif self.singular_association?(name)
+          self.count.times do |position|
+            new_object.send("_#{name}=",position + 1,
+                            old_object.send("_#{name}",position + 1))
+          end
+          if options[:polymorphic]
+            self.count.times do |position|
+              new_object.send("_#{name}__class=",position + 1,
+                              old_object.send("_#{name}__class",position + 1))
+            end
+          end
+        else
+          self.count.times do |position|
+            new_object.send("_#{name}_count=",position + 1,
+                            old_object.send("_#{name}_count",position + 1))
+            new_object.send("_#{name}_offset=",position + 1,
+                            old_object.send("_#{name}_offset",position + 1))
           end
         end
+        puts "done" if $ROD_DEBUG
       end
     end
 
@@ -807,6 +818,14 @@ module Rod
           field_writer("#{name}_count","unsigned long",builder)
           field_writer("#{name}_offset","unsigned long",builder)
         end
+
+        str=<<-END
+        |unsigned int struct_size(){
+        |  return sizeof(#{self.struct_name});
+        |}
+        END
+
+        builder.c_singleton(str.margin)
 
         # This has to be the last position in the builder!
         self.instance_variable_set("@inline_library",builder.so_name)
