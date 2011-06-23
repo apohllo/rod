@@ -165,6 +165,8 @@ module Rod
         end
         close_database(false,true)
         options.delete(:migrate)
+        readonly = options.delete(:old_readonly)
+        options[:readonly] = readonly
         open_database(path,options)
       end
     end
@@ -431,16 +433,14 @@ module Rod
         result[:readonly] = options
       when Hash
         result = options
+        if options[:migrate]
+          result[:old_readonly] = options[:readonly]
+          result[:readonly] = false
+        end
       else
         raise RodException.new("Invalid options for open_database: #{options}!")
       end
-      if result[:readonly].nil?
-        if options[:migrate]
-          result[:readonly] = false
-        else
-          result[:readonly] = true
-        end
-      end
+      result[:readonly] = true if result[:readonly].nil?
       result
     end
 

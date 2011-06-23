@@ -6,7 +6,8 @@ require 'rspec/expectations'
 $ROD_DEBUG = true
 Rod::Database.development_mode = true
 
-Database.instance.open_database("tmp/migration", :migrate => true)
+Database.instance.open_database("tmp/migration", :migrate => true,
+                               :readonly => false)
 
 user = User[0]
 user.accounts << Account[0]
