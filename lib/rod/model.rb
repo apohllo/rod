@@ -427,8 +427,9 @@ module Rod
       [:fields,:has_one,:has_many].each do |type|
         (metadata[type] || []).each do |name,options|
           if type == :fields
-            field_type = options[:options].delete(:type)
-            klass.send(:field,name,field_type,options[:options])
+            internal_options = options[:options].dup
+            field_type = internal_options.delete(:type)
+            klass.send(:field,name,field_type,internal_options)
           else
             klass.send(type,name,options[:options])
           end
