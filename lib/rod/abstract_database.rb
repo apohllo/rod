@@ -103,6 +103,7 @@ module Rod
         generate_classes(module_instance)
       elsif options[:migrate]
         create_legacy_classes
+        FileUtils.cp(@path + DATABASE_FILE, @path + DATABASE_FILE + LEGACY_DATA_SUFFIX)
       end
       self.classes.each do |klass|
         klass.send(:build_structure)

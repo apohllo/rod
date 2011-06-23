@@ -1066,5 +1066,3 @@ module Rod
     end
   end
 end
-
-
