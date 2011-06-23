@@ -1,0 +1,2 @@
+People who contributed to Ruby Object Database:
+* qadro

@@ -10,17 +10,25 @@ fast access for data, which rarely changes.
 == FEATURES/PROBLEMS:
 
 * nice Ruby interface which mimicks Active Record
-* Ruby-to-C on-the-fly translation based on mmap
-* optimized for speed
+* Ruby-to-C on-the-fly translation based on mmap and RubyInline
+* optimized for (reading) speed
 * weak reference collections for easy memory reclaims
-* segmented indices for short start-up time
+* segmented indices for short start-up times
+* compatibility check of library version
+* compatibility check of data model
+* autogeneration of model (based on the database metadata)
+* automatic model migrations (addition/removal of properties so far)
+* append of the database (new objects, new elements in plural associations)
+* databases interlinking (via direct links or inverted indices)
 
 * doesn't work on Windows
+* some space is wasted during when database is appended
 
 == SYNOPSIS:
 
 ROD is designed for storing and accessing data which rarely changes.
-It is an opposite of RDBMS as the data is not normalized.
+It is an opposite of RDBMS as the data is not normalized, while
+"joins" are much faster.
 It is an opposite of in-memory databases, since it is designed to cover
 out of core data sets (10 GB and more).
 
@@ -30,10 +38,9 @@ is interconnected in many ways, thus the relational model (joins) introduces
 unacceptable performance hit. The size of corpora forces them to be kept
 on disks. The in-memory data bases are unacceptable for larg corpora and
 would require the data to be kept mostly in the operational memory,
-which is not needed, while accessing dictionaries (in most cases only a friction
-of the data is needed). That's why a storage facility which minimizes the
-number of disk reads was designed. The Ruby interface facilitates it's
-usage.
+which is not needed, while accessing dictionaries (in most cases only a fraction
+of the data is used at the same time). That's why a storage facility which minimizes the
+number of disk reads was designed. The Ruby interface facilitates it's usage.
 
 == REQUIREMENTS:
 
@@ -76,23 +83,21 @@ Grab from rubygems:
  end
 
  MyDatabase.create_database("data")
- user = User.new
- user.name = 'Fred'
- user.surname = 'Smith'
- user.age = 22
- account = Account.new
- account.email = "fred@smith.org"
- account.login = "fred"
- account.password = "password"
- file1 = File.new
- file1.title = "Lady Gaga video"
+ user = User.new(:name => 'Fred',
+                 :surname => 'Smith',
+                 :age => 22)
+ account = Account.new(:email => "fred@smith.org",
+                       :login => "fred",
+                       :password => "password")
+ file1 = File.new(:title => "Lady Gaga video")
  file2.data = "0012220001..."
- file2 = File.new
- file2.title = "Pink Floyd video"
+ file2 = File.new(:title => "Pink Floyd video")
  file2.data = "0012220001..."
+
  user.account = account
  user.files << file1
  user.files << file2
+
  user.store
  account.store
  file1.store
@@ -117,7 +122,7 @@ Grab from rubygems:
 
 (The MIT License)
 
-Copyright (c) 2008-2010 Aleksander Pohl
+Copyright (c) 2008-2011 Aleksander Pohl
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the

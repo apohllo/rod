@@ -1,3 +1,36 @@
+0.6.1
+- Change order of tests in all_tests
+- Update DB 'created_at' if empty
+- #112 fix: indices are rewritten during migration
+- #110 bulk allocate for objects durign migration
+- #111 back-up of database.yml during migration
+- Fix: uninitilized module name
+- Make incompatible model version message more inteligible
+- Make index rewrite/convert option more meaningful
+- #108 fix: indices are destroyed for read/write mode
+- #81 automatic schema transformation
+- #104 remove ruby inline generated files when model is generated
+- tests/read_on_create.rb remove ruby inline and data files during creation
+- #100 fix: removal of RubyInline generated files
+- #43 generate classes from metadata
+- #43 generate classes without module embedding
+-  #96 fix: find_by for assocs
+- #95 remove weak_hash dependency
+- #25 check compatibility of class structure
+- #87 store supreclass of a class in metadata
+- #26 check version of library: fix revision check - Add ~@ignore tag as default for specs
+- #93 fix: storage of has_many appended objects - Turn on full object referential integrity
+- #65 store DB creation and update time in metadata
+- #89 Replace SimpleWeakHash with Cache
+- #90 Remove blocks from collection proxy
+- #80 tests and proper fix for segfault on _allocate_polymorphic
+- Add check for index of already stored object
+- #73 append of has many relationship
+- #82 index (flat -> segmented) transformation tool
+- #86 Cache indexed properties (optimiz.)
+- Remove legacy examples
+- #80 sefault on _allocate_polymorphic_join_elements
+- #79 fix: reading indices during DB creation causes an error
 0.6.0
 - #64 index for associations
 - Update legacy test to new API
