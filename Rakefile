@@ -22,7 +22,7 @@ task :uninstall do
   sh "sudo gem uninstall #$gem_name"
 end
 
-task :all_tests => [:test,:spec,:regression_test] do
+task :all_tests => [:test,:regression_test,:spec] do
 end
 
 desc "Run performence tests"
