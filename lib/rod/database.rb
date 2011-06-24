@@ -215,7 +215,7 @@ module Rod
           |VALUE _join_element_index(unsigned long element_offset, unsigned long element_index, VALUE handler){
           |  #{model_struct} * model_p;
           |  Data_Get_Struct(handler,#{model_struct},model_p);
-          |  return UINT2NUM((model_p->_join_element_table + element_offset + element_index)->offset);
+          |  return ULONG2NUM((model_p->_join_element_table + element_offset + element_index)->offset);
           |}
           END
           builder.c(str.margin)
@@ -225,7 +225,7 @@ module Rod
           |  unsigned long element_index, VALUE handler){
           |  #{model_struct} * model_p;
           |  Data_Get_Struct(handler,#{model_struct},model_p);
-          |  return UINT2NUM((model_p->_polymorphic_join_element_table +
+          |  return ULONG2NUM((model_p->_polymorphic_join_element_table +
           |    element_offset + element_index)->offset);
           |}
           END
@@ -236,7 +236,7 @@ module Rod
           |  unsigned long element_index, VALUE handler){
           |  #{model_struct} * model_p;
           |  Data_Get_Struct(handler,#{model_struct},model_p);
-          |  return UINT2NUM((model_p->_polymorphic_join_element_table +
+          |  return ULONG2NUM((model_p->_polymorphic_join_element_table +
           |    element_offset + element_index)->class);
           |}
           END
@@ -379,8 +379,8 @@ module Rod
           |  model_p->#{StringElement.struct_name}_count += length;
           |
           |  VALUE result = rb_ary_new();
-          |  rb_ary_push(result, UINT2NUM(length));
-          |  rb_ary_push(result, UINT2NUM(string_offset + page_offset * page_size()));
+          |  rb_ary_push(result, ULONG2NUM(length));
+          |  rb_ary_push(result, ULONG2NUM(string_offset + page_offset * page_size()));
           |  return result;
           |}
           END
@@ -423,7 +423,7 @@ module Rod
             |  //the number is incresed by 1, because 0 indicates that the
             |  //(referenced) object is nil
             |  struct_p->rod_id = model_p->#{klass.struct_name}_count;
-            |  rb_iv_set(object, \"@rod_id\",UINT2NUM(struct_p->rod_id));
+            |  rb_iv_set(object, \"@rod_id\",ULONG2NUM(struct_p->rod_id));
             |}
             END
             builder.c(str.margin)
