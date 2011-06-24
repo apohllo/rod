@@ -228,7 +228,11 @@ module Rod
         else
           raise RodException.new("Unrecognised field type '#{self.class.fields[name][:type]}'!")
         end
-        length, offset = database.set_string(value)
+        options = {}
+        if self.class.fields[name][:type] == :object
+          options[:skip_encoding] = true
+        end
+        length, offset = database.set_string(value,options)
         send("_#{name}_length=",@rod_id,length)
         send("_#{name}_offset=",@rod_id,offset)
       else
@@ -883,7 +887,11 @@ module Rod
                   return (options[:type] == :object ? nil : "")
                 end
                 offset = send("_#{field}_offset", @rod_id)
-                value = database.read_string(length, offset)
+                read_options = {}
+                if options[:type] == :object
+                  read_options[:skip_encoding] = true
+                end
+                value = database.read_string(length, offset, options)
                 if options[:type] == :object
                   value = Marshal.load(value)
                 end
