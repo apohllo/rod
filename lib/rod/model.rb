@@ -730,20 +730,23 @@ module Rod
       result = <<-END
       |  \n#{self.fields.map do |field,options|
           unless string_field?(options[:type])
-            "|  printf(\"  size of '#{field}': %lu\\n\",sizeof(#{TYPE_MAPPING[options[:type]]}));"
+            "|  printf(\"  size of '#{field}': %lu\\n\"," +
+              "(unsigned long)sizeof(#{TYPE_MAPPING[options[:type]]}));"
           else
             <<-SUBEND
             |  printf("  string '#{field}' length: %lu offset: %lu page: %lu\\n",
-            |    sizeof(unsigned long), sizeof(unsigned long), sizeof(unsigned long));
+            |    (unsigned long)sizeof(unsigned long), (unsigned long)sizeof(unsigned long),
+            |    (unsigned long)sizeof(unsigned long));
             SUBEND
           end
         end.join("\n") }
         |  \n#{singular_associations.map do |name, options|
-          "  printf(\"  singular assoc '#{name}': %lu\\n\",sizeof(unsigned long));"
+          "  printf(\"  singular assoc '#{name}': %lu\\n\","+
+          "(unsigned long)sizeof(unsigned long));"
         end.join("\n|  ")}
         |  \n#{plural_associations.map do |name, options|
        "|  printf(\"  plural assoc '#{name}' offset: %lu, count %lu\\n\",\n"+
-       "|    sizeof(unsigned long),sizeof(unsigned long));"
+       "|    (unsigned long)sizeof(unsigned long),(unsigned long)sizeof(unsigned long));"
         end.join("\n|  \n")}
       END
       result.margin
