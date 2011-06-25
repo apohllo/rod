@@ -4,7 +4,7 @@ require 'rod/constants'
 Gem::Specification.new do |s|
   s.name = "rod"
   s.version = Rod::VERSION
-  s.date = "#{Time.now}"
+  s.date = "#{Time.now.strftime("%Y-%m-%d")}"
   s.summary = "Ruby object database"
   s.email = "apohllo@o2.pl"
   #s.homepage = "http://wierzba.wzks.uj.edu.pl/~mag/dilp"
