@@ -57,19 +57,19 @@ module Rod
     # exist.
     def open_class_file(klass)
       str =<<-END
-      |// create the file unless it exists
-      |if(model_p->#{klass.struct_name}_lib_file == -1){
-      |  char * path = malloc(sizeof(char) * (strlen(model_p->path) +
-      |    #{klass.path_for_data("").size} + 1));
-      |  strcpy(path,model_p->path);
-      |  strcat(path,"#{klass.path_for_data("")}");
-      |  model_p->#{klass.struct_name}_lib_file =
-      |    open(path, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
-      |  if(model_p->#{klass.struct_name}_lib_file == -1) {
-      |    rb_raise(rodException(),"Could not open file for class #{klass} on path %s writing.",path);
+      |  // create the file unless it exists
+      |  if(model_p->#{klass.struct_name}_lib_file == -1){
+      |    char * path = malloc(sizeof(char) * (strlen(model_p->path) +
+      |      #{klass.path_for_data("").size} + 1));
+      |    strcpy(path,model_p->path);
+      |    strcat(path,"#{klass.path_for_data("")}");
+      |    model_p->#{klass.struct_name}_lib_file =
+      |      open(path, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
+      |    if(model_p->#{klass.struct_name}_lib_file == -1) {
+      |      rb_raise(rodException(),"Could not open file for class #{klass} on path %s writing.",path);
+      |    }
+      |    free(path);
       |  }
-      |  free(path);
-      |}
       END
       str.margin
     end
@@ -109,34 +109,36 @@ module Rod
       |
       |  // increase the pages count by 1
       |  model_p->#{klass.struct_name}_page_count += ALLOCATED_PAGES;
-      |
-      |  // open the file for writing
-      |  FILE * #{klass.struct_name}_file =
-      |    fdopen(model_p->#{klass.struct_name}_lib_file,"w+");
-      |  if(#{klass.struct_name}_file == NULL){
-      |    rb_raise(rodException(),"Could not open file for #{klass.struct_name}.");
-      |  }
-      |  // seek to the end
-      |  if(fseek(#{klass.struct_name}_file,0,SEEK_END) == -1){
-      |    rb_raise(rodException(),"Could not seek to end file for #{klass.struct_name}.");
-      |  }
-      |  // write empty data at the end
-      |  char* #{klass.struct_name}_empty_data = calloc(page_size() * ALLOCATED_PAGES,1);
-      |  if(write(model_p->#{klass.struct_name}_lib_file,#{klass.struct_name}_empty_data,
-      |    page_size() * ALLOCATED_PAGES) == -1){
-      |    rb_raise(rodException(),"Could not write to file for #{klass.struct_name}.");
-      |  }
-      |  // seek to the beginning
-      |  if(fseek(#{klass.struct_name}_file,0,SEEK_SET) == -1){
-      |    rb_raise(rodException(),"Could not seek to start file for #{klass.struct_name}.");
-      |  }
-      |  // mmap the extended file
-      |  model_p->#{klass.struct_name}_table = mmap(NULL,
-      |    model_p->#{klass.struct_name}_page_count * page_size(),
-      |    PROT_WRITE | PROT_READ, MAP_SHARED, model_p->#{klass.struct_name}_lib_file,0);
-      |  if(model_p->#{klass.struct_name}_table == MAP_FAILED){
-      |    perror(NULL);
-      |    rb_raise(rodException(),"Could not mmap segment for #{klass.struct_name}.");
+      |  {
+      |    // open the file for writing
+      |    char* #{klass.struct_name}_empty_data;
+      |    FILE * #{klass.struct_name}_file =
+      |      fdopen(model_p->#{klass.struct_name}_lib_file,"w+");
+      |    if(#{klass.struct_name}_file == NULL){
+      |      rb_raise(rodException(),"Could not open file for #{klass.struct_name}.");
+      |    }
+      |    // seek to the end
+      |    if(fseek(#{klass.struct_name}_file,0,SEEK_END) == -1){
+      |      rb_raise(rodException(),"Could not seek to end file for #{klass.struct_name}.");
+      |    }
+      |    // write empty data at the end
+      |    #{klass.struct_name}_empty_data = calloc(page_size() * ALLOCATED_PAGES,1);
+      |    if(write(model_p->#{klass.struct_name}_lib_file,#{klass.struct_name}_empty_data,
+      |      page_size() * ALLOCATED_PAGES) == -1){
+      |      rb_raise(rodException(),"Could not write to file for #{klass.struct_name}.");
+      |    }
+      |    // seek to the beginning
+      |    if(fseek(#{klass.struct_name}_file,0,SEEK_SET) == -1){
+      |      rb_raise(rodException(),"Could not seek to start file for #{klass.struct_name}.");
+      |    }
+      |    // mmap the extended file
+      |    model_p->#{klass.struct_name}_table = mmap(NULL,
+      |      model_p->#{klass.struct_name}_page_count * page_size(),
+      |      PROT_WRITE | PROT_READ, MAP_SHARED, model_p->#{klass.struct_name}_lib_file,0);
+      |    if(model_p->#{klass.struct_name}_table == MAP_FAILED){
+      |      perror(NULL);
+      |      rb_raise(rodException(),"Could not mmap segment for #{klass.struct_name}.");
+      |    }
       |  }
       |#{update_pointer(klass) unless special_class?(klass)}
       END
@@ -247,8 +249,8 @@ module Rod
           |  unsigned long element_index, unsigned long offset,
           |  VALUE handler){
           |  #{model_struct} * model_p;
-          |  Data_Get_Struct(handler,#{model_struct},model_p);
           |  _join_element * element_p;
+          |  Data_Get_Struct(handler,#{model_struct},model_p);
           |  element_p = model_p->_join_element_table + element_offset + element_index;
           |  if(element_p->index != element_index){
           |      VALUE eClass = rb_const_get(rb_cObject, rb_intern("Exception"));
@@ -265,8 +267,8 @@ module Rod
           |  unsigned long element_index, unsigned long offset, unsigned long class_id,
           |  VALUE handler){
           |  #{model_struct} * model_p;
-          |  Data_Get_Struct(handler,#{model_struct},model_p);
           |  _polymorphic_join_element * element_p;
+          |  Data_Get_Struct(handler,#{model_struct},model_p);
           |  element_p = model_p->_polymorphic_join_element_table + element_offset + element_index;
           |  if(element_p->index != element_index){
           |      VALUE eClass = rb_const_get(rb_cObject, rb_intern("Exception"));
@@ -284,8 +286,9 @@ module Rod
           |  _join_element * element;
           |  unsigned long index;
           |  #{model_struct} * model_p;
+          |  unsigned long result;
           |  Data_Get_Struct(handler,#{model_struct},model_p);
-          |  unsigned long result = model_p->_join_element_count;
+          |  result = model_p->_join_element_count;
           |  for(index = 0; index < size; index++){
           |    if((model_p->_join_element_count + 1) * sizeof(_join_element) >=
           |      page_size() * model_p->_join_element_page_count){
@@ -306,8 +309,9 @@ module Rod
           |  _polymorphic_join_element * element;
           |  unsigned long index;
           |  #{model_struct} * model_p;
+          |  unsigned long result;
           |  Data_Get_Struct(handler,#{model_struct},model_p);
-          |  unsigned long result = model_p->_polymorphic_join_element_count;
+          |  result = model_p->_polymorphic_join_element_count;
           |  for(index = 0; index < size; index++){
           |    if((model_p->_polymorphic_join_element_count + 1) *
           |      sizeof(_polymorphic_join_element) >=
@@ -332,8 +336,9 @@ module Rod
           str =<<-END
           |VALUE _read_string(unsigned long length, unsigned long offset, VALUE handler){
           |  #{model_struct} * model_p;
+          |  char * str;
           |  Data_Get_Struct(handler,#{model_struct},model_p);
-          |  char * str = model_p->#{StringElement.struct_name}_table + offset;
+          |  str = model_p->#{StringElement.struct_name}_table + offset;
           |  return rb_str_new(str, length);
           |}
           END
@@ -344,7 +349,6 @@ module Rod
           |// The return value is a pair: length and offset.
           |VALUE _set_string(VALUE ruby_value, VALUE handler){
           |  #{model_struct} * model_p;
-          |  Data_Get_Struct(handler,#{model_struct},model_p);
           |  unsigned long length = RSTRING_LEN(ruby_value);
           |  char * value = RSTRING_PTR(ruby_value);
           |  unsigned long string_offset, page_offset, current_page;
@@ -356,6 +360,10 @@ module Rod
           |  // count:
           |  // - total number of bytes
           |  long length_left = length;
+          |  // see the routine description above.
+          |  VALUE result;
+          |  // get the structure
+          |  Data_Get_Struct(handler,#{model_struct},model_p);
           |  // first free byte in current page
           |  string_offset = model_p->#{StringElement.struct_name}_count % page_size();
           |  page_offset = model_p->#{StringElement.struct_name}_count / page_size();
@@ -378,7 +386,7 @@ module Rod
           |
           |  model_p->#{StringElement.struct_name}_count += length;
           |
-          |  VALUE result = rb_ary_new();
+          |  result = rb_ary_new();
           |  rb_ary_push(result, ULONG2NUM(length));
           |  rb_ary_push(result, ULONG2NUM(string_offset + page_offset * page_size()));
           |  return result;
@@ -410,12 +418,13 @@ module Rod
             |void _store_#{klass.struct_name}(VALUE object, VALUE handler){
             |
             |  #{model_struct} * model_p;
+            |  #{klass.struct_name} * struct_p;
             |  Data_Get_Struct(handler,#{model_struct},model_p);
             |  if((model_p->#{klass.struct_name}_count+1) * sizeof(#{klass.struct_name}) >=
             |    model_p->#{klass.struct_name}_page_count * page_size()){
             |     \n#{mmap_class(klass)}
             |  }
-            |  #{klass.struct_name} * struct_p = model_p->#{klass.struct_name}_table +
+            |  struct_p = model_p->#{klass.struct_name}_table +
             |    model_p->#{klass.struct_name}_count;
             |  //printf("struct assigned\\n");
             |  model_p->#{klass.struct_name}_count++;
@@ -435,6 +444,7 @@ module Rod
           str = <<-END
           |VALUE _init_handler(char * dir_path){
           |  #{model_struct} * model_p;
+          |  VALUE cClass;
           |  model_p = ALLOC(#{model_struct});
           |
           |  #{init_structs(classes)}
@@ -444,7 +454,7 @@ module Rod
           |  strcpy(model_p->path,dir_path);
           |
           |  //create the wrapping object
-          |  VALUE cClass = rb_define_class("#{model_struct_name(path).camelcase(true)}",
+          |  cClass = rb_define_class("#{model_struct_name(path).camelcase(true)}",
           |    rb_cObject);
           |  return Data_Wrap_Struct(cClass, 0, free, model_p);
           |}

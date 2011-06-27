@@ -7,7 +7,7 @@
 ROD (Ruby Object Database) is library which aims at providing
 fast access for data, which rarely changes.
 
-== FEATURES/PROBLEMS:
+== FEATURES:
 
 * nice Ruby interface which mimicks Active Record
 * Ruby-to-C on-the-fly translation based on mmap and RubyInline
@@ -21,8 +21,11 @@ fast access for data, which rarely changes.
 * append of the database (new objects, new elements in plural associations)
 * databases interlinking (via direct links or inverted indices)
 
+== PROBLEMS
+
+* tested mostly on 64-bit systems
 * doesn't work on Windows
-* some space is wasted during when database is appended
+* some space is wasted when database is re-opended in read/write mode
 
 == SYNOPSIS:
 
@@ -44,6 +47,7 @@ number of disk reads was designed. The Ruby interface facilitates it's usage.
 
 == REQUIREMENTS:
 
+* Ruby 1.9
 * RubyInline
 * english
 * ActiveModel
