@@ -179,14 +179,7 @@ module Rod
           END
           builder.prefix(str.margin)
 
-          str =<<-END
-          |VALUE rodException(){
-          |  VALUE klass = rb_const_get(rb_cObject, rb_intern("Rod"));
-          |  klass = rb_const_get(klass, rb_intern("DatabaseError"));
-          |  return klass;
-          |}
-          END
-          builder.prefix(str.margin)
+          builder.prefix(self.class.rod_exception)
 
 
           #########################################
@@ -253,8 +246,7 @@ module Rod
           |  Data_Get_Struct(handler,#{model_struct},model_p);
           |  element_p = model_p->_join_element_table + element_offset + element_index;
           |  if(element_p->index != element_index){
-          |      VALUE eClass = rb_const_get(rb_cObject, rb_intern("Exception"));
-          |      rb_raise(eClass, "Join element indices are inconsistent: %lu %lu!",
+          |      rb_raise(rodException(), "Join element indices are inconsistent: %lu %lu!",
           |        element_index, element_p->index);
           |  }
           |  element_p->offset = offset;
@@ -271,8 +263,7 @@ module Rod
           |  Data_Get_Struct(handler,#{model_struct},model_p);
           |  element_p = model_p->_polymorphic_join_element_table + element_offset + element_index;
           |  if(element_p->index != element_index){
-          |      VALUE eClass = rb_const_get(rb_cObject, rb_intern("Exception"));
-          |      rb_raise(eClass, "Polymorphic join element indices are inconsistent: %lu %lu!",
+          |      rb_raise(rodException(), "Polymorphic join element indices are inconsistent: %lu %lu!",
           |        element_index, element_p->index);
           |  }
           |  element_p->offset = offset;
@@ -611,6 +602,17 @@ module Rod
       |}
       END
       builder.c(str.margin)
+    end
+
+    def self.rod_exception
+      str =<<-END
+      |VALUE rodException(){
+      |  VALUE klass = rb_const_get(rb_cObject, rb_intern("Rod"));
+      |  klass = rb_const_get(klass, rb_intern("DatabaseError"));
+      |  return klass;
+      |}
+      END
+      str.margin
     end
   end
 end

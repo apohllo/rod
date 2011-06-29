@@ -175,10 +175,10 @@ When /^I create and store the following (\w+)\(s\):$/ do |class_name,table|
   end
 end
 
-When /^(his|her|its) (\w+) is '([^']*)'( multiplied (\d+) times)?$/ do |ignore,field,value,multi,multiplier|
+# When his name is 'Fred' (multiplied 300 times)
+When /^(?:his|her|its) (\w+) is '([^']*)'(?: multiplied (\d+) times)?$/ do |field,value,multiplier|
   value = get_value(value)
-#  p value
-  if multi
+  if multiplier
     value *= multiplier.to_i
   end
   @instance.send("#{field}=".to_sym,value)
@@ -310,9 +310,20 @@ Then /^the (\w+) of (\w+) of the (\w+) (\w+) should be nil$/ do |position0,field
   get_instance(class1,position1).send(field.to_sym)[get_position(position0)].should == nil
 end
 
-Then /^(his|her|its) (\w+) should be '([^']*)'$/ do |ignore,field, value|
+# Then his name should be 'Fred'
+Then /^(?:his|her|its) (\w+) should be '([^']*)'$/ do |property, value|
   value = get_value(value)
-  @instance.send(field.to_sym).should == value
+  @instance.send(property.to_sym).should == value
+end
+
+# Then his name should be nil
+Then /^(?:his|her|its) (\w+) should be nil$/ do |property|
+  @instance.send(property.to_sym).should == nil
+end
+
+# Then his items should be empty
+Then /^(?:his|her|its) (\w+) should be empty$/ do |property|
+  @instance.send(property.to_sym).should be_empty
 end
 
 Then /^the (\w+) (\w+) should be equal with the instance$/ do |position1,class1|

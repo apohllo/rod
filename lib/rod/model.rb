@@ -756,6 +756,9 @@ module Rod
     def self.field_reader(name,result_type,builder)
       str =<<-END
       |#{result_type} _#{name}(unsigned long object_rod_id){
+      |  if(object_rod_id == 0){
+      |    rb_raise(rodException(), "Invalid object rod_id (0)");
+      |  }
       |  VALUE klass = rb_funcall(self,rb_intern("class"),0);
       |  #{struct_name} * pointer = (#{struct_name} *)
       |    NUM2ULONG(rb_funcall(klass,rb_intern("rod_pointer"),0));
@@ -769,6 +772,9 @@ module Rod
     def self.field_writer(name,arg_type,builder)
       str =<<-END
       |void _#{name}_equals(unsigned long object_rod_id,#{arg_type} value){
+      |  if(object_rod_id == 0){
+      |    rb_raise(rodException(), "Invalid object rod_id (0)");
+      |  }
       |  VALUE klass = rb_funcall(self,rb_intern("class"),0);
       |  #{struct_name} * pointer = (#{struct_name} *)
       |    NUM2ULONG(rb_funcall(klass,rb_intern("rod_pointer"),0));
@@ -793,6 +799,7 @@ module Rod
 
       inline(:C) do |builder|
         builder.prefix(typedef_struct)
+        builder.prefix(Database.rod_exception)
         if Database.development_mode
           # This method is created to force rebuild of the C code, since
           # it is rebuild on the basis of methods' signatures change.
@@ -928,6 +935,7 @@ module Rod
         define_method(name) do
           value = instance_variable_get("@#{name}")
           if value.nil?
+            return nil if @rod_id == 0
             rod_id = send("_#{name}",@rod_id)
             # the indices are shifted by 1, to leave 0 for nil
             if rod_id == 0
@@ -984,7 +992,11 @@ module Rod
           if (instance_variable_get("@#{name}") != nil)
             return instance_variable_get("@#{name}").count
           else
-            return send("_#{name}_count",@rod_id)
+            if @rod_id == 0
+              return 0
+            else
+              return send("_#{name}_count",@rod_id)
+            end
           end
         end
 
