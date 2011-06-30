@@ -155,6 +155,19 @@ module Rod
     # Implementations of abstract methods
     #########################################################################
 
+    # Ruby inline generated shared library name.
+    def inline_library
+      unless defined?(@inline_library)
+        self.class.inline(:C) do |builder|
+          builder.c_singleton("void __unused_method_#{rand(1000)}(){}")
+
+          self.instance_variable_set("@inline_library",builder.so_name)
+        end
+      end
+      @inline_library
+    end
+
+
     # Generates the code C responsible for management of the database.
     def generate_c_code(path, classes)
       if !@code_generated || @@rod_development_mode
@@ -569,11 +582,6 @@ module Rod
 
           # This has to be at the very end of builder definition!
           self.instance_variable_set("@inline_library",builder.so_name)
-
-          # Ruby inline generated shared library.
-          def self.inline_library
-            @inline_library
-          end
 
         end
         @code_generated = true

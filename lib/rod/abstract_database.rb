@@ -68,6 +68,7 @@ module Rod
         next if special_class?(klass)
         remove_files_but(klass.inline_library)
       end
+      remove_files(self.inline_library)
       generate_c_code(@path, classes)
       remove_files_but(self.inline_library)
       @metadata = {}
@@ -104,6 +105,7 @@ module Rod
       elsif options[:migrate]
         create_legacy_classes
         FileUtils.cp(@path + DATABASE_FILE, @path + DATABASE_FILE + LEGACY_DATA_SUFFIX)
+        remove_files(self.inline_library)
       end
       self.classes.each do |klass|
         klass.send(:build_structure)
