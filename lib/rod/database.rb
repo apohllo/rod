@@ -373,7 +373,7 @@ module Rod
           |  page_offset = model_p->#{StringElement.struct_name}_count / page_size();
           |  current_page = page_offset;
           |  while(length_left > 0){
-          |    if(((unsigned long)length_left) + string_offset >= page_size()){
+          |    if(((unsigned long)length_left + string_offset) >= page_size()){
           |      \n#{mmap_class(StringElement)}
           |    }
           |    dest = model_p->#{StringElement.struct_name}_table +
