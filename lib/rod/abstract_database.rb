@@ -52,7 +52,7 @@ module Rod
       if File.exist?(@path)
         remove_file("#{@path}database.yml")
       else
-        Dir.mkdir(@path)
+        FileUtils.mkdir_p(@path)
       end
       self.classes.each do |klass|
         klass.send(:build_structure)
