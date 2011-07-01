@@ -14,7 +14,6 @@ Gem::Specification.new do |s|
   s.description = "Ruby object database is designed for large amount of data, whose structure rarely changes."
 
   s.rubyforge_project = "rod"
-  s.has_rdoc = true
   s.rdoc_options = ["--main", "README.rdoc"]
 
   s.files         = `git ls-files`.split("\n")
