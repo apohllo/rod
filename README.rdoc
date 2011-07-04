@@ -130,7 +130,7 @@ You'll need bundler installed:
 
 Then you have to fetch all the dependencies:
 
-  bunlde
+  bundle
 
 To run all the test simple type rake:
 
