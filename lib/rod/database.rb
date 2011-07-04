@@ -355,7 +355,7 @@ module Rod
           |  #{model_struct} * model_p;
           |  unsigned long length = RSTRING_LEN(ruby_value);
           |  char * value = RSTRING_PTR(ruby_value);
-          |  unsigned long string_offset, page_offset, current_page;
+          |  unsigned long string_offset, page_offset, current_page, sum;
           |  char * dest;
           |  // table:
           |  // - address of the first page
@@ -373,7 +373,8 @@ module Rod
           |  page_offset = model_p->#{StringElement.struct_name}_count / page_size();
           |  current_page = page_offset;
           |  while(length_left > 0){
-          |    if(((unsigned long)length_left + string_offset) >= page_size()){
+          |    sum = ((unsigned long)length_left) + string_offset;
+          |    if(sum >= page_size()){
           |      \n#{mmap_class(StringElement)}
           |    }
           |    dest = model_p->#{StringElement.struct_name}_table +
