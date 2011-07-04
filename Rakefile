@@ -6,7 +6,7 @@ task :default => [:all_tests]
 $gem_name = "rod"
 
 desc "Build the gem"
-task :build => :all_tests do
+task :build do
   sh "gem build #$gem_name.gemspec"
   FileUtils.mkdir("pkg") unless File.exist?("pkg")
   sh "mv '#$gem_name-#{Rod::VERSION}.gem' pkg"
@@ -14,7 +14,12 @@ end
 
 desc "Install the library at local machnie"
 task :install => :build do 
-  sh "sudo gem install pkg/#$gem_name-#{Rod::VERSION}.gem"
+  sh "gem install pkg/#$gem_name-#{Rod::VERSION}.gem"
+end
+
+desc "Push gem to rubygems"
+task :push => :build do 
+  sh "gem push pkg/#$gem_name-#{Rod::VERSION}.gem"
 end
 
 desc "Uninstall the library from local machnie"

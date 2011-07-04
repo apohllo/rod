@@ -1,3 +1,16 @@
+0.6.2
+- #127 default implementation of inspect
+- #123 fix: warning on has_rdoc in gemspec
+- #116 missing tmp directory for a fresh project
+- Slightly complicate the append feature
+- #120 fix: removal of database so file
+- #119 fix: segfault when accessing fresh object's properties
+- Some clean-up of gemspec
+- #118 fix: ISO C90 forbids mixed declarations and code
+- Fix gemspec - only year-moth-day is preserved
+- Update cuke to 1.0 & change README to rdoc
+- #115 fix: UINT -> ULONG
+- #114 fix: encoding of marshalled values
 0.6.1
 - Change order of tests in all_tests
 - Update DB 'created_at' if empty
