@@ -52,7 +52,7 @@ module Rod
       if File.exist?(@path)
         remove_file("#{@path}database.yml")
       else
-        Dir.mkdir(@path)
+        FileUtils.mkdir_p(@path)
       end
       self.classes.each do |klass|
         klass.send(:build_structure)
@@ -68,6 +68,7 @@ module Rod
         next if special_class?(klass)
         remove_files_but(klass.inline_library)
       end
+      remove_files(self.inline_library)
       generate_c_code(@path, classes)
       remove_files_but(self.inline_library)
       @metadata = {}
@@ -104,6 +105,7 @@ module Rod
       elsif options[:migrate]
         create_legacy_classes
         FileUtils.cp(@path + DATABASE_FILE, @path + DATABASE_FILE + LEGACY_DATA_SUFFIX)
+        remove_files(self.inline_library)
       end
       self.classes.each do |klass|
         klass.send(:build_structure)
@@ -266,16 +268,26 @@ module Rod
     end
 
     # Returns the string of given +length+ starting at given +offset+.
-    def read_string(length, offset)
+    # Options:
+    # * +:skip_encoding+ - if set to +true+, the string is left as ASCII-8BIT
+    def read_string(length, offset,options={})
       # TODO the encoding should be stored in the DB
       # or configured globally
-      _read_string(length, offset, @handler).force_encoding("utf-8")
+      value = _read_string(length, offset, @handler)
+      if options[:skip_encoding]
+        value.force_encoding("ascii-8bit")
+      else
+        value.force_encoding("utf-8")
+      end
     end
 
     # Stores the string in the DB encoding it to utf-8.
-    def set_string(value)
+    # Options:
+    # * +:skip_encoding+ - if set to +true+, the string is not encoded
+    def set_string(value,options={})
       raise DatabaseError.new("Readonly database.") if readonly_data?
-      _set_string(value.encode("utf-8"),@handler)
+      value = value.encode("utf-8") unless options[:skip_encoding]
+      _set_string(value,@handler)
     end
 
     # Returns the number of objects for given +klass+.

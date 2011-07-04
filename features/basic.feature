@@ -88,7 +88,7 @@ Feature: Store and load small amount of data from one class
     And the name of the first Caveman should be 'Fred\0' multiplied 30000 times
 
   Scenario: reading fields while objects are created
-      Rod should allow to read values of fields of instances, before and after
+      Rod should allow to read values of initialized fields of instances, before and after
       the instance is stored to the DB.
     Given the class space is cleared
     And the model is connected with the default database
@@ -116,6 +116,30 @@ Feature: Store and load small amount of data from one class
     And his name is 'Fred'
     And I store him in the database 4000 times
     Then the name of the remembered instance should be 'Fred'
+
+  Scenario: reading properties of fresh object
+      Rod should allow to read values of uninitialized fields of instances,
+      before the instance is stored to the DB.
+    Given the class space is cleared
+    And the model is connected with the default database
+    And a class Item has an name field of type string
+    And a class Caveman has a name field of type string
+    And a class Caveman has an age field of type integer
+    And a class Caveman has an identifier field of type ulong
+    And a class Caveman has a height field of type float
+    And a class Caveman has a symbol field of type object
+    And a class Caveman has one item
+    And a class Caveman has many items
+    When database is created
+    And I create a Caveman
+    And I fetch the first Caveman created
+    Then his name should be ''
+    And his age should be nil
+    And his identifier should be nil
+    And his height should be nil
+    And his symbol should be nil
+    And his item should be nil
+    And his items should be empty
 
   Scenario: referential integrity and simple indexing
       Rod should allow to access objects via simple indexing

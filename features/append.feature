@@ -101,14 +101,18 @@ Feature: database with append
     And his automobiles contain the second Automobile created
     And I store him in the database
     And I reopen database
+    And I create an Automobile
+    And its name is 'Super car'
+    And I store it in the database
     And I create a Caveman
     And her name is 'Willma'
     And her automobiles contain the first Automobile created
     And her automobiles contain the second Automobile created
+    And her automobiles contain the third Automobile created
     And I store her in the database
     And I reopen database for reading
     Then there should be 2 Caveman(s)
-    And there should be 2 Automobile(s)
+    And there should be 3 Automobile(s)
     And the name of the first Caveman should be 'Fred'
     And the name of the first Automobile should be 'Prehistoric car'
     And the name of the second Automobile should be 'Modern car'
@@ -116,9 +120,10 @@ Feature: database with append
     And the first of automobiles of the first Caveman should be equal to the first Automobile
     And the second of automobiles of the first Caveman should be equal to the second Automobile
     And the name of the second Caveman should be 'Willma'
-    And the second Caveman should have 2 automobiles
+    And the second Caveman should have 3 automobiles
     And the first of automobiles of the second Caveman should be equal to the first Automobile
     And the second of automobiles of the second Caveman should be equal to the second Automobile
+    And the third of automobiles of the second Caveman should be equal to the third Automobile
 
   Scenario: append with a new class
     Given the class space is cleared
@@ -180,7 +185,7 @@ Feature: database with append
 
   # Enable for #94
   @ignore
-  Scenario: append of has many associations with indexing with and unstored object
+  Scenario: append of has many associations with indexing with an unstored object
       Same as above, but with an object which is appended to the collection
       while it is not yet stored in the DB.
     Given the class space is cleared

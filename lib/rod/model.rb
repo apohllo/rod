@@ -52,12 +52,17 @@ module Rod
       self.class == other.class && self.rod_id == other.rod_id
     end
 
-    # Default implementation of to_s.
-    def to_s
+    # Default implementation of +inspect+.
+    def inspect
       fields = self.class.fields.map{|n,o| "#{n}:#{self.send(n)}"}.join(",")
       singular = self.class.singular_associations.map{|n,o| "#{n}:#{self.send(n).class}"}.join(",")
       plural = self.class.plural_associations.map{|n,o| "#{n}:#{self.send(n).size}"}.join(",")
       "#{self.class}:<#{fields}><#{singular}><#{plural}>"
+    end
+
+    # Default implementation of +to_s+.
+    def to_s
+      self.inspect
     end
 
     # Returns the number of objects of this class stored in the
@@ -228,7 +233,11 @@ module Rod
         else
           raise RodException.new("Unrecognised field type '#{self.class.fields[name][:type]}'!")
         end
-        length, offset = database.set_string(value)
+        options = {}
+        if self.class.fields[name][:type] == :object
+          options[:skip_encoding] = true
+        end
+        length, offset = database.set_string(value,options)
         send("_#{name}_length=",@rod_id,length)
         send("_#{name}_offset=",@rod_id,offset)
       else
@@ -726,20 +735,23 @@ module Rod
       result = <<-END
       |  \n#{self.fields.map do |field,options|
           unless string_field?(options[:type])
-            "|  printf(\"  size of '#{field}': %lu\\n\",sizeof(#{TYPE_MAPPING[options[:type]]}));"
+            "|  printf(\"  size of '#{field}': %lu\\n\"," +
+              "(unsigned long)sizeof(#{TYPE_MAPPING[options[:type]]}));"
           else
             <<-SUBEND
             |  printf("  string '#{field}' length: %lu offset: %lu page: %lu\\n",
-            |    sizeof(unsigned long), sizeof(unsigned long), sizeof(unsigned long));
+            |    (unsigned long)sizeof(unsigned long), (unsigned long)sizeof(unsigned long),
+            |    (unsigned long)sizeof(unsigned long));
             SUBEND
           end
         end.join("\n") }
         |  \n#{singular_associations.map do |name, options|
-          "  printf(\"  singular assoc '#{name}': %lu\\n\",sizeof(unsigned long));"
+          "  printf(\"  singular assoc '#{name}': %lu\\n\","+
+          "(unsigned long)sizeof(unsigned long));"
         end.join("\n|  ")}
         |  \n#{plural_associations.map do |name, options|
        "|  printf(\"  plural assoc '#{name}' offset: %lu, count %lu\\n\",\n"+
-       "|    sizeof(unsigned long),sizeof(unsigned long));"
+       "|    (unsigned long)sizeof(unsigned long),(unsigned long)sizeof(unsigned long));"
         end.join("\n|  \n")}
       END
       result.margin
@@ -749,6 +761,9 @@ module Rod
     def self.field_reader(name,result_type,builder)
       str =<<-END
       |#{result_type} _#{name}(unsigned long object_rod_id){
+      |  if(object_rod_id == 0){
+      |    rb_raise(rodException(), "Invalid object rod_id (0)");
+      |  }
       |  VALUE klass = rb_funcall(self,rb_intern("class"),0);
       |  #{struct_name} * pointer = (#{struct_name} *)
       |    NUM2ULONG(rb_funcall(klass,rb_intern("rod_pointer"),0));
@@ -762,6 +777,9 @@ module Rod
     def self.field_writer(name,arg_type,builder)
       str =<<-END
       |void _#{name}_equals(unsigned long object_rod_id,#{arg_type} value){
+      |  if(object_rod_id == 0){
+      |    rb_raise(rodException(), "Invalid object rod_id (0)");
+      |  }
       |  VALUE klass = rb_funcall(self,rb_intern("class"),0);
       |  #{struct_name} * pointer = (#{struct_name} *)
       |    NUM2ULONG(rb_funcall(klass,rb_intern("rod_pointer"),0));
@@ -786,6 +804,7 @@ module Rod
 
       inline(:C) do |builder|
         builder.prefix(typedef_struct)
+        builder.prefix(Database.rod_exception)
         if Database.development_mode
           # This method is created to force rebuild of the C code, since
           # it is rebuild on the basis of methods' signatures change.
@@ -883,7 +902,11 @@ module Rod
                   return (options[:type] == :object ? nil : "")
                 end
                 offset = send("_#{field}_offset", @rod_id)
-                value = database.read_string(length, offset)
+                read_options = {}
+                if options[:type] == :object
+                  read_options[:skip_encoding] = true
+                end
+                value = database.read_string(length, offset, options)
                 if options[:type] == :object
                   value = Marshal.load(value)
                 end
@@ -917,6 +940,7 @@ module Rod
         define_method(name) do
           value = instance_variable_get("@#{name}")
           if value.nil?
+            return nil if @rod_id == 0
             rod_id = send("_#{name}",@rod_id)
             # the indices are shifted by 1, to leave 0 for nil
             if rod_id == 0
@@ -973,7 +997,11 @@ module Rod
           if (instance_variable_get("@#{name}") != nil)
             return instance_variable_get("@#{name}").count
           else
-            return send("_#{name}_count",@rod_id)
+            if @rod_id == 0
+              return 0
+            else
+              return send("_#{name}_count",@rod_id)
+            end
           end
         end
 

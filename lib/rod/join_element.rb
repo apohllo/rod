@@ -13,7 +13,9 @@ module Rod
     end
 
     def self.layout
-      '  printf("  offset: %lu, index: %lu\n",sizeof(unsigned long), sizeof(unsigned long));' + "\n"
+      '  printf("  offset: %lu, index: %lu\n",' +
+        '(unsigned long)sizeof(unsigned long), ' +
+        '(unsigned long)sizeof(unsigned long));' + "\n"
     end
 
     def self.struct_name
@@ -39,7 +41,9 @@ module Rod
 
     def self.layout
       '  printf("  offset: %lu, index: %lu, class: %lu\n",' +
-        'sizeof(unsigned long), sizeof(unsigned long), sizeof(unsigned long));' + "\n"
+        '(unsigned long)sizeof(unsigned long), ' +
+        '(unsigned long)sizeof(unsigned long), ' +
+        '(unsigned long)sizeof(unsigned long));' + "\n"
     end
   end
 end

@@ -7,7 +7,7 @@
 ROD (Ruby Object Database) is library which aims at providing
 fast access for data, which rarely changes.
 
-== FEATURES/PROBLEMS:
+== FEATURES:
 
 * nice Ruby interface which mimicks Active Record
 * Ruby-to-C on-the-fly translation based on mmap and RubyInline
@@ -21,8 +21,11 @@ fast access for data, which rarely changes.
 * append of the database (new objects, new elements in plural associations)
 * databases interlinking (via direct links or inverted indices)
 
+== PROBLEMS
+
+* tested mostly on 64-bit systems
 * doesn't work on Windows
-* some space is wasted during when database is appended
+* some space is wasted when database is re-opended in read/write mode
 
 == SYNOPSIS:
 
@@ -44,6 +47,7 @@ number of disk reads was designed. The Ruby interface facilitates it's usage.
 
 == REQUIREMENTS:
 
+* Ruby 1.9
 * RubyInline
 * english
 * ActiveModel
@@ -117,6 +121,33 @@ Grab from rubygems:
  User.find_by_surname("Smith")     # gives Fred
  User.find_all_by_surname("Smith") # gives [Fred]
  File[0].user                      # won't work - the data is not normalized
+
+== DEVELOPMENT
+
+You'll need bundler installed:
+
+  gem install bundler
+
+Then you have to fetch all the dependencies:
+
+  bunlde
+
+To run all the test simple type rake:
+
+  rake
+
+This might take several minutes, since for each scenario a whole set of C files
+have to compiled and linked. 
+
+During development you should watch your ~/.ruby_inline directory. If there
+are thousands of files there, you should fill a bug, since most of them should
+be automatically destroyed.
+
+If you want to implement a feature/fix a bug, first be sure that it is 
+documented on the bug tracker: https://github.com/apohllo/rod/issues.
+Then be sure to write tests covering the added feature/fixed bug. 
+Include the tests in Rakefile, run the tests and if everything is fine
+send me a pull request.
 
 == LICENSE:
 

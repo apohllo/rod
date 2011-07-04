@@ -3,6 +3,7 @@ require 'structures'
 require 'validate_read_on_create'
 
 puts "-- Read data while creating DB --"
+Rod::Database.development_mode = true
 
 
 RodTest::Database.instance.create_database("tmp/read_write")

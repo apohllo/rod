@@ -4,24 +4,27 @@ require 'rod/constants'
 Gem::Specification.new do |s|
   s.name = "rod"
   s.version = Rod::VERSION
-  s.date = "#{Time.now}"
+  s.date = "#{Time.now.strftime("%Y-%m-%d")}"
+  # TODO set to Linux/MacOSX and Ruby 1.9
+  s.platform    = Gem::Platform::RUBY
+  s.authors = ['Aleksander Pohl']
+  s.email   = ["apohllo@o2.pl"]
+  s.homepage    = "http://github.com/apohllo/rod"
   s.summary = "Ruby object database"
-  s.email = "apohllo@o2.pl"
-  #s.homepage = "http://wierzba.wzks.uj.edu.pl/~mag/dilp"
   s.description = "Ruby object database is designed for large amount of data, whose structure rarely changes."
+
+  s.rubyforge_project = "rod"
+  s.rdoc_options = ["--main", "README.rdoc"]
+
+  s.files         = `git ls-files`.split("\n")
+  s.test_files    = `git ls-files -- {test,spec,features}/*`.split("\n")
+  s.executables   = `git ls-files -- bin/*`.split("\n").map{ |f| File.basename(f) }
   s.require_path = "lib"
-  s.has_rdoc = true
-  s.authors = ['Aleksander Pohl', 'Piotr Gurgul', 'Marcin Sieniek']
-  s.files = ["Rakefile", "rod.gemspec", 'lib/rod.rb', 'README',
-    'changelog.txt', 'Gemfile'] + Dir.glob("lib/**/*")
-  #s.test_files = Dir.glob("{test,spect}/**/*")
-  #s.rdoc_options = ["--main", "README.txt"]
-  #s.extra_rdoc_files = ["History.txt", "Manifest.txt", "README.txt"]
+
   s.add_dependency("RubyInline", [">= 3.8.3","< 4.0.0"])
   s.add_dependency("english", [">= 0.5.0","< 0.6.0"])
   s.add_dependency("activemodel", [">= 3.0.7","< 3.1.0"])
   s.add_development_dependency("mocha", [">= 0.9.8","< 1.0.0"])
-  s.add_development_dependency("cucumber", [">= 0.9.4","< 0.10.0"])
+  s.add_development_dependency("cucumber", "~> 1.0.0")
   s.add_development_dependency("rspec", [">= 2.2.0","< 2.3.0"])
 end
-
