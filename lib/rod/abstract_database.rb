@@ -1,7 +1,7 @@
 require 'singleton'
 require 'yaml'
-require 'rod/segmented_index'
-require 'fileutils'
+require 'rod/index/base'
+require 'rod/utils'
 
 module Rod
   # This class implements the database abstraction, i.e. it
@@ -13,8 +13,13 @@ module Rod
     # a given model (set of classes).
     include Singleton
 
+    include Utils
+
     # The meta-data of the DataBase.
     attr_reader :metadata
+
+    # The path which the database instance is located on.
+    attr_reader :path
 
     # Initializes the classes linked with this database and the handler.
     def initialize
@@ -58,12 +63,7 @@ module Rod
         klass.send(:build_structure)
         remove_file(klass.path_for_data(@path))
         klass.indexed_properties.each do |property,options|
-          path = klass.path_for_index(@path,property,options)
-          if test(?d,path)
-            remove_files(path + "*")
-          elsif test(?f,path)
-            remove_file(path)
-          end
+          klass.index_for(property,options).destroy
         end
         next if special_class?(klass)
         remove_files_but(klass.inline_library)
@@ -305,25 +305,6 @@ module Rod
       send("_#{klass.struct_name}_page_count=",@handler,value)
     end
 
-    # Reads index of +field+ (with +options+) for +klass+.
-    def read_index(klass,field,options)
-      case options[:index]
-      when :flat,true
-        begin
-          File.open(klass.path_for_index(@path,field,options)) do |input|
-            return {} if input.size == 0
-            return Marshal.load(input)
-          end
-        rescue Errno::ENOENT
-          return {}
-        end
-      when :segmented
-        return SegmentedIndex.new(klass.path_for_index(@path,field,options))
-      else
-        raise RodException.new("Invalid index type '#{options[:index]}'.")
-      end
-    end
-
     # Store index of +field+ (with +options+) of +klass+ in the database.
     # There are two types of indices:
     # * +:flat+ - marshalled index is stored in one file
@@ -331,8 +312,12 @@ module Rod
     def write_index(klass,property,options)
       raise DatabaseError.new("Readonly database.") if readonly_data?
       class_index = klass.index_for(property,options)
-      # Only convert the index, without (re)storing the values.
-      unless options[:convert]
+      if options[:convert]
+        # Only convert the index, without (re)storing the values.
+        index = Index::Base.create(klass.path_for_index(@path,property),property)
+        index.copy(class_index)
+        class_index = index
+      else
         class_index.each do |key,ids|
           unless ids.is_a?(CollectionProxy)
             proxy = CollectionProxy.new(ids[1],self,ids[0],klass)
@@ -346,24 +331,8 @@ module Rod
           class_index[key] = [offset,proxy.size]
         end
       end
-      case options[:index]
-      when :flat,true
-        File.open(klass.path_for_index(@path,property,options),"w") do |out|
-          out.puts(Marshal.dump(class_index))
-        end
-      when :segmented
-        path = klass.path_for_index(@path,property,options)
-        if class_index.is_a?(Hash)
-          index = SegmentedIndex.new(path)
-          class_index.each{|k,v| index[k] = v}
-        else
-          index = class_index
-        end
-        index.save
-        index = nil
-      else
-        raise RodException.new("Invalid index type '#{options[:index]}'.")
-      end
+      class_index.save
+      class_index = nil
     end
 
     # Store the object in the database.
@@ -534,28 +503,6 @@ module Rod
       generate_classes(legacy_module)
     end
 
-    # Removes single file.
-    def remove_file(file_name)
-      if test(?f,file_name)
-        File.delete(file_name)
-        puts "Removing #{file_name}" if $ROD_DEBUG
-      end
-    end
-
-    # Remove all files matching the +pattern+.
-    # If +skip+ given, the file with the given name is not deleted.
-    def remove_files(pattern,skip=nil)
-      Dir.glob(pattern).each do |file_name|
-        remove_file(file_name) unless file_name == skip
-      end
-    end
-
-    # Removes all files which are similar (i.e. are generated
-    # by RubyInline for the same class) to +name+
-    # excluding the file with exactly the name given.
-    def remove_files_but(name)
-      remove_files(name.sub(INLINE_PATTERN_RE,"*"),name)
-    end
 
     # Writes the metadata to the database.yml file.
     def write_metadata
