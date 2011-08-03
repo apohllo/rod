@@ -675,16 +675,9 @@ module Rod
     end
 
     # The name of the file or directory (for given +relative_path+), which the
-    # index of the +field+ (with +options+) of this class is stored in.
-    def self.path_for_index(relative_path,field,options)
-      case options[:index]
-      when :flat,true
-        "#{relative_path}#{model_path}_#{field}.idx"
-      when :segmented
-        "#{relative_path}#{model_path}_#{field}_idx/"
-      else
-        raise RodException.new("Invalid index type #{type}")
-      end
+    # index of the +field+ of this class is stored in.
+    def self.path_for_index(relative_path,field)
+      "#{relative_path}#{model_path}_#{field}"
     end
 
     # Returns true if the type of the filed is string-like (i.e. stored as
@@ -1079,7 +1072,8 @@ module Rod
       def index_for(property,options)
         index = instance_variable_get("@#{property}_index")
         if index.nil?
-          index = database.read_index(self,property,options)
+          path = path_for_index(database.path,property)
+          index = Index::Base.create(path,options)
           instance_variable_set("@#{property}_index",index)
         end
         index
