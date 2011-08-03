@@ -1054,7 +1054,7 @@ module Rod
           # Find all objects with given +value+ of the +property+.
           define_method("find_all_by_#{property}") do |value|
             value = value.rod_id if value.is_a?(Model)
-            proxy = index_for(property,options,value)
+            proxy = index_for(property,options)[value]
             if proxy.is_a?(CollectionProxy)
               proxy
             else
@@ -1111,19 +1111,13 @@ module Rod
       end
 
       # Read index for the +property+ with +options+ from the database.
-      # If +key+ is given, the value for the key is returned.
-      # accessing the values for that key.
-      def index_for(property,options,key=nil)
+      def index_for(property,options)
         index = instance_variable_get("@#{property}_index")
         if index.nil?
           index = database.read_index(self,property,options)
           instance_variable_set("@#{property}_index",index)
         end
-        if key
-          index[key]
-        else
-          index
-        end
+        index
       end
 
       # Sets the values in the index of the +property+ for
