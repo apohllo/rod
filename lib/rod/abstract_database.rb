@@ -16,10 +16,25 @@ module Rod
     # The meta-data of the DataBase.
     attr_reader :metadata
 
+    # This flag indicates, if Database and Model works in development
+    # mode, i.e. the dynamically loaded library has a unique, different id each time
+    # the rod library is used.
+    @@rod_development_mode = false
+
     # Initializes the classes linked with this database and the handler.
     def initialize
       @classes ||= self.special_classes
       @handler = nil
+    end
+
+    # Writer of the +rod_development_mode+ flag.
+    def self.development_mode=(value)
+      @@rod_development_mode = value
+    end
+
+    # Reader of the +rod_development_mode+ flag.
+    def self.development_mode
+      @@rod_development_mode
     end
 
     #########################################################################
@@ -573,4 +588,5 @@ module Rod
     end
   end
 end
+
 
