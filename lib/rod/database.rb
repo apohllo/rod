@@ -130,12 +130,6 @@ module Rod
       str.margin
     end
 
-    # Returns true if the class is one of speciall classes
-    # (JoinElement, PolymorphicJoinElement, StringElement).
-    def special_class?(klass)
-      self.special_classes.include?(klass)
-    end
-
     #########################################################################
     # Implementations of abstract methods
     #########################################################################
@@ -178,7 +172,6 @@ module Rod
           builder.prefix(str.margin)
 
           builder.prefix(self.class.rod_exception)
-
 
           #########################################
           # Model struct
@@ -610,4 +603,3 @@ module Rod
     end
   end
 end
-
