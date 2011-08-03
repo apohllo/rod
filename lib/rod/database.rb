@@ -12,21 +12,6 @@ module Rod
   # models simultaneously. This is due to the way RubyInline creates and
   # names (after the name of the class) the C code.
   class Database < AbstractDatabase
-    # This flag indicates, if Database and Model works in development
-    # mode, i.e. the dynamically loaded library has a unique, different id each time
-    # the rod library is used.
-    @@rod_development_mode = false
-
-    # Writer of the +rod_development_mode+ flag.
-    def self.development_mode=(value)
-      @@rod_development_mode = value
-    end
-
-    # Reader of the +rod_development_mode+ flag.
-    def self.development_mode
-      @@rod_development_mode
-    end
-
     protected
 
     ## Helper methods printing some generated code ##
@@ -625,3 +610,4 @@ module Rod
     end
   end
 end
+
