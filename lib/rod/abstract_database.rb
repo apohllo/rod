@@ -46,7 +46,7 @@ module Rod
     #
     # WARNING: all files in the DB directory are removed during DB creation!
     def create_database(path)
-      raise DatabaseError.new("Database already opened.") unless @handler.nil?
+      raise DatabaseError.new("Database already opened.") if opened?
       @readonly = false
       @path = canonicalize_path(path)
       if File.exist?(@path)
@@ -87,7 +87,7 @@ module Rod
     #   the classes from the database metadata. If module given, the classes
     #   are generated withing the module.
     def open_database(path,options={:readonly => true})
-      raise DatabaseError.new("Database already opened.") unless @handler.nil?
+      raise DatabaseError.new("Database already opened.") if opened?
       options = convert_options(options)
       @readonly = options[:readonly]
       @path = canonicalize_path(path)
@@ -181,7 +181,7 @@ module Rod
     #
     # If the +skip_indeces+ flat is set to true, the indices are not written.
     def close_database(purge_classes=false,skip_indices=false)
-      raise DatabaseError.new("Database not opened.") if @handler.nil?
+      raise DatabaseError.new("Database not opened.") unless opened?
 
       unless readonly_data?
         unless referenced_objects.select{|k, v| not v.empty?}.size == 0
@@ -399,7 +399,7 @@ module Rod
     # Prints the layout of the pages in memory and other
     # internal data of the model.
     def print_layout
-      raise DatabaseError.new("Database not opened.") if @handler.nil?
+      raise DatabaseError.new("Database not opened.") unless opened?
       _print_layout(@handler)
     end
 
@@ -573,3 +573,4 @@ module Rod
     end
   end
 end
+
