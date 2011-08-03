@@ -235,6 +235,11 @@ module Rod
       @referenced_objects ||= {}
     end
 
+    # Returns true if the class is one of speciall classes
+    # (JoinElement, PolymorphicJoinElement, StringElement).
+    def special_class?(klass)
+      self.special_classes.include?(klass)
+    end
 
     # Adds the +klass+ to the set of classes linked with this database.
     def add_class(klass)
@@ -587,5 +592,3 @@ module Rod
     end
   end
 end
-
-
