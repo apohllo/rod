@@ -1,6 +1,11 @@
 require 'inline'
 require 'english/inflect'
-require 'active_model'
+require 'active_model/deprecated_error_methods'
+require 'active_model/validator'
+require 'active_model/naming'
+require 'active_model/translation'
+require 'active_model/validations'
+require 'active_model/dirty'
 require 'active_support/dependencies'
 
 # XXX This should be done in a different way, since a library should not

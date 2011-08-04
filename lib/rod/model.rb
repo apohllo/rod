@@ -7,6 +7,7 @@ module Rod
   # Abstract class representing a model entity. Each storable class has to derieve from +Model+.
   class Model < AbstractModel
     include ActiveModel::Validations
+    include ActiveModel::Dirty
     extend Enumerable
 
     # If +options+ is an integer it is the @rod_id of the object.
@@ -15,6 +16,7 @@ module Rod
       when Integer
         @rod_id = options
       when Hash
+        @rod_id = 0
         options.each do |key,value|
           begin
             self.send("#{key}=",value)
@@ -22,7 +24,6 @@ module Rod
             raise RodException.new("There is no field or association with name #{key}!")
           end
         end
-        @rod_id = 0
       else
         @rod_id = 0
       end
@@ -45,6 +46,10 @@ module Rod
       else
         self.class.store(self)
       end
+      # XXX we don't use the 'previously changed' feature, since the simples
+      # implementation requires us to leave references to objects, which
+      # forbids them to be garbage collected.
+      @changed_attributes.clear unless @changed_attributes.nil?
     end
 
     # Default implementation of equality.
@@ -63,6 +68,19 @@ module Rod
     # Default implementation of +to_s+.
     def to_s
       self.inspect
+    end
+
+    # Returns a hash {'attr_name' => 'attr_value'} which covers fields and
+    # has_one relationships values. This is required by ActiveModel::Dirty.
+    def attributes
+      result = {}
+      self.class.fields.each do |name,options|
+        result[name.to_s] = self.send(name)
+      end
+      self.class.singular_associations.each do |name,options|
+        result[name.to_s] = self.send(name)
+      end
+      result
     end
 
     # Returns the number of objects of this class stored in the
@@ -288,7 +306,7 @@ module Rod
               proxy = self.set_values_for(property,options,key,count,database,offset)
             end
           end
-          if new_object || plural_association?(property) && proxy[key_index].nil?
+          if new_object || plural_association?(property) && !proxy.include?(object)
             if plural_association?(property) && key == 0
               # TODO #94 devise method for reference rebuilding
             end
@@ -311,7 +329,8 @@ module Rod
                                                 object.class.name_hash])
           end
           # clear references, allowing for garbage collection
-          object.send("#{name}=",nil)
+          # WARNING: don't use writer, since we don't want this change to be tracked
+          object.instance_variable_set("@#{name}",nil)
         end
       end
 
@@ -330,7 +349,8 @@ module Rod
             end
           end
           # clear references, allowing for garbage collection
-          object.send("#{name}=",nil)
+          # WARINING: don't use writer, since don't want this change to be tracked
+          object.instance_variable_set("@#{name}",nil)
         end
       end
 
@@ -517,6 +537,7 @@ module Rod
 
     # Used for establishing link with the DB.
     def self.inherited(subclass)
+      super
       subclass.add_to_class_space
       subclasses << subclass
       begin
@@ -856,8 +877,10 @@ module Rod
         end
       end
 
+      attribute_methods = []
       ## accessors for fields, plural and singular relationships follow
       self.fields.each do |field, options|
+        attribute_methods << field
         # optimization
         field = field.to_s
         # adding new private fields visible from Ruby
@@ -885,6 +908,8 @@ module Rod
 
           # setter
           define_method("#{field}=") do |value|
+            old_value = send(field)
+            send("#{field}_will_change!") unless old_value == value
             instance_variable_set("@#{field}",value)
             value
           end
@@ -911,7 +936,8 @@ module Rod
                   value = Marshal.load(value)
                 end
                 # caching Ruby representation
-                send("#{field}=",value)
+                # don't use writer - avoid change tracking
+                instance_variable_set("@#{field}",value)
               end
             end
             value
@@ -919,6 +945,8 @@ module Rod
 
           # setter
           define_method("#{field}=") do |value|
+            old_value = send(field)
+            send("#{field}_will_change!") unless old_value == value
             instance_variable_set("@#{field}",value)
           end
         end
@@ -926,6 +954,7 @@ module Rod
       end
 
       singular_associations.each do |name, options|
+        attribute_methods << name
         # optimization
         name = name.to_s
         private "_#{name}", "_#{name}="
@@ -953,13 +982,16 @@ module Rod
                 value = class_name.constantize.find_by_rod_id(rod_id)
               end
             end
-            send("#{name}=",value)
+            # avoid change tracking
+            instance_variable_set("@#{name}",value)
           end
           value
         end
 
         #setter
         define_method("#{name}=") do |value|
+          old_value = send(name)
+          send("#{name}_will_change!") unless old_value == value
           instance_variable_set("@#{name}", value)
         end
       end
@@ -1010,6 +1042,9 @@ module Rod
           instance_variable_set("@#{name}", value)
         end
       end
+
+      # dirty tracking
+      define_attribute_methods(attribute_methods)
 
       # indices
       indexed_properties.each do |property,options|
