@@ -73,6 +73,11 @@ module Rod
       "Proxy:[#{@size}][#{@original_size}]"
     end
 
+    # Returns true if the collection is empty.
+    def empty?
+      self.count == 0
+    end
+
     protected
     def id_for(index)
       if index >= @original_size && !@appended[index - @original_size].nil?

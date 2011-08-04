@@ -53,6 +53,7 @@ task :test do
   sh "ruby tests/unit/model.rb"
   sh "ruby tests/unit/model_tests.rb"
   sh "ruby tests/unit/database.rb"
+  sh "ruby tests/unit/collection_proxy.rb"
 end
 
 # Should be removed some time -- specs should cover all these cases
