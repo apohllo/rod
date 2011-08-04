@@ -430,7 +430,8 @@ module Rod
 
     # Retruns the path to the DB as a name of a directory.
     def canonicalize_path(path)
-      path + "/" unless path[-1] == "/"
+      path += "/" unless path[-1] == "/"
+      path
     end
 
     # Special classes used by the database.
