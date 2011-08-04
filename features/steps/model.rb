@@ -89,8 +89,8 @@ Given /^a class (\w+) inherits from ([\w:]+)$/ do |name1,name2|
 end
 
 Given /^a class (\w+) has an? (\w+) field of type (\w+)( with (\w+) index)?$/ do |class_name,field,type,index,index_type|
-  index_type = index_type == "flat" ? :flat : :segmented
   if index
+    index_type = index_type.to_sym
     get_class(class_name).send(:field,field.to_sym,type.to_sym,:index => index_type)
   else
     get_class(class_name).send(:field,field.to_sym,type.to_sym)
@@ -106,7 +106,7 @@ Given /^a class (\w+) has one (\w+ )?(\w+)( with (\w+) index)?$/ do |class_name,
     end
   end
   unless index.nil?
-    index_type = (index_type == "flat" ? :flat : :segmented)
+    index_type = index_type.to_sym
     options[:index] = index_type
   end
   get_class(class_name).send(:has_one,assoc.to_sym,options)
@@ -121,7 +121,7 @@ Given /^a class (\w+) has many (\w+ )?(\w+)( with (\w+) index)?$/ do |class_name
     end
   end
   unless index.nil?
-    index_type = (index_type == "flat" ? :flat : :segmented)
+    index_type = index_type.to_sym
     options[:index] = index_type
   end
   get_class(class_name).send(:has_many,assoc.to_sym,options)

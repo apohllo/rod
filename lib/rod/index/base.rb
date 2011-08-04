@@ -26,6 +26,8 @@ module Rod
             FlatIndex.new(path,options)
           when :segmented
             SegmentedIndex.new(path,options)
+          when :hash
+            HashIndex.new(path,options)
           else
             raise RodException.new("Invalid index type #{type}")
           end

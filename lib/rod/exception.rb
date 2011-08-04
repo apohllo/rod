@@ -41,6 +41,10 @@ module Rod
     end
   end
 
+  # This exception is raised, when the key is not present in the database.
+  class KeyMissing < DatabaseError
+  end
+
   # This exception is raised if argument for some Rod API call
   # (such as field, has_one, has_many) is invalid.
   class InvalidArgument < RodException
