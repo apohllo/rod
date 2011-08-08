@@ -86,3 +86,4 @@ end
 Then /^the collection proxy should be empty$/ do
   @proxy.to_a.should be_empty
 end
+
