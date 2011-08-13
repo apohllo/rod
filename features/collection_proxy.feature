@@ -1,6 +1,5 @@
 Feature: collection proxy specification
 
-  @wip
   Scenario: appending items
     Given the initial size of the collection proxy is 10
     When I append a new item 10 times
@@ -11,7 +10,6 @@ Feature: collection proxy specification
     Then the size of the collection proxy should be 30
     And the collection proxy should behave like an array
 
-  @wip
   Scenario: inserting items
     Given the initial size of the collection proxy is 10
     When I insert a new item at position 0
@@ -27,7 +25,6 @@ Feature: collection proxy specification
     Then the size of the collection proxy should be 16
     And the collection proxy should behave like an array
 
-  @wip
   Scenario: deleting items
     Given the initial size of the collection proxy is 5
     When I delete an item at position 0 2 times
@@ -49,7 +46,6 @@ Feature: collection proxy specification
     Then the collection proxy should be empty
     And the collection proxy should behave like an array
 
-  @wip
   Scenario: deleting and inserting items
     Given the initial size of the collection proxy is 5
     When I delete an item with rod_id = 1
@@ -86,7 +82,6 @@ Feature: collection proxy specification
     Then the size of the collection proxy should be 1
     And the collection proxy should behave like an array
 
-  @wip
   Scenario: deleting and appending items
     Given the initial size of the collection proxy is 5
     When I append a new item 5 times
@@ -102,7 +97,6 @@ Feature: collection proxy specification
     Then the size of the collection proxy should be 9
     And the collection proxy should behave like an array
 
-  @wip
   Scenario: inserting, deleting and appending items
     Given the initial size of the collection proxy is 5
     When I append a new item 5 times
