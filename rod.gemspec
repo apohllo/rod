@@ -28,4 +28,5 @@ Gem::Specification.new do |s|
   s.add_development_dependency("mocha", [">= 0.9.8","< 1.0.0"])
   s.add_development_dependency("cucumber", "~> 1.0.0")
   s.add_development_dependency("rspec", [">= 2.2.0","< 2.3.0"])
+  s.add_development_dependency("rake", [">= 0.9.0","< 1.0.0"])
 end
