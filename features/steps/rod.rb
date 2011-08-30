@@ -42,7 +42,7 @@ Given /^the class space is cleared$/ do
 end
 
 # Should be split
-When /^I reopen (\w+)( for reading)?( in (\w+))?$/ do |db_name,reading,location,location_name|
+When /^I reopen (?:the )?(\w+)( for reading)?( in (\w+))?$/ do |db_name,reading,location,location_name|
   if location
     db_location = location_name
   else

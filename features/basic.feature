@@ -134,9 +134,9 @@ Feature: Store and load small amount of data from one class
     And I create a Caveman
     And I fetch the first Caveman created
     Then his name should be ''
-    And his age should be nil
-    And his identifier should be nil
-    And his height should be nil
+    And his age should be '0'
+    And his identifier should be '0'
+    And his height should be '0'
     And his symbol should be nil
     And his item should be nil
     And his items should be empty

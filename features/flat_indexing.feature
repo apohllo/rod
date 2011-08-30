@@ -92,13 +92,14 @@ Feature: Access to objects with indexed fields
       | Adam | Parker  | adam  | 12   |
       | Adam |         | noob1 | 33   |
       |      |         | noob2 | -1   |
+      |      | Adam    | noob1 | 33   |
     And I reopen database for reading
-    Then there should be 5 Caveman(s)
+    Then there should be 6 Caveman(s)
     And there should be 1 Caveman with 'John' name
     And there should be 2 Caveman(s) with 'Adam' name
     And there should be 2 Caveman(s) with '12' age
     And there should be 1 Caveman with '-1' age
-    And there should be 1 Caveman with '' name
+    And there should be 2 Caveman with '' name
     And there should be 2 Caveman(s) with '' surname
 
   Scenario: multiple object with indexed fields

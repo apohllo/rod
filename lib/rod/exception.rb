@@ -61,7 +61,7 @@ module Rod
     attr_reader :object
 
     def initialize(message,object)
-      super("The object has not been stored in the DB and its rod_id == 0")
+      super("The object has not been stored in the DB.")
       @object = object
     end
   end

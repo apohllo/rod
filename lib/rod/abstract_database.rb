@@ -267,6 +267,18 @@ module Rod
                                            class_id, @handler)
     end
 
+    # Allocates space for polymorphic join elements.
+    def allocate_polymorphic_join_elements(size)
+      raise DatabaseError.new("Readonly database.") if readonly_data?
+      _allocate_polymorphic_join_elements(size,@handler)
+    end
+
+    # Allocates space for join elements.
+    def allocate_join_elements(size)
+      raise DatabaseError.new("Readonly database.") if readonly_data?
+      _allocate_join_elements(size,@handler)
+    end
+
     # Returns the string of given +length+ starting at given +offset+.
     # Options:
     # * +:skip_encoding+ - if set to +true+, the string is left as ASCII-8BIT
@@ -314,21 +326,12 @@ module Rod
       class_index = klass.index_for(property,options)
       if options[:convert]
         # Only convert the index, without (re)storing the values.
-        index = Index::Base.create(klass.path_for_index(@path,property),property)
+        index = Index::Base.create(klass.path_for_index(@path,property),klass,options)
         index.copy(class_index)
         class_index = index
       else
-        class_index.each do |key,ids|
-          unless ids.is_a?(CollectionProxy)
-            proxy = CollectionProxy.new(ids[1],self,ids[0],klass)
-          else
-            proxy = ids
-          end
-          offset = _allocate_join_elements(proxy.size,@handler)
-          proxy.each_id.with_index do |rod_id,index|
-            set_join_element_id(offset, index, rod_id)
-          end
-          class_index[key] = [offset,proxy.size]
+        class_index.each do |key,proxy|
+          proxy.save
         end
       end
       class_index.save
@@ -338,30 +341,8 @@ module Rod
     # Store the object in the database.
     def store(klass,object)
       raise DatabaseError.new("Readonly database.") if readonly_data?
-      new_object = (object.rod_id == 0)
-      if new_object
+      if object.new?
         send("_store_" + klass.struct_name,object,@handler)
-        # set fields' values
-        object.class.fields.each do |name,options|
-          # rod_id is set during _store
-          object.update_field(name) unless name == "rod_id"
-        end
-        # set ids of objects referenced via singular associations
-        object.class.singular_associations.each do |name,options|
-          object.update_singular_association(name,object.send(name))
-        end
-      end
-      # set ids of objects referenced via plural associations
-      # TODO should be disabled, when there are no new elements
-      object.class.plural_associations.each do |name,options|
-        elements = object.send(name) || []
-        if options[:polymorphic]
-          offset = _allocate_polymorphic_join_elements(elements.size,@handler)
-        else
-          offset = _allocate_join_elements(elements.size,@handler)
-        end
-        object.update_count_and_offset(name,elements.size,offset)
-        object.update_plural_association(name,elements)
       end
     end
 

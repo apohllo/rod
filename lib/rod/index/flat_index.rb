@@ -6,9 +6,10 @@ module Rod
     # Class implementing segmented index, i.e. an index which allows for
     # lazy loading of its pieces.
     class FlatIndex < Base
-      # Creats the index with given +path+.
+      # Creats the index with given +path+ for given +klass+.
       # Options are not used in the case of FlatIndex.
-      def initialize(path,options={})
+      def initialize(path,klass,options={})
+        super(klass)
         @path = path + ".idx"
         @index = nil
       end
@@ -16,7 +17,9 @@ module Rod
       # Stores the index on disk.
       def save
         File.open(@path,"w") do |out|
-          out.puts(Marshal.dump(@index))
+          proxy_index = {}
+          @index.each{|k,col| proxy_index[k] = [col.offset,col.size]}
+          out.puts(Marshal.dump(proxy_index))
         end
       end
 
@@ -25,21 +28,11 @@ module Rod
         remove_file(@path)
       end
 
-      def [](key)
-        load_index unless loaded?
-        @index[key]
-      end
-
-      def []=(key,value)
-        load_index unless loaded?
-        @index[key] = value
-      end
-
       def each
         load_index unless loaded?
         if block_given?
-          @index.each do |key,value|
-            yield key, value
+          @index.each_key do |key|
+            yield key, self[key]
           end
         else
           enum_for(:each)
@@ -47,6 +40,16 @@ module Rod
       end
 
       protected
+      def get(key)
+        load_index unless loaded?
+        @index[key]
+      end
+
+      def set(key,value)
+        load_index unless loaded?
+        @index[key] = value
+      end
+
       def loaded?
         !@index.nil?
       end
