@@ -21,7 +21,7 @@ Gem::Specification.new do |s|
   s.executables   = `git ls-files -- bin/*`.split("\n").map{ |f| File.basename(f) }
   s.require_path = "lib"
 
-  s.add_dependency("RubyInline", [">= 3.8.3","< 4.0.0"])
+  s.add_dependency("RubyInline", [">= 3.10.0","< 4.0.0"])
   s.add_dependency("english", [">= 0.5.0","< 0.6.0"])
   s.add_dependency("activemodel", [">= 3.0.7","< 3.1.0"])
   s.add_development_dependency("mocha", [">= 0.9.8","< 1.0.0"])

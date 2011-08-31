@@ -808,7 +808,7 @@ module Rod
         if Database.development_mode
           # This method is created to force rebuild of the C code, since
           # it is rebuild on the basis of methods' signatures change.
-          builder.c_singleton("void __unused_method_#{rand(1000)}(){}")
+          builder.c_singleton("void __unused_method_#{rand(1000000)}(){}")
         end
 
         self.fields.each do |name, options|

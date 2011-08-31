@@ -159,7 +159,7 @@ module Rod
     def inline_library
       unless defined?(@inline_library)
         self.class.inline(:C) do |builder|
-          builder.c_singleton("void __unused_method_#{rand(1000)}(){}")
+          builder.c_singleton("void __unused_method_#{rand(1000000)}(){}")
 
           self.instance_variable_set("@inline_library",builder.so_name)
         end
@@ -578,7 +578,7 @@ module Rod
           if @@rod_development_mode
             # This method is created to force rebuild of the C code, since
             # it is rebuild on the basis of methods' signatures change.
-            builder.c_singleton("void __unused_method_#{rand(1000)}(){}")
+            builder.c_singleton("void __unused_method_#{rand(1000000)}(){}")
           end
 
           # This has to be at the very end of builder definition!
