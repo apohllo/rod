@@ -39,9 +39,9 @@ Feature: Access to objects with indexed fields
     And there should be 1 Caveman with 'Barney' name
     And there should be 2 Caveman(s) with '25' age
     And there should be 1 Caveman with '26' age
-    And there should be 1 Caveman with '11122223333' identifier
-    And there should be 1 Caveman with '11122224444' identifier
-    And there should be 1 Caveman with '11122225555' identifier
+    And there should be 1 Caveman with '111222333' identifier
+    And there should be 1 Caveman with '111222444' identifier
+    And there should be 1 Caveman with '111222555' identifier
     And there should be 2 Caveman(s) with '1.67' height
     And there should be 1 Caveman with '1.86' height
 
