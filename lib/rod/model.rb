@@ -408,8 +408,8 @@ module Rod
     end
 
     # Metadata for the model class.
-    def self.metadata(database)
-      meta = super(database)
+    def self.metadata
+      meta = super
       # fields
       fields = meta[:fields] = {} unless self.fields.size == 1
       self.fields.each do |field,options|

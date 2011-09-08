@@ -52,6 +52,8 @@ task :test do
   sh "ruby tests/migration_verify.rb"
   sh "ruby tests/missing_class_create.rb"
   sh "ruby tests/missing_class_verify.rb"
+  sh "ruby tests/properties_order_create.rb"
+  sh "ruby tests/properties_order_verify.rb"
   sh "ruby tests/unit/model.rb"
   sh "ruby tests/unit/model_tests.rb"
   sh "ruby tests/unit/database.rb"

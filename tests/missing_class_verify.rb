@@ -16,4 +16,5 @@ end
 
 Rod::Database.development_mode = true
 
-(lambda {Rod::Database.instance.open_database("tmp/missing_class")}).should raise_error(Rod::DatabaseError)
+(lambda {Rod::Database.instance.open_database("tmp/missing_class")}).
+  should raise_error(Rod::DatabaseError)
