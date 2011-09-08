@@ -75,8 +75,11 @@ module Rod
       PluralUpdater.new(database,collection,index)
     end
 
-    # Creates reference updater for an index, i.e.
-    def self.for_index()
+    # Creates reference updater for an index. It is used
+    # when the indexed plural association includes objects
+    # that are not yet persisted.
+    def self.for_index(index)
+      IndexUpdater.new(index)
     end
   end
 end
