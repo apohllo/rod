@@ -29,3 +29,4 @@ require 'rod/index/base'
 require 'rod/index/flat_index'
 require 'rod/index/hash_index'
 require 'rod/index/segmented_index'
+

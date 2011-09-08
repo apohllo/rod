@@ -98,3 +98,4 @@ module Rod
     end # class SegmentedIndex
   end # module Index
 end # module Rod
+
