@@ -63,6 +63,10 @@ def get_position(position)
     1
   when "third"
     2
+  when "fourth"
+    3
+  when "fifth"
+    4
   when "last"
     -1
   when Fixnum
@@ -176,7 +180,7 @@ When /^I create and store the following (\w+)\(s\):$/ do |class_name,table|
 end
 
 # When his name is 'Fred' (multiplied 300 times)
-When /^(?:his|her|its) (\w+) is '([^']*)'(?: multiplied (\d+) times)?$/ do |field,value,multiplier|
+When /^(?:his|her|its) (\w+) is '([^']*)'(?: multiplied (\d+) times)?(?: now)?$/ do |field,value,multiplier|
   value = get_value(value)
   if multiplier
     value *= multiplier.to_i
@@ -201,6 +205,7 @@ When /^(his|her|its) (\w+) contain nil$/ do |ignore,field|
   @instance.send("#{field}".to_sym) << nil
 end
 
+# When I store him in the database 10000 times
 When /^I store (him|her|it) in the database( (\d+) times)?$/ do |ignore,times,count|
   if times
     count.to_i.times do |index|
@@ -224,13 +229,20 @@ When /^I remember the (\w+) (\w+)$/ do |position,class_name|
   @remembered = get_instance(class_name,position)
 end
 
+# When I remove the first of his books
+When /^I remove the (\w+) of (?:his|her|its) (\w+)$/ do |position,property|
+  @instance.send(property).delete_at(get_position(position))
+end
+
 ################################################################
 # Then
 ################################################################
-Then /^there should be (\d+) (\w+)(\([^)]*\))?$/ do |count,class_name,ignore|
+# Then there should be 5 User(s)
+Then /^there should be (\d+) (\w+)(?:\([^)]*\))?$/ do |count,class_name|
   get_class(class_name).count.should == count.to_i
 end
 
+# Then the name of the first User should be 'John'
 Then /^the (\w+) of the (\w+) ([A-Z]\w+) should be '([^']*)'$/ do |field, position, class_name,value|
   get_instance(class_name,position).send(field.to_sym).should == get_value(value)
 end
@@ -347,7 +359,7 @@ Then /^there should exist a(?:n)? (\w+) with '([^']*)' (\w+)$/ do |class_name,va
 end
 
 # Then there should be 5 User(s) with the first Dog as dog
-Then /^there should be (\d+) (\w+)(?:\([^)]*\))? with the (\w+) (\w+) as (\w+)$/ do |count,class1,position,class2,assoc|
+Then /^there should be (\d+) (\w+)(?:\([^)]*\))? with the (\w+) (\w+) (?:as|(?:in their)) (\w+)$/ do |count,class1,position,class2,assoc|
   get_class(class1).send("find_all_by_#{assoc}",get_instance(class2,position)).count.should == count.to_i
 end
 

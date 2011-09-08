@@ -45,7 +45,7 @@ Feature: Store and load small amount of data from one class
     And I create a Caveman
     And his name is 'Fred'
     And his age is '25'
-    And his identifier is '111122223333'
+    And his identifier is '111222333'
     And his height is '1.86'
     And his symbol is ':fred'
     # nil is converted to an empty string, consider using object field
@@ -59,7 +59,7 @@ Feature: Store and load small amount of data from one class
     Then there should be 1 Caveman
     And the name of the first Caveman should be 'Fred'
     And the age of the first Caveman should be '25'
-    And the identifier of the first Caveman should be '111122223333'
+    And the identifier of the first Caveman should be '111222333'
     And the height of the first Caveman should be '1.86'
     And the symbol of the first Caveman should be ':fred'
     And the empty_string of the first Caveman should be ''
@@ -100,11 +100,11 @@ Feature: Store and load small amount of data from one class
     And I create a Caveman
     And his name is 'Fred'
     And his age is '25'
-    And his identifier is '111122223333'
+    And his identifier is '111222333'
     And his height is '1.86'
     Then his name should be 'Fred'
     And his age should be '25'
-    And his identifier should be '111122223333'
+    And his identifier should be '111222333'
     And his height should be '1.86'
 
     When database is created
@@ -134,9 +134,9 @@ Feature: Store and load small amount of data from one class
     And I create a Caveman
     And I fetch the first Caveman created
     Then his name should be ''
-    And his age should be nil
-    And his identifier should be nil
-    And his height should be nil
+    And his age should be '0'
+    And his identifier should be '0'
+    And his height should be '0'
     And his symbol should be nil
     And his item should be nil
     And his items should be empty

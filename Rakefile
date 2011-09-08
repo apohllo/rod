@@ -53,7 +53,6 @@ task :test do
   sh "ruby tests/unit/model.rb"
   sh "ruby tests/unit/model_tests.rb"
   sh "ruby tests/unit/database.rb"
-  sh "ruby tests/unit/collection_proxy.rb"
   sh "ruby tests/unit/abstract_database.rb"
 end
 

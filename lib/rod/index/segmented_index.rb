@@ -11,7 +11,8 @@ module Rod
       # Creats the index with given +path+, with the previous +index+ instance
       # and the following +options+:
       # * +:buckets_count+ - the number of buckets.
-      def initialize(path,options={:buckets_count => BUCKETS_COUNT})
+      def initialize(path,klass,options={:buckets_count => BUCKETS_COUNT})
+        super(klass)
         @path = path + "_idx/"
         @buckets_count = options[:buckets_count] || BUCKETS_COUNT
         @buckets_ceil = Math::log2(@buckets_count).ceil
@@ -25,7 +26,9 @@ module Rod
         end
         @buckets.each do |bucket_number,hash|
           File.open(path_for(bucket_number),"w") do |out|
-            out.puts(Marshal.dump(hash))
+            proxy_index = {}
+            hash.each{|k,col| proxy_index[k] = [col.offset,col.size]}
+            out.puts(Marshal.dump(proxy_index))
           end
         end
       end
@@ -35,25 +38,11 @@ module Rod
         remove_files(@path + "*")
       end
 
-      # Return value for the key.
-      def [](key)
-        bucket_number = bucket_for(key)
-        load_bucket(bucket_number) unless @buckets[bucket_number]
-        @buckets[bucket_number][key]
-      end
-
-      # Set the value for the key.
-      def []=(key,value)
-        bucket_number = bucket_for(key)
-        load_bucket(bucket_number) unless @buckets[bucket_number]
-        @buckets[bucket_number][key] = value
-      end
-
       def each
         if block_given?
           @buckets.each do |bucket_number,hash|
-            hash.each do |key,value|
-              yield key, value
+            hash.each_key do |key|
+              yield key, self[key]
             end
           end
         else
@@ -62,6 +51,18 @@ module Rod
       end
 
       protected
+      def get(key)
+        bucket_number = bucket_for(key)
+        load_bucket(bucket_number) unless @buckets[bucket_number]
+        @buckets[bucket_number][key]
+      end
+
+      def set(key,value)
+        bucket_number = bucket_for(key)
+        load_bucket(bucket_number) unless @buckets[bucket_number]
+        @buckets[bucket_number][key] = value
+      end
+
       def bucket_for(key)
         case key
         when NilClass

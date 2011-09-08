@@ -81,7 +81,7 @@ module RodTest
 
       assert a1.b_structs_count == a1.b_structs.count
       a1.b_structs = [b1, b2]
-      assert a1.b_structs == [b1, b2]
+      assert a1.b_structs.to_a == [b1, b2]
       assert a1.b_structs_count == a1.b_structs.count
 
       b1.b = "tead-only database"

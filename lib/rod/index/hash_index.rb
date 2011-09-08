@@ -10,27 +10,49 @@ module Rod
       class Handle
       end
 
-      def initialize(path,options={})
+      # Initializes the index with +path+ and +class+.
+      # Options are not (yet) used.
+      def initialize(path,klass,options={})
         @path = path + ".db"
+        @klass = klass
         _open(@path,:create => true)
         @index = {}
       end
 
+      # Stores the index on disk.
       def save
-        @index.each do |key,value|
-          offset,size = value
+        @index.each do |key,collection|
           key = Marshal.dump(key)
-          _put(key,offset,size)
+          _put(key,collection.offset,collection.size)
         end
         _close()
       end
 
+      # Clears the contents of the index.
       def destroy
         _close()
         _open(@path,:truncate => true)
       end
 
-      def [](key)
+      # Simple iterator.
+      def each
+        if block_given?
+          @index.each do |key,value|
+            yield key,value
+          end
+          _each do |key,value|
+            key = Marshal.load(key)
+            unless @index[key]
+              yield key,self[key]
+            end
+          end
+        else
+          enum_for(:each)
+        end
+      end
+
+      protected
+      def get(key)
         return @index[key] if @index.has_key?(key)
         begin
           value = _get(Marshal.dump(key))
@@ -40,25 +62,10 @@ module Rod
         @index[key] = value
       end
 
-      def []=(key,value)
+      def set(key,value)
         @index[key] = value
       end
 
-      def each
-        if block_given?
-          @index.each do |key,value|
-            yield key,value
-          end
-          _each do |key,value|
-            key = Marshal.load(key)
-            unless @index[key]
-              yield key,value
-            end
-          end
-        else
-          enum_for(:each)
-        end
-      end
 
       def self.rod_exception
         str =<<-END

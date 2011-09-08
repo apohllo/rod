@@ -5,7 +5,6 @@ Feature: Access to objects with hash indices.
   Background:
     Given the library works in development mode
 
-  @wip
   Scenario: indexing with hash index
       Rod should allow to access objects via values of their fields,
       for which indices were built.
@@ -64,7 +63,6 @@ Feature: Access to objects with hash indices.
     And there should be 1 Caveman with 'Wilma' name
     And there should be 1 Caveman with 'Barney' name
 
-  @wip
   Scenario: extending the DB when hash index is used
       Rod should allow to extend the DB when the hash index is used.
       The index should be properly updated.
@@ -91,7 +89,6 @@ Feature: Access to objects with hash indices.
     And there should be 2 Caveman(s) with 'Fred' name
     And there should be 1 Caveman with 'Barney' name
 
-  @wip
   Scenario: indexing of fields with different DBs for the same model with hash index
     The contents of indices should be fulshed when the database is reopened.
     Given the class space is cleared
@@ -124,7 +121,6 @@ Feature: Access to objects with hash indices.
     And there should be 3 Caveman(s) with 'Wilma' name
     And there should be 0 Caveman(s) with 'Fred' name
 
-  @wip
   Scenario: indexing of particular values with hash index
     Given the class space is cleared
     And the model is connected with the default database
@@ -150,7 +146,6 @@ Feature: Access to objects with hash indices.
     And there should be 2 Caveman(s) with '' name
     And there should be 2 Caveman(s) with '' surname
 
-  @wip
   Scenario: multiple object with indexed fields with hash index
       The database should properly store thausands of objects with some indexed fields.
     Given the class space is cleared
