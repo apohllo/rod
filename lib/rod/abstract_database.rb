@@ -116,8 +116,10 @@ module Rod
       end
       generate_c_code(@path, self.classes)
       @handler = _init_handler(@path)
+      metadata_copy = @metadata.dup
+      metadata_copy.delete("Rod")
       self.classes.each do |klass|
-        meta = @metadata[klass.name]
+        meta = metadata_copy.delete(klass.name)
         if meta.nil?
           # new class
           next
@@ -141,6 +143,11 @@ module Rod
           pages = (meta[:count] * new_class.struct_size / _page_size.to_f).ceil
           set_page_count(new_class,pages)
         end
+      end
+      if metadata_copy.size > 0
+        @handler = nil
+        raise DatabaseError.new("The following classes are missing in runtime:\n - " +
+                                metadata_copy.keys.join("\n - "))
       end
       _open(@handler)
       if options[:migrate]
