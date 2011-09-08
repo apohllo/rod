@@ -70,12 +70,12 @@ module Rod
         if [:fields,:has_one,:has_many].include?(type)
           values.to_a.zip(other_metadata[type].to_a) do |meta1,meta2|
             if meta1 != meta2
-              result << [meta1,meta2]
+              result << [meta2,meta1]
             end
           end
         else
           if other_metadata[type] != values
-            result << [values,other_metadata[type]]
+            result << [other_metadata[type],values]
           end
         end
       end
