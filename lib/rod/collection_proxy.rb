@@ -252,6 +252,9 @@ module Rod
       end
     end
 
+    # Returns the +rod_id+ of the element for given +index+. The
+    # id is taken from the DB or from in-memory map, depending
+    # on the fact if the collection were modified.
     def id_for(index)
       if direct_index = @map[index]
         @added[direct_index][0]
@@ -264,6 +267,9 @@ module Rod
       end
     end
 
+    # Returns the +class_id+ of the element for given +index+. The
+    # id is taken from the DB or from in-memory map, depending
+    # on the fact if the collection were modified.
     def class_for(index)
       if polymorphic?
         if direct_index = @map[index]
@@ -276,6 +282,8 @@ module Rod
       end
     end
 
+    # Returns the index in the database corresponding to the given
+    # +index+ of the collection.
     def lazy_index(index)
       index -= @map.keys.select{|e| e < index}.size
       result = 0
