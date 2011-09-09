@@ -28,7 +28,7 @@ module Rod
             proxy = @unstored_map[key]
             unstored_object = true
           else
-            # #155, the problem is when the how to determine the name_hash,
+            # TODO #155, the problem is how to determine the name_hash,
             # when the class is generated in different module
             # key = [key.rod_id,key.class.name_hash]
             key = key.rod_id
@@ -46,7 +46,7 @@ module Rod
           end
         end
         if unstored_object
-          key.reference_updaters << ReferenceUpdater.for_index(self,proxy)
+          key.reference_updaters << ReferenceUpdater.for_index(self)
           @unstored_map[key] = proxy
         else
           set(key,proxy)
@@ -65,7 +65,13 @@ module Rod
       # memory to the index.
       def key_persisted(object)
         proxy = @unstored_map.delete(object)
-        set([object.rod_id,object.class.name_hash],proxy)
+        # the update for that object has been done
+        return if proxy.nil?
+        # TODO #155, the problem is how to determine the name_hash,
+        # when the class is generated in different module
+        # key = [key.rod_id,key.class.name_hash]
+        key = object.rod_id
+        set(key,proxy)
       end
 
       class << self

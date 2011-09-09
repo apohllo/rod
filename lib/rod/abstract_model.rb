@@ -46,20 +46,40 @@ module Rod
     end
 
     # Returns meta-data (in the form of a hash) for the model.
-    def self.metadata(database)
+    def self.metadata
       meta = {}
-      meta[:count] = database.count(self)
       meta[:superclass] = self.superclass.name
       meta
     end
 
     # Checks if the +metadata+ are compatible with the class definition.
-    def self.compatible?(metadata,database)
-      self_metadata = self.metadata(database)
+    def self.compatible?(metadata)
+      self.difference(metadata).empty?
+    end
+
+    # Calculates the difference between the classes metadata
+    # and the +metadata+ provided.
+    def self.difference(metadata)
+      my_metadata = self.metadata
       other_metadata = metadata.dup
-      self_metadata.delete(:count)
       other_metadata.delete(:count)
-      self_metadata == other_metadata
+      result = []
+      my_metadata.each do |type,values|
+        # TODO #161 the order of properties should be preserved for the
+        # whole class, not only for each type of properties.
+        if [:fields,:has_one,:has_many].include?(type)
+          values.to_a.zip(other_metadata[type].to_a) do |meta1,meta2|
+            if meta1 != meta2
+              result << [meta2,meta1]
+            end
+          end
+        else
+          if other_metadata[type] != values
+            result << [other_metadata[type],values]
+          end
+        end
+      end
+      result
     end
 
   end

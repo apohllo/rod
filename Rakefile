@@ -47,9 +47,13 @@ task :test do
   sh "ruby tests/generate_classes_rewrite.rb"
   sh "ruby tests/generate_classes_rewrite.rb"
   sh "ruby tests/generate_classes_verify.rb"
-  sh "ruby tests/migration_create.rb"
-  sh "ruby tests/migration_migrate.rb"
-  sh "ruby tests/migration_verify.rb"
+  sh "ruby tests/migration_create.rb 1000"
+  sh "ruby tests/migration_migrate.rb 1000"
+  sh "ruby tests/migration_verify.rb 1000"
+  sh "ruby tests/missing_class_create.rb"
+  sh "ruby tests/missing_class_verify.rb"
+  sh "ruby tests/properties_order_create.rb"
+  sh "ruby tests/properties_order_verify.rb"
   sh "ruby tests/unit/model.rb"
   sh "ruby tests/unit/model_tests.rb"
   sh "ruby tests/unit/database.rb"
@@ -62,17 +66,22 @@ task :regression_test do
   sh "ruby tests/check_strings.rb"
 end
 
+desc "Run all specs without the ignored ones"
 task :spec do
   sh "bundle exec cucumber --tags ~@ignore features/*"
 end
 
-# Work in progress
+desc "Run only work-in-progress specs"
 task :wip do
   sh "bundle exec cucumber --tags @wip features/*"
 end
 
-desc "Clean"
+desc "Clean all gems"
 task :clean do
   sh "rm #$gem_name*.gem" 
 end
 
+desc "Show changelog from the last release"
+task :changelog do
+  sh "git log v#{Rod::VERSION}.. --pretty=%s | tee"
+end

@@ -5,6 +5,7 @@ Gem::Specification.new do |s|
   s.name = "rod"
   s.version = Rod::VERSION
   s.date = "#{Time.now.strftime("%Y-%m-%d")}"
+  s.required_ruby_version = '>= 1.9.2'
   # TODO set to Linux/MacOSX and Ruby 1.9
   s.platform    = Gem::Platform::RUBY
   s.authors = ['Aleksander Pohl']

@@ -131,17 +131,20 @@ module Rod
       end
       generate_c_code(@path, self.classes)
       @handler = _init_handler(@path)
+      metadata_copy = @metadata.dup
+      metadata_copy.delete("Rod")
       self.classes.each do |klass|
-        meta = @metadata[klass.name]
+        meta = metadata_copy.delete(klass.name)
         if meta.nil?
           # new class
           next
         end
-        unless klass.compatible?(meta,self) || options[:generate] || options[:migrate]
+        unless klass.compatible?(meta) || options[:generate] || options[:migrate]
             raise IncompatibleVersion.
               new("Incompatible definition of '#{klass.name}' class.\n" +
-                  "Database and runtime versions are different:\n" +
-                  "  #{meta}\n  #{klass.metadata(self)}")
+                  "Database and runtime versions are different:\n  " +
+                  klass.difference(meta).
+                  map{|e1,e2| "DB: #{e1} vs. RT: #{e2}"}.join("\n  "))
         end
         set_count(klass,meta[:count])
         file_size = File.new(klass.path_for_data(@path)).size
@@ -157,15 +160,20 @@ module Rod
           set_page_count(new_class,pages)
         end
       end
+      if metadata_copy.size > 0
+        @handler = nil
+        raise DatabaseError.new("The following classes are missing in runtime:\n - " +
+                                metadata_copy.keys.join("\n - "))
+      end
       _open(@handler)
       if options[:migrate]
         empty_data = "\0" * _page_size
         self.classes.each do |klass|
           next unless klass.to_s =~ LEGACY_RE
           new_class = klass.name.sub(LEGACY_RE,"").constantize
-          old_metadata = klass.metadata(self)
+          old_metadata = klass.metadata
           old_metadata.merge!({:superclass => old_metadata[:superclass].sub(LEGACY_RE,"")})
-          unless new_class.compatible?(old_metadata,self)
+          unless new_class.compatible?(old_metadata)
             File.open(new_class.path_for_data(@path),"w") do |out|
               send("_#{new_class.struct_name}_page_count",@handler).
                 times{|i| out.print(empty_data)}
@@ -514,7 +522,8 @@ module Rod
       rod_data[:created_at] = self.metadata["Rod"][:created_at] || Time.now
       rod_data[:updated_at] = Time.now
       self.classes.each do |klass|
-        metadata[klass.name] = klass.metadata(self)
+        metadata[klass.name] = klass.metadata
+        metadata[klass.name][:count] = self.count(klass)
       end
       File.open(@path + DATABASE_FILE,"w") do |out|
         out.puts(YAML::dump(metadata))
