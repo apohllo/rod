@@ -1,3 +1,21 @@
+0.6.3
+- #94 indexing of unstored object in plural assoc
+- #128 incompatible schema message is more specific
+- #129 check properties order
+- #131 check for missing classes
+- #72 update of objects' state
+- #117 get rid of signed/unsigned comparison warning
+- #135 refactoring of indexes
+- #140 remove key argument from AbstractDatabase#read_index
+- #149 CollectionProxy insert, delete, delete_at
+- #154 fix configuration of mocha for cucumber
+- #153 fix: field values doesn't match
+- #153 111122223333 is too big for ulong on 32bit systems
+- #18 use latest RubyInline and fix 'require on ... failed'
+- #152 travis-ci configuration: ruby 1.9.2
+- #151 missing rake dependency
+- #130 fix: canonicalize path
+- #124 implement empty? for CollectionProxy
 0.6.2
 - #127 default implementation of inspect
 - #123 fix: warning on has_rdoc in gemspec
