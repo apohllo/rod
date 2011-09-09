@@ -183,8 +183,6 @@ Feature: database with append
     And there should be 1 Caveman with the first Automobile as automobiles
     And there should be 1 Caveman with the second Automobile as automobiles
 
-  # Enable for #94
-  @ignore
   Scenario: append of has many associations with indexing with an unstored object
       Same as above, but with an object which is appended to the collection
       while it is not yet stored in the DB.
