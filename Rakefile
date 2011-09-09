@@ -66,17 +66,22 @@ task :regression_test do
   sh "ruby tests/check_strings.rb"
 end
 
+desc "Run all specs without the ignored ones"
 task :spec do
   sh "bundle exec cucumber --tags ~@ignore features/*"
 end
 
-# Work in progress
+desc "Run only work-in-progress specs"
 task :wip do
   sh "bundle exec cucumber --tags @wip features/*"
 end
 
-desc "Clean"
+desc "Clean all gems"
 task :clean do
   sh "rm #$gem_name*.gem" 
 end
 
+desc "Show changelog from the last release"
+task :changelog do
+  sh "git log v#{Rod::VERSION}.. --pretty=%s | tee"
+end
