@@ -7,50 +7,57 @@ Rod::Database.development_mode = true
 
 Database.instance.open_database("tmp/migration")
 
-user = User[0]
-user.should_not == nil
-user = User.find_by_name("John")
-user.should_not == nil
-user.name.should == "John"
-user.age.should == 0
-user.account.should_not == nil
-user.account.should == Account[0]
-user.files.size.should == 3
-user.accounts.size.should == 1
-user.accounts[0].should == user.account
+count = (ARGV[0] || 10).to_i
+count.times do |index|
+  user1 = User[index*2]
+  user1.should_not == nil
+  user = User.find_by_name("John#{index}")
+  user1.should == user
+  user1.name.should == "John#{index}"
+  user1.age.should == index
+  user1.account.should_not == nil
+  user1.account.should == Account[index * 2]
+  user1.account.login.should == "john#{index}"
+  user1.account.password.should == "pass#{index * 2}"
+  User.find_all_by_account(user1.account).size.should == 1
+  User.find_all_by_account(user1.account)[0].should == user
+  User.find_by_account(user1.account).should_not == nil
+  user1.files.size.should == 3
+  user1.files[0].data.should == "#{index} data"
+  user1.files[0].name.should == "file#{index}"
+  user1.accounts.size.should == 1
+  user1.accounts[0].should == user1.account
 
-account = Account[0]
-account.login.should == "john"
-account.password.should == ""
-User.find_all_by_account(account).size.should == 1
-User.find_all_by_account(account)[0].should == user
-User.find_by_account(account).should_not == nil
-user.account.should == account
-
-user = User.find_by_name("Amanda")
-user.should_not == nil
-user.name.should == "Amanda"
-user.age.should == 0
-user.account.should_not == nil
-user.files.size.should == 5
-user.accounts.size.should == 1
-user.accounts[0].should == user.account
-
-account = Account[1]
-account.login.should == "amanda"
-account.password.should == ""
-User.find_by_account(account).should_not == nil
-user.account.should == account
-
-file = UserFile[0]
-file.data.should == "0 data"
-
-UserFile.each do |file|
-  file.data.should_not == nil
-  file.name.should == ""
+  user2 = User[index*2+1]
+  user2.should_not == nil
+  user = User.find_by_name("Amanda#{index}")
+  user2.should == user
+  user2.name.should == "Amanda#{index}"
+  user2.age.should == index * 2
+  user2.account.should_not == nil
+  user2.account.should == Account[index * 2 + 1]
+  user2.account.password.should == "pass#{index * 2 + 1}"
+  User.find_by_account(user2.account).should == user2
+  user2.files.size.should == 5
+  user2.files[0].data.should == "#{index} data"
+  user2.files[0].name.should == "file#{index}"
+  user2.files[3].data.should == nil unless user2.files[3].nil?
+  user2.accounts.size.should == 2
+  user2.accounts[0].should == user1.account
+  user2.accounts[1].should == user2.account
 end
-users = User.find_all_by_files(file)
+
+
+UserFile.each.with_index do |file,index|
+  file.data.should_not == nil
+  file.data.should == "#{index} data"
+  file.name.should_not == nil
+  file.name.should == "file#{index}"
+end
+
+users = User.find_all_by_files(UserFile[0])
 users.size.should == 2
-users[1].should == user
+users[0].should == User[0]
+users[1].should == User[1]
 
 Database.instance.close_database
