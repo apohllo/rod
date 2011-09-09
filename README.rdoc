@@ -18,7 +18,7 @@ fast access for data, which rarely changes.
 * compatibility check of data model
 * autogeneration of model (based on the database metadata)
 * automatic model migrations (addition/removal of properties so far)
-* append of the database (new objects, new elements in plural associations)
+* full update of the database (removal of objects not available yet)
 * databases interlinking (via direct links or inverted indices)
 
 == PROBLEMS
@@ -39,9 +39,9 @@ The primary reason for designing it was to create storage facility for
 natural language dictionaries and corpora. The data in a fully fledged dictionary
 is interconnected in many ways, thus the relational model (joins) introduces
 unacceptable performance hit. The size of corpora forces them to be kept
-on disks. The in-memory data bases are unacceptable for larg corpora and
-would require the data to be kept mostly in the operational memory,
-which is not needed, while accessing dictionaries (in most cases only a fraction
+on disks. The in-memory data bases are unacceptable for larg corpora.
+They would also require the data of a dictionary to be kept mostly in the
+operational memory, which is not needed (in most cases only a fraction
 of the data is used at the same time). That's why a storage facility which minimizes the
 number of disk reads was designed. The Ruby interface facilitates it's usage.
 
@@ -51,6 +51,7 @@ number of disk reads was designed. The Ruby interface facilitates it's usage.
 * RubyInline
 * english
 * ActiveModel
+* bsearch
 
 == INSTALL
 
@@ -69,7 +70,7 @@ Grab from rubygems:
 
  class User < Model
    field :name, :string
-   field :surname, :string, :index => true
+   field :surname, :string, :index => :flat
    field :age, :integer
    has_one :account
    has_many :files
@@ -77,12 +78,12 @@ Grab from rubygems:
 
  class Account < Model
    field :email, :string
-   field :login, :string, :index => true
+   field :login, :string, :index => :flat
    field :password, :string
  end
 
  class File < Model
-   field :title, :string, :index => true
+   field :title, :string, :index => :flat
    field :data, :string
  end
 
@@ -113,7 +114,7 @@ Grab from rubygems:
    puts "Name: #{user.name} surname: #{user.surname}"
    puts "login: #{user.account.login} e-mail: #{user.account.email}"
    user.files.each do |file|
-     puts "File: #{file.title}
+     puts "File: #{file.title}"
    end
  end
 
@@ -130,7 +131,7 @@ You'll need bundler installed:
 
 Then you have to fetch all the dependencies:
 
-  bunlde
+  bundle
 
 To run all the test simple type rake:
 

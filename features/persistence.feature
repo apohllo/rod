@@ -1,7 +1,5 @@
-Feature: ROD Storage
-  In order to persist data
-  Potential users
-  Must be able to store and load their objects.
+Feature: Persistence model
+    This feature defines the persistence model of ROD.
   Background:
     Given the library works in development mode
     And the class space is cleared
@@ -9,10 +7,9 @@ Feature: ROD Storage
     And a class Fred has an age field of type integer
     And a class Fred has a sex field of type string with flat index
 
-  Scenario Outline: Store Fred and modify his age
-      So far Rod doesn't support changing of objects (especially
-      plural associations). To keep the behavior consisten for
-      all types of data, fields shouldn't be modifiable as well.
+  Scenario Outline: Persistence of unstored changes
+      If there are any changes made to the object after it has
+      been persisted, they are lost when the database is closed.
     When database is created
     And I create a Fred
     And his age is '<init_age>'

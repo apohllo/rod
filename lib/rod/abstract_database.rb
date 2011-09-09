@@ -1,7 +1,7 @@
 require 'singleton'
 require 'yaml'
-require 'rod/segmented_index'
-require 'fileutils'
+require 'rod/index/base'
+require 'rod/utils'
 
 module Rod
   # This class implements the database abstraction, i.e. it
@@ -13,8 +13,13 @@ module Rod
     # a given model (set of classes).
     include Singleton
 
+    include Utils
+
     # The meta-data of the DataBase.
     attr_reader :metadata
+
+    # The path which the database instance is located on.
+    attr_reader :path
 
     # Initializes the classes linked with this database and the handler.
     def initialize
@@ -58,12 +63,7 @@ module Rod
         klass.send(:build_structure)
         remove_file(klass.path_for_data(@path))
         klass.indexed_properties.each do |property,options|
-          path = klass.path_for_index(@path,property,options)
-          if test(?d,path)
-            remove_files(path + "*")
-          elsif test(?f,path)
-            remove_file(path)
-          end
+          klass.index_for(property,options).destroy
         end
         next if special_class?(klass)
         remove_files_but(klass.inline_library)
@@ -116,17 +116,20 @@ module Rod
       end
       generate_c_code(@path, self.classes)
       @handler = _init_handler(@path)
+      metadata_copy = @metadata.dup
+      metadata_copy.delete("Rod")
       self.classes.each do |klass|
-        meta = @metadata[klass.name]
+        meta = metadata_copy.delete(klass.name)
         if meta.nil?
           # new class
           next
         end
-        unless klass.compatible?(meta,self) || options[:generate] || options[:migrate]
+        unless klass.compatible?(meta) || options[:generate] || options[:migrate]
             raise IncompatibleVersion.
               new("Incompatible definition of '#{klass.name}' class.\n" +
-                  "Database and runtime versions are different:\n" +
-                  "  #{meta}\n  #{klass.metadata(self)}")
+                  "Database and runtime versions are different:\n  " +
+                  klass.difference(meta).
+                  map{|e1,e2| "DB: #{e1} vs. RT: #{e2}"}.join("\n  "))
         end
         set_count(klass,meta[:count])
         file_size = File.new(klass.path_for_data(@path)).size
@@ -142,15 +145,20 @@ module Rod
           set_page_count(new_class,pages)
         end
       end
+      if metadata_copy.size > 0
+        @handler = nil
+        raise DatabaseError.new("The following classes are missing in runtime:\n - " +
+                                metadata_copy.keys.join("\n - "))
+      end
       _open(@handler)
       if options[:migrate]
         empty_data = "\0" * _page_size
         self.classes.each do |klass|
           next unless klass.to_s =~ LEGACY_RE
           new_class = klass.name.sub(LEGACY_RE,"").constantize
-          old_metadata = klass.metadata(self)
+          old_metadata = klass.metadata
           old_metadata.merge!({:superclass => old_metadata[:superclass].sub(LEGACY_RE,"")})
-          unless new_class.compatible?(old_metadata,self)
+          unless new_class.compatible?(old_metadata)
             File.open(new_class.path_for_data(@path),"w") do |out|
               send("_#{new_class.struct_name}_page_count",@handler).
                 times{|i| out.print(empty_data)}
@@ -267,6 +275,18 @@ module Rod
                                            class_id, @handler)
     end
 
+    # Allocates space for polymorphic join elements.
+    def allocate_polymorphic_join_elements(size)
+      raise DatabaseError.new("Readonly database.") if readonly_data?
+      _allocate_polymorphic_join_elements(size,@handler)
+    end
+
+    # Allocates space for join elements.
+    def allocate_join_elements(size)
+      raise DatabaseError.new("Readonly database.") if readonly_data?
+      _allocate_join_elements(size,@handler)
+    end
+
     # Returns the string of given +length+ starting at given +offset+.
     # Options:
     # * +:skip_encoding+ - if set to +true+, the string is left as ASCII-8BIT
@@ -305,25 +325,6 @@ module Rod
       send("_#{klass.struct_name}_page_count=",@handler,value)
     end
 
-    # Reads index of +field+ (with +options+) for +klass+.
-    def read_index(klass,field,options)
-      case options[:index]
-      when :flat,true
-        begin
-          File.open(klass.path_for_index(@path,field,options)) do |input|
-            return {} if input.size == 0
-            return Marshal.load(input)
-          end
-        rescue Errno::ENOENT
-          return {}
-        end
-      when :segmented
-        return SegmentedIndex.new(klass.path_for_index(@path,field,options))
-      else
-        raise RodException.new("Invalid index type '#{options[:index]}'.")
-      end
-    end
-
     # Store index of +field+ (with +options+) of +klass+ in the database.
     # There are two types of indices:
     # * +:flat+ - marshalled index is stored in one file
@@ -331,68 +332,25 @@ module Rod
     def write_index(klass,property,options)
       raise DatabaseError.new("Readonly database.") if readonly_data?
       class_index = klass.index_for(property,options)
-      # Only convert the index, without (re)storing the values.
-      unless options[:convert]
-        class_index.each do |key,ids|
-          unless ids.is_a?(CollectionProxy)
-            proxy = CollectionProxy.new(ids[1],self,ids[0],klass)
-          else
-            proxy = ids
-          end
-          offset = _allocate_join_elements(proxy.size,@handler)
-          proxy.each_id.with_index do |rod_id,index|
-            set_join_element_id(offset, index, rod_id)
-          end
-          class_index[key] = [offset,proxy.size]
-        end
-      end
-      case options[:index]
-      when :flat,true
-        File.open(klass.path_for_index(@path,property,options),"w") do |out|
-          out.puts(Marshal.dump(class_index))
-        end
-      when :segmented
-        path = klass.path_for_index(@path,property,options)
-        if class_index.is_a?(Hash)
-          index = SegmentedIndex.new(path)
-          class_index.each{|k,v| index[k] = v}
-        else
-          index = class_index
-        end
-        index.save
-        index = nil
+      if options[:convert]
+        # Only convert the index, without (re)storing the values.
+        index = Index::Base.create(klass.path_for_index(@path,property),klass,options)
+        index.copy(class_index)
+        class_index = index
       else
-        raise RodException.new("Invalid index type '#{options[:index]}'.")
+        class_index.each do |key,proxy|
+          proxy.save
+        end
       end
+      class_index.save
+      class_index = nil
     end
 
     # Store the object in the database.
     def store(klass,object)
       raise DatabaseError.new("Readonly database.") if readonly_data?
-      new_object = (object.rod_id == 0)
-      if new_object
+      if object.new?
         send("_store_" + klass.struct_name,object,@handler)
-        # set fields' values
-        object.class.fields.each do |name,options|
-          # rod_id is set during _store
-          object.update_field(name) unless name == "rod_id"
-        end
-        # set ids of objects referenced via singular associations
-        object.class.singular_associations.each do |name,options|
-          object.update_singular_association(name,object.send(name))
-        end
-      end
-      # set ids of objects referenced via plural associations
-      # TODO should be disabled, when there are no new elements
-      object.class.plural_associations.each do |name,options|
-        elements = object.send(name) || []
-        if options[:polymorphic]
-          offset = _allocate_polymorphic_join_elements(elements.size,@handler)
-        else
-          offset = _allocate_join_elements(elements.size,@handler)
-        end
-        object.update_count_and_offset(name,elements.size,offset)
-        object.update_plural_association(name,elements)
       end
     end
 
@@ -430,7 +388,8 @@ module Rod
 
     # Retruns the path to the DB as a name of a directory.
     def canonicalize_path(path)
-      path + "/" unless path[-1] == "/"
+      path += "/" unless path[-1] == "/"
+      path
     end
 
     # Special classes used by the database.
@@ -533,28 +492,6 @@ module Rod
       generate_classes(legacy_module)
     end
 
-    # Removes single file.
-    def remove_file(file_name)
-      if test(?f,file_name)
-        File.delete(file_name)
-        puts "Removing #{file_name}" if $ROD_DEBUG
-      end
-    end
-
-    # Remove all files matching the +pattern+.
-    # If +skip+ given, the file with the given name is not deleted.
-    def remove_files(pattern,skip=nil)
-      Dir.glob(pattern).each do |file_name|
-        remove_file(file_name) unless file_name == skip
-      end
-    end
-
-    # Removes all files which are similar (i.e. are generated
-    # by RubyInline for the same class) to +name+
-    # excluding the file with exactly the name given.
-    def remove_files_but(name)
-      remove_files(name.sub(INLINE_PATTERN_RE,"*"),name)
-    end
 
     # Writes the metadata to the database.yml file.
     def write_metadata
@@ -564,7 +501,8 @@ module Rod
       rod_data[:created_at] = self.metadata["Rod"][:created_at] || Time.now
       rod_data[:updated_at] = Time.now
       self.classes.each do |klass|
-        metadata[klass.name] = klass.metadata(self)
+        metadata[klass.name] = klass.metadata
+        metadata[klass.name][:count] = self.count(klass)
       end
       File.open(@path + DATABASE_FILE,"w") do |out|
         out.puts(YAML::dump(metadata))

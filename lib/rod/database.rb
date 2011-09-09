@@ -159,7 +159,7 @@ module Rod
     def inline_library
       unless defined?(@inline_library)
         self.class.inline(:C) do |builder|
-          builder.c_singleton("void __unused_method_#{rand(1000)}(){}")
+          builder.c_singleton("void __unused_method_#{rand(1000000)}(){}")
 
           self.instance_variable_set("@inline_library",builder.so_name)
         end
@@ -355,7 +355,7 @@ module Rod
           |  #{model_struct} * model_p;
           |  unsigned long length = RSTRING_LEN(ruby_value);
           |  char * value = RSTRING_PTR(ruby_value);
-          |  unsigned long string_offset, page_offset, current_page, sum;
+          |  unsigned long string_offset, page_offset, current_page;
           |  char * dest;
           |  // table:
           |  // - address of the first page
@@ -373,13 +373,12 @@ module Rod
           |  page_offset = model_p->#{StringElement.struct_name}_count / page_size();
           |  current_page = page_offset;
           |  while(length_left > 0){
-          |    sum = ((unsigned long)length_left) + string_offset;
-          |    if(sum >= page_size()){
+          |    if(((unsigned long)length_left) + string_offset >= page_size()){
           |      \n#{mmap_class(StringElement)}
           |    }
           |    dest = model_p->#{StringElement.struct_name}_table +
           |      current_page * page_size() + string_offset;
-          |    if(length_left > page_size()){
+          |    if(((unsigned long)length_left) > page_size()){
           |      memcpy(dest,value,page_size());
           |    } else {
           |      memcpy(dest,value,length_left);
@@ -578,7 +577,7 @@ module Rod
           if @@rod_development_mode
             # This method is created to force rebuild of the C code, since
             # it is rebuild on the basis of methods' signatures change.
-            builder.c_singleton("void __unused_method_#{rand(1000)}(){}")
+            builder.c_singleton("void __unused_method_#{rand(1000000)}(){}")
           end
 
           # This has to be at the very end of builder definition!

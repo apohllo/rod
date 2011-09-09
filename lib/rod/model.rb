@@ -7,14 +7,22 @@ module Rod
   # Abstract class representing a model entity. Each storable class has to derieve from +Model+.
   class Model < AbstractModel
     include ActiveModel::Validations
+    include ActiveModel::Dirty
     extend Enumerable
+
+    # A list of updaters that has to be notified when the +rod_id+
+    # of this object is defined. See ReferenceUpdater for details.
+    attr_reader :reference_updaters
 
     # If +options+ is an integer it is the @rod_id of the object.
     def initialize(options=nil)
+      @reference_updaters = []
       case options
       when Integer
         @rod_id = options
       when Hash
+        @rod_id = 0
+        initialize_fields
         options.each do |key,value|
           begin
             self.send("#{key}=",value)
@@ -22,10 +30,24 @@ module Rod
             raise RodException.new("There is no field or association with name #{key}!")
           end
         end
+      when NilClass
         @rod_id = 0
+        initialize_fields
       else
-        @rod_id = 0
+        raise InvalidArgument.new("initialize(options)",options)
       end
+    end
+
+    # Returns duplicated object, which shares the state of fields and
+    # associations, but is separatly persisted (has its own +rod_id+,
+    # dirty attributes, etc.).
+    # WARNING: This behaviour might change slightly in future #157
+    def dup
+      object = super()
+      object.instance_variable_set("@rod_id",0)
+      object.instance_variable_set("@reference_updaters",@reference_updaters.dup)
+      object.instance_variable_set("@changed_attributes",@changed_attributes.dup)
+      object
     end
 
     #########################################################################
@@ -45,11 +67,46 @@ module Rod
       else
         self.class.store(self)
       end
+      # The default values doesn't have to be persisted, since they
+      # are returned by default by the accessors.
+      self.changed.each do |property|
+        property = property.to_sym
+        if self.class.field?(property)
+          # store field value
+          update_field(property)
+        elsif self.class.singular_association?(property)
+          # store singular association value
+          update_singular_association(property,send(property))
+        else
+          # Plural associations are not tracked.
+          raise RodException.new("Invalid changed property #{self.class}##{property}'")
+        end
+      end
+      # store plural associations in the DB
+      self.class.plural_associations.each do |property,options|
+        collection = send(property)
+        offset = collection.save
+        update_count_and_offset(property,collection.size,offset)
+      end
+      # notify reference updaters
+      reference_updaters.each do |updater|
+        updater.update(self)
+      end
+      reference_updaters.clear
+      # XXX we don't use the 'previously changed' feature, since the simplest
+      # implementation requires us to leave references to objects, which
+      # forbids them to be garbage collected.
+      @changed_attributes.clear unless @changed_attributes.nil?
     end
 
     # Default implementation of equality.
     def ==(other)
       self.class == other.class && self.rod_id == other.rod_id
+    end
+
+    # Returns +true+ if the object hasn't been persisted yet.
+    def new?
+      @rod_id == 0
     end
 
     # Default implementation of +inspect+.
@@ -63,6 +120,19 @@ module Rod
     # Default implementation of +to_s+.
     def to_s
       self.inspect
+    end
+
+    # Returns a hash {'attr_name' => 'attr_value'} which covers fields and
+    # has_one relationships values. This is required by ActiveModel::Dirty.
+    def attributes
+      result = {}
+      self.class.fields.each do |name,options|
+        result[name.to_s] = self.send(name)
+      end
+      self.class.singular_associations.each do |name,options|
+        result[name.to_s] = self.send(name)
+      end
+      result
     end
 
     # Returns the number of objects of this class stored in the
@@ -99,6 +169,29 @@ module Rod
     end
 
     protected
+    # Sets the default values for fields.
+    def initialize_fields
+      self.class.fields.each do |name,options|
+        next if name == "rod_id"
+        value =
+          case options[:type]
+          when :integer
+            0
+          when :ulong
+            0
+          when :float
+            0.0
+          when :string
+            ''
+          when :object
+            nil
+          else
+            raise InvalidArgument.new(options[:type],"field type")
+          end
+        send("#{name}=",value)
+      end
+    end
+
     # A macro-style function used to indicate that given piece of data
     # is stored in the database.
     # Type should be one of:
@@ -167,52 +260,28 @@ module Rod
     public
     # Update the DB information about the +object+ which
     # is referenced via singular association with +name+.
+    # If the object is not yet stored, a reference updater
+    # is registered to update the DB when it is stored.
     def update_singular_association(name, object)
-      rod_id = object.nil? ? 0 : object.rod_id
+      if object.nil?
+        rod_id = 0
+      else
+        if object.new?
+          # There is a referenced object, but its rod_id is not set.
+          object.reference_updaters << ReferenceUpdater.
+            for_singular(self,name,self.database)
+          return
+        else
+          rod_id = object.rod_id
+        end
+        # clear references, allowing for garbage collection
+        # WARNING: don't use writer, since we don't want this change to be tracked
+        #object.instance_variable_set("@#{name}",nil)
+      end
       send("_#{name}=", @rod_id, rod_id)
       if self.class.singular_associations[name][:polymorphic]
         class_id = object.nil? ? 0 : object.class.name_hash
         send("_#{name}__class=", @rod_id, class_id)
-      end
-    end
-
-    # Update in the DB information about the +object+ (or objects) which is (are)
-    # referenced via plural association with +name+.
-    #
-    # The name of the association is +name+, the referenced
-    # object(s) is (are) +object+.
-    # +index+ is the position of the referenced object in the association.
-    # If there are many objects, the index is ignored.
-    def update_plural_association(name, object, index=nil)
-      offset = send("_#{name}_offset",@rod_id)
-      if self.class.plural_associations[name][:polymorphic]
-        # If you wish to refactor this code, ensure performance is preserved.
-        if object.respond_to?(:each)
-          objects = object
-          objects.each.with_index do |object,index|
-            rod_id = object.nil? ? 0 : object.rod_id
-            class_id = object.nil? ? 0 : object.class.name_hash
-            database.set_polymorphic_join_element_id(offset, index, rod_id,
-                                                     class_id)
-          end
-        else
-          rod_id = object.nil? ? 0 : object.rod_id
-          class_id = object.nil? ? 0 : object.class.name_hash
-          database.set_polymorphic_join_element_id(offset, index, rod_id,
-                                                   class_id)
-        end
-      else
-        # If you wish to refactor this code, ensure performance is preserved.
-        if object.respond_to?(:each)
-          objects = object
-          objects.each.with_index do |object,index|
-            rod_id = object.nil? ? 0 : object.rod_id
-            database.set_join_element_id(offset, index, rod_id)
-          end
-        else
-          rod_id = object.nil? ? 0 : object.rod_id
-          database.set_join_element_id(offset, index, rod_id)
-        end
       end
     end
 
@@ -255,97 +324,34 @@ module Rod
       unless object.is_a?(self)
         raise RodException.new("Incompatible object class #{object.class}.")
       end
-      new_object = (object.rod_id == 0)
+      stored_now = object.new?
       database.store(self,object)
       cache[object.rod_id] = object
 
-      referenced_objects ||= database.referenced_objects
-
-      # update indices
+      # update class indices
       indexed_properties.each do |property,options|
-        # singular and plural associations with nil as value are not indexed
-        keys =
-          if new_object
-            if field?(property)
-              [object.send(property)]
-            elsif singular_association?(property)
-              [object.send(property)].compact
-            else
-              object.send(property).to_a.compact
+        # WARNING: singular and plural associations with nil as value are not indexed!
+        # TODO #156 think over this constraint, write specs in persistence.feature
+        if field?(property) || singular_association?(property)
+          if stored_now || object.changes.has_key?(property)
+            unless stored_now
+              old_value = object.changes[property][0]
+              self.index_for(property,options)[old_value].delete(object)
             end
-          elsif plural_association?(property)
-            object.send(property).to_a.compact
-          end
-        next if keys.nil?
-        keys.each.with_index do |key_or_object,key_index|
-          key = (key_or_object.is_a?(Model) ? key_or_object.rod_id : key_or_object)
-          proxy = self.index_for(property,options,key)
-          if proxy.nil?
-            proxy = self.set_values_for(property,options,key,0,database,nil)
-          else
-            unless proxy.is_a?(CollectionProxy)
-              offset, count = proxy
-              proxy = self.set_values_for(property,options,key,count,database,offset)
+            new_value = object.send(property)
+            if field?(property) || new_value
+              self.index_for(property,options)[new_value] << object
             end
           end
-          if new_object || plural_association?(property) && proxy[key_index].nil?
-            if plural_association?(property) && key == 0
-              # TODO #94 devise method for reference rebuilding
-            end
-            proxy << object
+        elsif plural_association?(property)
+          object.send(property).deleted.each do |deleted|
+            self.index_for(property,options)[deleted].delete(object) unless deleted.nil?
           end
-        end
-      end
-
-      # update object that references the stored object
-      # ... via singular associations
-      singular_associations.each do |name, options|
-        referenced = object.send(name)
-        unless referenced.nil?
-          # There is a referenced object, but its rod_id is not set.
-          if referenced.rod_id == 0
-            unless referenced_objects.has_key?(referenced)
-              referenced_objects[referenced] = []
-            end
-            referenced_objects[referenced].push([object.rod_id, name,
-                                                object.class.name_hash])
+          object.send(property).added.each do |added|
+            self.index_for(property,options)[added] << object unless added.nil?
           end
-          # clear references, allowing for garbage collection
-          object.send("#{name}=",nil)
-        end
-      end
-
-      # ... via plural associations
-      plural_associations.each do |name, options|
-        referenced = object.send(name)
-        unless referenced.nil?
-          referenced.each_with_index do |element, index|
-            # There are referenced objects, but their rod_id is not set
-            if !element.nil? && element.rod_id == 0
-              unless referenced_objects.has_key?(element)
-                referenced_objects[element] = []
-              end
-              referenced_objects[element].push([object.rod_id, name,
-                                               object.class.name_hash, index])
-            end
-          end
-          # clear references, allowing for garbage collection
-          object.send("#{name}=",nil)
-        end
-      end
-
-      reverse_references = referenced_objects.delete(object)
-
-      unless reverse_references.blank?
-        reverse_references.each do |referee_rod_id, method_name, class_id, index|
-          referee = Model.get_class(class_id).find_by_rod_id(referee_rod_id)
-          self.cache.delete(referee_rod_id)
-          if index.nil?
-            # singular association
-            referee.update_singular_association(method_name, object)
-          else
-            referee.update_plural_association(method_name, object, index)
-          end
+        else
+          raise RodException.new("Unknown property type for #{self}##{property}")
         end
       end
     end
@@ -402,8 +408,8 @@ module Rod
     end
 
     # Metadata for the model class.
-    def self.metadata(database)
-      meta = super(database)
+    def self.metadata
+      meta = super
       # fields
       fields = meta[:fields] = {} unless self.fields.size == 1
       self.fields.each do |field,options|
@@ -517,6 +523,7 @@ module Rod
 
     # Used for establishing link with the DB.
     def self.inherited(subclass)
+      super
       subclass.add_to_class_space
       subclasses << subclass
       begin
@@ -675,16 +682,9 @@ module Rod
     end
 
     # The name of the file or directory (for given +relative_path+), which the
-    # index of the +field+ (with +options+) of this class is stored in.
-    def self.path_for_index(relative_path,field,options)
-      case options[:index]
-      when :flat,true
-        "#{relative_path}#{model_path}_#{field}.idx"
-      when :segmented
-        "#{relative_path}#{model_path}_#{field}_idx/"
-      else
-        raise RodException.new("Invalid index type #{type}")
-      end
+    # index of the +field+ of this class is stored in.
+    def self.path_for_index(relative_path,field)
+      "#{relative_path}#{model_path}_#{field}"
     end
 
     # Returns true if the type of the filed is string-like (i.e. stored as
@@ -808,7 +808,7 @@ module Rod
         if Database.development_mode
           # This method is created to force rebuild of the C code, since
           # it is rebuild on the basis of methods' signatures change.
-          builder.c_singleton("void __unused_method_#{rand(1000)}(){}")
+          builder.c_singleton("void __unused_method_#{rand(1000000)}(){}")
         end
 
         self.fields.each do |name, options|
@@ -856,8 +856,10 @@ module Rod
         end
       end
 
+      attribute_methods = []
       ## accessors for fields, plural and singular relationships follow
       self.fields.each do |field, options|
+        attribute_methods << field
         # optimization
         field = field.to_s
         # adding new private fields visible from Ruby
@@ -873,7 +875,7 @@ module Rod
           define_method(field) do
             value = instance_variable_get("@#{field}")
             if value.nil?
-              if @rod_id == 0
+              if self.new?
                 value = nil
               else
                 value = send("_#{field}",@rod_id)
@@ -885,6 +887,8 @@ module Rod
 
           # setter
           define_method("#{field}=") do |value|
+            old_value = send(field)
+            send("#{field}_will_change!") unless old_value == value
             instance_variable_set("@#{field}",value)
             value
           end
@@ -894,7 +898,7 @@ module Rod
           define_method(field) do
             value = instance_variable_get("@#{field}")
             if value.nil? # first call
-              if @rod_id == 0
+              if self.new?
                 return (options[:type] == :object ? nil : "")
               else
                 length = send("_#{field}_length", @rod_id)
@@ -911,7 +915,8 @@ module Rod
                   value = Marshal.load(value)
                 end
                 # caching Ruby representation
-                send("#{field}=",value)
+                # don't use writer - avoid change tracking
+                instance_variable_set("@#{field}",value)
               end
             end
             value
@@ -919,6 +924,8 @@ module Rod
 
           # setter
           define_method("#{field}=") do |value|
+            old_value = send(field)
+            send("#{field}_will_change!") unless old_value == value
             instance_variable_set("@#{field}",value)
           end
         end
@@ -926,6 +933,7 @@ module Rod
       end
 
       singular_associations.each do |name, options|
+        attribute_methods << name
         # optimization
         name = name.to_s
         private "_#{name}", "_#{name}="
@@ -940,7 +948,7 @@ module Rod
         define_method(name) do
           value = instance_variable_get("@#{name}")
           if value.nil?
-            return nil if @rod_id == 0
+            return nil if self.new?
             rod_id = send("_#{name}",@rod_id)
             # the indices are shifted by 1, to leave 0 for nil
             if rod_id == 0
@@ -953,13 +961,16 @@ module Rod
                 value = class_name.constantize.find_by_rod_id(rod_id)
               end
             end
-            send("#{name}=",value)
+            # avoid change tracking
+            instance_variable_set("@#{name}",value)
           end
           value
         end
 
         #setter
         define_method("#{name}=") do |value|
+          old_value = send(name)
+          send("#{name}_will_change!") unless old_value == value
           instance_variable_set("@#{name}", value)
         end
       end
@@ -979,13 +990,13 @@ module Rod
         define_method("#{name}") do
           proxy = instance_variable_get("@#{name}")
           if proxy.nil?
-            if @rod_id == 0
+            if self.new?
               count = 0
+              offset = 0
             else
               count = self.send("_#{name}_count",@rod_id)
+              offset = self.send("_#{name}_offset",@rod_id)
             end
-            return instance_variable_set("@#{name}",[]) if count == 0
-            offset = self.send("_#{name}_offset",@rod_id)
             proxy = CollectionProxy.new(count,database,offset,klass)
             instance_variable_set("@#{name}", proxy)
           end
@@ -997,7 +1008,7 @@ module Rod
           if (instance_variable_get("@#{name}") != nil)
             return instance_variable_get("@#{name}").count
           else
-            if @rod_id == 0
+            if self.new?
               return 0
             else
               return send("_#{name}_count",@rod_id)
@@ -1007,9 +1018,16 @@ module Rod
 
         # setter
         define_method("#{name}=") do |value|
-          instance_variable_set("@#{name}", value)
+          proxy = send(name)
+          value.each do |object|
+            proxy << object
+          end
+          proxy
         end
       end
+
+      # dirty tracking
+      define_attribute_methods(attribute_methods)
 
       # indices
       indexed_properties.each do |property,options|
@@ -1018,31 +1036,12 @@ module Rod
         (class << self; self; end).class_eval do
           # Find all objects with given +value+ of the +property+.
           define_method("find_all_by_#{property}") do |value|
-            value = value.rod_id if value.is_a?(Model)
-            proxy = index_for(property,options,value)
-            if proxy.is_a?(CollectionProxy)
-              proxy
-            else
-              offset,count = proxy
-              return [] if offset.nil?
-              CollectionProxy.new(count,database,offset,self)
-            end
+            index_for(property,options)[value]
           end
 
           # Find first object with given +value+ of the +property+.
           define_method("find_by_#{property}") do |value|
-            value = value.rod_id if value.is_a?(Model)
-            proxy = index_for(property,options)[value]
-            if proxy.is_a?(CollectionProxy)
-              proxy[0]
-            else
-              offset,count = proxy
-              if offset.nil?
-                nil
-              else
-                get(database.join_index(offset,0))
-              end
-            end
+            index_for(property,options)[value][0]
           end
         end
       end
@@ -1076,27 +1075,14 @@ module Rod
       end
 
       # Read index for the +property+ with +options+ from the database.
-      # If +key+ is given, the value for the key is returned.
-      # accessing the values for that key.
-      def index_for(property,options,key=nil)
+      def index_for(property,options)
         index = instance_variable_get("@#{property}_index")
         if index.nil?
-          index = database.read_index(self,property,options)
+          path = path_for_index(database.path,property)
+          index = Index::Base.create(path,self,options)
           instance_variable_set("@#{property}_index",index)
         end
-        if key
-          index[key]
-        else
-          index
-        end
-      end
-
-      # Sets the values in the index of the +property+ for
-      # the particular +key+. Method expects +fetch+ block and
-      # creates a CollectionProxy based on that block.
-      # The size of the collection is given as +count+.
-      def set_values_for(property,options,key,count,database,offset)
-        index_for(property,options)[key] = CollectionProxy.new(count,database,offset,self)
+        index
       end
 
       private
@@ -1114,3 +1100,4 @@ module Rod
     end
   end
 end
+

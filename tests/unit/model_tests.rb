@@ -13,7 +13,7 @@ module RodTest
 
   class AStruct < Model
     field :a1, :integer
-    field :a2, :ulong, :index => true
+    field :a2, :ulong, :index => :flat
     has_many :b_structs, :class_name => "RodTest::BStruct"
 
     def to_s
@@ -51,7 +51,7 @@ module RodTest
       assert AStruct.fields[:a2].has_key?(:type)
       assert AStruct.fields[:a2][:type] == :ulong
       assert AStruct.fields[:a2].has_key?(:index)
-      assert AStruct.fields[:a2][:index] == true
+      assert AStruct.fields[:a2][:index] == :flat
 
       assert AStruct.fields.has_key?("rod_id")
 
@@ -81,7 +81,7 @@ module RodTest
 
       assert a1.b_structs_count == a1.b_structs.count
       a1.b_structs = [b1, b2]
-      assert a1.b_structs == [b1, b2]
+      assert a1.b_structs.to_a == [b1, b2]
       assert a1.b_structs_count == a1.b_structs.count
 
       b1.b = "tead-only database"

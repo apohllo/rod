@@ -64,3 +64,39 @@ Feature: Access to objects with indexed associations
     And there should exist a Caveman with the second Automobile as automobiles
     And there should be 1 Caveman with the first Automobile as automobiles
     And there should be 1 Caveman with the second Automobile as automobiles
+
+  Scenario: indexing of plural associations with fresh objects
+    Given the class space is cleared
+    And the model is connected with the default database
+    And a class Automobile has a name field of type string
+    And a class Caveman has a name field of type string
+    And a class Caveman has many automobiles with flat index
+    When database is created
+    And I create an Automobile
+    And its name is 'Prehistoric car'
+    And I create another Automobile
+    And its name is 'Modern car'
+    And I create a Caveman
+    And his name is 'Fred'
+    And his automobiles contain the first Automobile created
+    And his automobiles contain the second Automobile created
+    And I store him in the database
+    And I create another Caveman
+    And his name is 'Allen'
+    And his automobiles contain the second Automobile created
+    And I store him in the database
+    And I fetch the first Automobile created
+    And I store it in the database
+    And I fetch the second Automobile created
+    And I store it in the database
+    And I create another Caveman
+    And her name is 'Linda'
+    And her automobiles contain the first Automobile created
+    And I store her in the database
+    And I reopen database for reading
+    Then there should be 3 Caveman(s)
+    And there should be 2 Automobile(s)
+    And there should exist a Caveman with the first Automobile as automobiles
+    And there should exist a Caveman with the second Automobile as automobiles
+    And there should be 2 Caveman(s) with the first Automobile as automobiles
+    And there should be 2 Caveman(s) with the second Automobile as automobiles
