@@ -36,6 +36,7 @@ module Rod
       # Destroys the index (removes it from the disk completely).
       def destroy
         remove_files(@path + "*")
+        @buckets = {}
       end
 
       def each

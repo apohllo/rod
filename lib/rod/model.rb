@@ -253,6 +253,20 @@ module Rod
       self.add_to_database
     end
 
+    # Rebuild the index for given +property+. If the property
+    # doesn't have an index, an exception is raised.
+    def self.rebuild_index(property)
+      if properties[property][:index].nil?
+        raise RodException.new("Property '#{property}' doesn't have an index!")
+      end
+      index_for(property,properties[property]).destroy
+      instance_variable_set("@#{property}_index",nil)
+      index = index_for(property,properties[property])
+      self.each do |object|
+        index[object.send(property)] << object
+      end
+    end
+
     #########################################################################
     # 'Private' instance methods
     #########################################################################
@@ -455,24 +469,39 @@ module Rod
 
     # Migrates the class to the new model, i.e. it copies all the
     # values of properties that both belong to the class in the old
-    # and the new model.
+    # and the new model; it initializes new properties with default
+    # values and migrates the indices to different implementations.
     def self.migrate
+      # check if the migration is needed
+      old_metadata = self.metadata
+      old_metadata.merge!({:superclass => old_metadata[:superclass].sub(LEGACY_RE,"")})
       new_class = self.name.sub(LEGACY_RE,"").constantize
+      return if new_class.compatible?(old_metadata)
+      database.send(:allocate_space,new_class)
+
+      puts "Migrating #{new_class}" if $ROD_DEBUG
+      # Check for incompatible properties.
+      self.properties.each do |name,options|
+        next unless new_class.properties.keys.include?(name)
+        difference = options_difference(options,new_class.properties[name])
+        difference.delete(:index)
+        # Check if there are some options which we cannot migrate at the
+        # moment.
+        unless difference.empty?
+          raise IncompatibleVersion.
+            new("Incompatible definition of property '#{name}'\n" +
+                "Definition of '#{name}' is different in the old and "+
+                "the new schema for '#{new_class}':\n" +
+                "  #{difference}")
+        end
+      end
+      # Migrate the objects.
+      # initialize prototype objects
       old_object = self.new
       new_object = new_class.new
-      puts "Migrating #{new_class}" if $ROD_DEBUG
       self.properties.each do |name,options|
         next unless new_class.properties.keys.include?(name)
         print "-  #{name}... " if $ROD_DEBUG
-        if options.map{|k,v| [k,v.to_s.sub(LEGACY_RE,"")]} !=
-          new_class.properties[name].map{|k,v| [k,v.to_s]}
-          raise IncompatibleVersion.
-            new("Incompatible definition of property '#{name}'\n" +
-                "Definition is different in the old and "+
-                "the new schema for '#{new_class}':\n" +
-                "  #{options} \n" +
-                "  #{new_class.properties[name]}")
-        end
         if self.field?(name)
           if self.string_field?(options[:type])
             self.count.times do |position|
@@ -508,6 +537,43 @@ module Rod
         end
         puts "done" if $ROD_DEBUG
       end
+      # Migrate the indices.
+      new_class.indexed_properties.each do |name,options|
+        # Migrate to new options.
+        old_index_type = self.properties[name] && self.properties[name][:index]
+        if old_index_type.nil?
+          print "-  building index #{options[:index]} for '#{name}'... " if $ROD_DEBUG
+          new_class.rebuild_index(name)
+          puts "done" if $ROD_DEBUG
+        else
+          # TODO if index is the same, its file should be copied
+          print "-  copying index #{options[:index]} for '#{name}'... " if $ROD_DEBUG
+          new_index = new_class.index_for(name,options)
+          old_index = index_for(name,self.properties[name])
+          new_index.copy(old_index)
+          puts "done" if $ROD_DEBUG
+        end
+      end
+    end
+
+    # Returns the difference between +options1+ and +options2+.
+    def self.options_difference(options1,options2)
+      old_options = {}
+      options1.each{|k,v| old_options[k] = v.to_s.sub(LEGACY_RE,"")}
+      new_options = {}
+      options2.each{|k,v| new_options[k] = v.to_s}
+      differences = {}
+      old_options.each do |option,value|
+        if new_options[option] != value
+          differences[option] = [value,new_options[option]]
+        end
+      end
+      new_options.each do |option,value|
+        if old_options[option] != value && !differences.has_key?(option)
+          differences[option] = [old_options[option],value]
+        end
+      end
+      differences
     end
 
     protected

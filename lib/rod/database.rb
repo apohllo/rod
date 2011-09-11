@@ -146,6 +146,15 @@ module Rod
       @inline_library
     end
 
+    # Allocates the space for the +klass+ in the data file.
+    def allocate_space(klass)
+      empty_data = "\0" * _page_size
+      File.open(klass.path_for_data(@path),"w") do |out|
+        send("_#{klass.struct_name}_page_count",@handler).
+          times{|i| out.print(empty_data)}
+      end
+    end
+
 
     # Generates the code C responsible for management of the database.
     def generate_c_code(path, classes)

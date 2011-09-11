@@ -18,6 +18,7 @@ module Rod
       def save
         File.open(@path,"w") do |out|
           proxy_index = {}
+          #load_index unless loaded?
           @index.each{|k,col| proxy_index[k] = [col.offset,col.size]}
           out.puts(Marshal.dump(proxy_index))
         end

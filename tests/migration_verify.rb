@@ -12,7 +12,15 @@ count.times do |index|
   user1 = User[index*2]
   user1.should_not == nil
   user = User.find_by_name("John#{index}")
-  user1.should == user
+  user.should == user1
+  users = User.find_all_by_city("City#{index}")
+  users.size.should == 0
+  users = User.find_all_by_city("Small town#{index}")
+  users.size.should == 1
+  users[0].should == user1
+  users = User.find_all_by_street("Street#{index}")
+  users.size.should == 1
+  users[0].should == user1
   user1.name.should == "John#{index}"
   user1.age.should == index
   user1.account.should_not == nil
@@ -31,7 +39,11 @@ count.times do |index|
   user2 = User[index*2+1]
   user2.should_not == nil
   user = User.find_by_name("Amanda#{index}")
-  user2.should == user
+  user.should == user2
+  user = User.find_by_city("Bigcity#{index}")
+  #user.should == user2
+  user = User.find_by_street("Small street#{index}")
+  user.should == user2
   user2.name.should == "Amanda#{index}"
   user2.age.should == index * 2
   user2.account.should_not == nil

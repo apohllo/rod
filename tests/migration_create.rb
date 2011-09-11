@@ -4,7 +4,7 @@ require File.join(".",File.dirname(__FILE__),"migration_model1")
 
 Rod::Database.development_mode = true
 
-
+FileUtils.rm_rf("tmp/migration")
 Database.instance.create_database("tmp/migration")
 
 count = (ARGV[0] || 10).to_i
@@ -19,12 +19,15 @@ count.times do |index|
                         :nick => "j#{index}")
   account.store
   user1 = User.new(:name => "John#{index}",
-                  :surname => "Smith#{index}",
-                  :account => account,
-                  :mother => users[index-1],
-                  :father => users[index-2],
-                  :friends => [users[index-3],users[index-4]],
-                  :files => [files[index],files[index + 1],files[index + 2]])
+                   :surname => "Smith#{index}",
+                   :city => "City#{index}",
+                   :street => "Street#{index}",
+                   :number => index,
+                   :account => account,
+                   :mother => users[index-1],
+                   :father => users[index-2],
+                   :friends => [users[index-3],users[index-4]],
+                   :files => [files[index],files[index + 1],files[index + 2]])
   user1.store
 
   account = Account.new(:login => "amanda#{index}",
@@ -32,6 +35,9 @@ count.times do |index|
   account.store
   user2 = User.new(:name => "Amanda#{index}",
                    :surname => "Amanda#{index}",
+                   :city => "Bigcity#{index}",
+                   :street => "Small street#{index}",
+                   :number => index,
                    :account => account,
                    :mother => users[index-1],
                    :father => users[index-2],

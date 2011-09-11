@@ -6,8 +6,9 @@ require 'rspec/expectations'
 #$ROD_DEBUG = true
 Rod::Database.development_mode = true
 
-Database.instance.open_database("tmp/migration", :migrate => true,
-                               :readonly => false)
+Database.instance.migrate_database("tmp/migration")
+Database.instance.open_database("tmp/migration", :readonly => false)
+Dir.glob("tmp/migration/#{Rod::BACKUP_PREFIX[0..-2]}*").to_a.size.should == 1
 
 count = (ARGV[0] || 10).to_i
 count.times do |index|
@@ -19,6 +20,7 @@ count.times do |index|
   file.store
   user = User[index*2]
   user.age = index
+  user.city = "Small town#{index}"
   user.file = file
   user.accounts << account1
   user.store
@@ -35,5 +37,3 @@ count.times do |index|
 end
 
 Database.instance.close_database
-
-test(?f,"tmp/migration/#{Rod::DATABASE_FILE}#{Rod::LEGACY_DATA_SUFFIX}").should == true

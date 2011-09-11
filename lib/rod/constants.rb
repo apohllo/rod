@@ -35,5 +35,6 @@ module Rod
   NEW_DATA_SUFFIX = ".new"
   LEGACY_MODULE = "Legacy"
   LEGACY_RE = /^#{LEGACY_MODULE}::/
+  BACKUP_PREFIX = "backup/"
 
 end

@@ -10,6 +10,9 @@ end
 class User < Model
   field :name, :string, :index => :flat
   field :surname, :string
+  field :city, :string, :index => :flat
+  field :street, :string, :index => :flat
+  field :number, :integer, :index => :flat
   has_one :account, :index => :flat
   has_one :mother, :class_name => "User"
   has_one :father, :class_name => "User"

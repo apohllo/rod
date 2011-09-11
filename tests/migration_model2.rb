@@ -14,6 +14,15 @@ class User < Model
   # removed
   # field :surname, :string
 
+  # changed: index flat -> segmented
+  field :city, :string, :index => :segmented
+
+  # changed: index flat -> hash
+  field :street, :string, :index => :hash
+
+  # changed: index flat -> nil
+  field :number, :integer
+
   # added
   field :age, :integer
 
@@ -40,8 +49,8 @@ class User < Model
 end
 
 class Account < Model
-  # present
-  field :login, :string
+  # changed: index added
+  field :login, :string, :index => :flat
 
   # removed
   # field :nick, :string
