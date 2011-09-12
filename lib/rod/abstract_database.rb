@@ -97,7 +97,7 @@ module Rod
       end
       unless valid_version?(@metadata["Rod"][:version])
         raise IncompatibleVersion.new("Incompatible versions - library #{VERSION} vs. " +
-                                      "file #{metatdata["Rod"][:version]}")
+                                      "file #{metadata["Rod"][:version]}")
       end
       if options[:generate]
         module_instance = (options[:generate] == true ? Object : options[:generate])
