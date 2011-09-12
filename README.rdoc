@@ -2,6 +2,12 @@
 
 * http://github.com/apohllo/rod
 
+== WARNING
+
+The 0.7.x branch is a development branch -- incompatibilities between library
+releases might be introduced (both in API and data schema).
+You are advised to use the latest release of 0.6.x branch.
+
 == DESCRIPTION
 
 ROD (Ruby Object Database) is library which aims at providing
@@ -13,11 +19,11 @@ fast access for data, which rarely changes.
 * Ruby-to-C on-the-fly translation based on mmap and RubyInline
 * optimized for (reading) speed
 * weak reference collections for easy memory reclaims
-* segmented indices for short start-up times
+* Berkeley DB hash index for the best index performance
 * compatibility check of library version
 * compatibility check of data model
 * autogeneration of model (based on the database metadata)
-* automatic model migrations (addition/removal of properties so far)
+* automatic model migrations (limitied to addition/removal of properties and indexes)
 * full update of the database (removal of objects not available yet)
 * databases interlinking (via direct links or inverted indices)
 
@@ -25,7 +31,6 @@ fast access for data, which rarely changes.
 
 * tested mostly on 64-bit systems
 * doesn't work on Windows
-* some space is wasted when database is re-opended in read/write mode
 
 == SYNOPSIS:
 
@@ -52,12 +57,27 @@ number of disk reads was designed. The Ruby interface facilitates it's usage.
 * english
 * ActiveModel
 * bsearch
+* Berkeley DB
 
 == INSTALL
 
-Grab from rubygems:
+1. Install Berkeley DB
+
+  http://www.oracle.com/technetwork/database/berkeleydb/downloads/index.html
+
+2. Install rod gem from rubygems:
 
   gem install rod
+
+== TROUBLESHOOTING
+
+If you get the following error during library usage:
+
+  error: db.h: No such file or directory
+
+then you don't have Berkeley DB installed or its header fiels are not available
+on the default path. Make sure that the library is installed and the headers
+are available.
 
 == BASIC USAGE:
 
@@ -70,7 +90,7 @@ Grab from rubygems:
 
  class User < Model
    field :name, :string
-   field :surname, :string, :index => :flat
+   field :surname, :string, :index => :hash
    field :age, :integer
    has_one :account
    has_many :files
@@ -78,12 +98,12 @@ Grab from rubygems:
 
  class Account < Model
    field :email, :string
-   field :login, :string, :index => :flat
+   field :login, :string, :index => :hash
    field :password, :string
  end
 
  class File < Model
-   field :title, :string, :index => :flat
+   field :title, :string, :index => :hash
    field :data, :string
  end
 

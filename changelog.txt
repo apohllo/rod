@@ -1,3 +1,9 @@
+0.7.0
+- #142 migrate indices during model migration
+- #134 Berkeley DB Hash for indexing properties
+- #137 move #special_class? to AbstractDatabase
+- #138 move development_mode accessor to AbstractDatabase
+- #136 use (DB) #opened? instead of @handler.nil?
 0.6.3
 - #94 indexing of unstored object in plural assoc
 - #128 incompatible schema message is more specific
