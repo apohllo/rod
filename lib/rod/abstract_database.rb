@@ -159,6 +159,12 @@ module Rod
       @metadata = load_metadata
       create_legacy_classes
       FileUtils.mkdir_p(@path + BACKUP_PREFIX)
+      # Copy special classes data.
+      special_classes.each do |klass|
+        file = klass.path_for_data(@path)
+        puts "Copying #{file} to #{@path + BACKUP_PREFIX}" if $ROD_DEBUG
+        FileUtils.cp(file,@path + BACKUP_PREFIX)
+      end
       Dir.glob(@path + "*").each do |file|
         # Don't move the directory itself and speciall classes data.
         unless file.to_s == @path + BACKUP_PREFIX[0..-2] ||
