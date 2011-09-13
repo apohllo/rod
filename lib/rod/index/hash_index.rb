@@ -17,21 +17,32 @@ module Rod
         @klass = klass
         _open(@path,:create => true)
         @index = {}
+        @opened = true
       end
 
       # Stores the index on disk.
       def save
-        @index.each do |key,collection|
+        return if @index.empty?
+        index = {}
+        self.each{|k,v| index[k] = v}
+        _close()
+        puts "Saving #{index.size}"
+        _open(@path,:truncate => true)
+        index.each do |key,collection|
           key = Marshal.dump(key)
           _put(key,collection.offset,collection.size)
         end
+        @index.clear
         _close()
+        @opened = false
       end
 
       # Clears the contents of the index.
       def destroy
         _close()
         _open(@path,:truncate => true)
+        _close()
+        @opened = false
       end
 
       # Simple iterator.
@@ -40,9 +51,8 @@ module Rod
           @index.each do |key,value|
             yield key,value
           end
-          index = 0
+          _open(@path,{}) unless opened?
           _each_key do |key|
-            index += 1
             next if key.empty?
             key = Marshal.load(key)
             unless @index[key]
@@ -55,9 +65,14 @@ module Rod
       end
 
       protected
+      def opened?
+        @opened
+      end
+
       def get(key)
         return @index[key] if @index.has_key?(key)
         begin
+          _open(@path,{}) unless opened?
           value = _get(Marshal.dump(key))
         rescue Rod::KeyMissing => ex
           value = nil
