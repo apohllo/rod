@@ -8,9 +8,16 @@ Rod::Database.development_mode = true
 Database.instance.open_database("tmp/migration")
 
 count = (ARGV[0] || 10).to_i
+key_count = 0
+User.index_for(:street,:index => :hash).each do |key,proxy|
+  key_count += 1
+  proxy.to_a.should == User.find_all_by_street(key).to_a
+end
+key_count.should > 0
 count.times do |index|
   user1 = User[index*2]
   user1.should_not == nil
+  user1.name.should == "John#{index}"
   user = User.find_by_name("John#{index}")
   user.should == user1
   users = User.find_all_by_city("City#{index}")
@@ -71,5 +78,6 @@ users = User.find_all_by_files(UserFile[0])
 users.size.should == 2
 users[0].should == User[0]
 users[1].should == User[1]
+
 
 Database.instance.close_database

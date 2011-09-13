@@ -40,7 +40,10 @@ module Rod
           @index.each do |key,value|
             yield key,value
           end
-          _each do |key,value|
+          index = 0
+          _each_key do |key|
+            index += 1
+            next if key.empty?
             key = Marshal.load(key)
             unless @index[key]
               yield key,self[key]
@@ -90,26 +93,15 @@ module Rod
 
       def self.convert_key
         str =<<-END
-        |DBT _convert_key(VALUE key){
+        |void _convert_key(VALUE key, DBT *db_key_p){
         |  long int_key;
         |  double float_key;
         |  DBT db_key;
         |
+        |  db_key = *db_key_p;
         |  memset(&db_key, 0, sizeof(DBT));
-        |  if(rb_obj_is_kind_of(key,rb_cInteger)){
-        |    int_key = NUM2LONG(key);
-        |    db_key.data = &int_key;
-        |    db_key.size = sizeof(long);
-        |  } else if(rb_obj_is_kind_of(key,rb_cFloat)){
-        |    float_key = NUM2DBL(key);
-        |    db_key.data = &float_key;
-        |    db_key.size = sizeof(double);
-        |  } else {
-        |    db_key.data = RSTRING_PTR(key);
-        |    db_key.size = RSTRING_LEN(key);
-        |  }
-        |  // is it legal?
-        |  return db_key;
+        |  db_key.data = RSTRING_PTR(key);
+        |  db_key.size = RSTRING_LEN(key);
         |}
         END
         str.margin
@@ -191,8 +183,34 @@ module Rod
         builder.c(str.margin)
 
         str =<<-END
-        |void _each(){
+        |void _each_key(){
+        |  VALUE handle;
+        |  DB *db_pointer;
+        |  DBC *cursor;
+        |  DBT db_key, db_value;
+        |  int return_value;
+        |  rod_entry_struct *entry;
+        |  VALUE key;
         |
+        |  handle = rb_iv_get(self,"@handle");
+        |  Data_Get_Struct(handle,DB,db_pointer);
+        |  if(db_pointer != NULL){
+        |    db_pointer->cursor(db_pointer,NULL,&cursor,0);
+        |    memset(&db_key, 0, sizeof(DBT));
+        |    memset(&db_value, 0, sizeof(DBT));
+        |    db_key.flags = DB_DBT_MALLOC;
+        |    while((return_value = cursor->get(cursor, &db_key, &db_value, DB_NEXT)) == 0){
+        |      key = rb_str_new((char *)db_key.data,db_key.size);
+        |      free(db_key.data);
+        |      rb_yield(key);
+        |    }
+        |    if(return_value != DB_NOTFOUND){
+        |      rb_raise(rodException(),"%s",db_strerror(return_value));
+        |    }
+        |    cursor->close(cursor);
+        |  } else {
+        |    rb_raise(rodException(),"DB handle is NULL\\n");
+        |  }
         |}
         END
         builder.c(str.margin)
@@ -210,10 +228,14 @@ module Rod
         |  Data_Get_Struct(handle,DB,db_pointer);
         |  if(db_pointer != NULL){
         |    memset(&db_value, 0, sizeof(DBT));
-        |    db_key = _convert_key(key);
         |    db_value.data = &entry;
         |    db_value.ulen = sizeof(rod_entry_struct);
         |    db_value.flags = DB_DBT_USERMEM;
+        |
+        |    memset(&db_key, 0, sizeof(DBT));
+        |    db_key.data = RSTRING_PTR(key);
+        |    db_key.size = RSTRING_LEN(key);
+        |
         |    return_value = db_pointer->get(db_pointer, NULL, &db_key, &db_value, 0);
         |    if(return_value == DB_NOTFOUND){
         |      rb_raise(keyMissingException(),"%s",db_strerror(return_value));
@@ -243,16 +265,18 @@ module Rod
         |
         |  handle = rb_iv_get(self,"@handle");
         |  Data_Get_Struct(handle,DB,db_pointer);
+        |  memset(&db_key, 0, sizeof(DBT));
+        |  db_key.data = RSTRING_PTR(key);
+        |  db_key.size = RSTRING_LEN(key);
         |  memset(&db_value, 0, sizeof(DBT));
         |  entry.offset = offset;
         |  entry.size = size;
-        |  db_key = _convert_key(key);
         |  db_value.data = &entry;
         |  db_value.size = sizeof(rod_entry_struct);
         |  if(db_pointer != NULL){
         |    return_value = db_pointer->put(db_pointer, NULL, &db_key, &db_value, 0);
         |    if(return_value != 0){
-        |      rb_raise(keyMissingException(),"%s",db_strerror(return_value));
+        |      rb_raise(rodException(),"%s",db_strerror(return_value));
         |    }
         |  } else {
         |    rb_raise(rodException(),"DB handle is NULL\\n");
