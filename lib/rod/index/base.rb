@@ -89,6 +89,10 @@ module Rod
             SegmentedIndex.new(path,klass,options)
           when :hash
             HashIndex.new(path,klass,options)
+          when true
+            ActiveSupport::Deprecation.
+              warn("Index type 'true' is deprecated. It will be removed in ROD 0.8.0")
+            FlatIndex.new(path,klass,options)
           else
             raise RodException.new("Invalid index type #{type}")
           end
