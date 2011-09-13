@@ -70,3 +70,7 @@ class UserFile < Model
   field :name, :string, :index => :flat
 end
 
+# The whole class is the same.
+class House < Model
+  field :name, :string, :index => :hash
+end

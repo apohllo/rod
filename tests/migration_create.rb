@@ -49,4 +49,7 @@ count.times do |index|
   users << user2
 end
 
+house = House.new(:name => "cottage house")
+house.store
+
 Database.instance.close_database

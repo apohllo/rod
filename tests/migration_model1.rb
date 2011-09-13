@@ -29,3 +29,7 @@ class UserFile < Model
   field :data, :string
   field :path, :string
 end
+
+class House < Model
+  field :name, :string, :index => :hash
+end

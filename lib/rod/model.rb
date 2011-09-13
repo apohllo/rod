@@ -476,7 +476,19 @@ module Rod
       old_metadata = self.metadata
       old_metadata.merge!({:superclass => old_metadata[:superclass].sub(LEGACY_RE,"")})
       new_class = self.name.sub(LEGACY_RE,"").constantize
-      return if new_class.compatible?(old_metadata)
+      if new_class.compatible?(old_metadata)
+        backup_path = self.path_for_data(database.path)
+        new_path = new_class.path_for_data(database.path)
+        puts "Copying #{backup_path} to #{new_path}" if $ROD_DEBUG
+        FileUtils.cp(backup_path,new_path)
+        new_class.indexed_properties.each do |name,options|
+          backup_path = self.index_for(name,options).path
+          new_path = new_class.index_for(name,options).path
+          puts "Copying #{backup_path} to #{new_path}" if $ROD_DEBUG
+          FileUtils.cp(backup_path,new_path)
+        end
+        return
+      end
       database.send(:allocate_space,new_class)
 
       puts "Migrating #{new_class}" if $ROD_DEBUG

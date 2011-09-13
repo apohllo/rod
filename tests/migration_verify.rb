@@ -79,5 +79,8 @@ users.size.should == 2
 users[0].should == User[0]
 users[1].should == User[1]
 
+house = House.find_by_name("cottage house")
+house.should_not == nil
+house.name.should == "cottage house"
 
 Database.instance.close_database

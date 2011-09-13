@@ -13,6 +13,10 @@ module Rod
     # which are used to retrive and assign the values respectively.
     class Base
       include Utils
+
+      # The path of the index.
+      attr_reader :path
+
       # Sets the class this index belongs to.
       def initialize(klass)
         @klass = klass
