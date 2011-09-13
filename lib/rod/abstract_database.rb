@@ -417,7 +417,7 @@ module Rod
       end
       unless valid_version?(metadata["Rod"][:version])
         raise IncompatibleVersion.new("Incompatible versions - library #{VERSION} vs. " +
-                                      "file #{metatdata["Rod"][:version]}")
+                                      "file #{metadata["Rod"][:version]}")
       end
       metadata
     end
@@ -473,29 +473,20 @@ module Rod
       special_names = special_classes.map{|k| k.name}
       special_names << "Rod"
       superclasses = {}
+      inverted_superclasses = {}
       @metadata.reject{|k,o| special_names.include?(k)}.each do |k,o|
         superclasses[k] = o[:superclass]
+        inverted_superclasses[o[:superclass]] ||= []
+        inverted_superclasses[o[:superclass]] << k
       end
-      superclass_tree = {}
-      superclasses.each do |klass,superclass|
-        superclass_tree[klass] = []
-        current_superclass = superclass
-        loop do
-          break if current_superclass.nil?
-          superclass_tree[klass] << current_superclass
-          break if current_superclass == "Rod::Model"
-          current_superclass = superclasses[current_superclass]
-        end
-      end
-      superclasses.keys.sort do |klass1,klass2|
-        if superclass_tree[klass1].include?(klass2)
-          1
-        elsif superclass_tree[klass2].include?(klass1)
-          -1
-        else
-          klass1 <=> klass2
-        end
-      end.each do |klass_name|
+      queue = inverted_superclasses["Rod::Model"] || []
+      sorted = []
+      begin
+        klass = queue.shift
+        sorted << klass
+        queue.concat(inverted_superclasses[klass] || [])
+      end until queue.empty?
+      sorted.each do |klass_name|
         metadata = @metadata[klass_name]
         original_name = klass_name
         if module_instance != Object
