@@ -557,8 +557,12 @@ module Rod
           print "-  building index #{options[:index]} for '#{name}'... " if $ROD_DEBUG
           new_class.rebuild_index(name)
           puts "done" if $ROD_DEBUG
+        elsif options[:index] == old_index_type
+          backup_path = self.index_for(name,options).path
+          new_path = new_class.index_for(name,options).path
+          puts "Copying #{backup_path} to #{new_path}" if $ROD_DEBUG
+          FileUtils.cp(backup_path,new_path)
         else
-          # TODO if index is the same, its file should be copied
           print "-  copying index #{options[:index]} for '#{name}'... " if $ROD_DEBUG
           new_index = new_class.index_for(name,options)
           old_index = index_for(name,self.properties[name])
