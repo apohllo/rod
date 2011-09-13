@@ -26,9 +26,9 @@ module Rod
         index = {}
         self.each{|k,v| index[k] = v}
         _close()
-        puts "Saving #{index.size}"
         _open(@path,:truncate => true)
         index.each do |key,collection|
+          key = key.encode("utf-8") if key.is_a?(String)
           key = Marshal.dump(key)
           _put(key,collection.offset,collection.size)
         end
@@ -73,6 +73,7 @@ module Rod
         return @index[key] if @index.has_key?(key)
         begin
           _open(@path,{}) unless opened?
+          key = key.encode("utf-8") if key.is_a?(String)
           value = _get(Marshal.dump(key))
         rescue Rod::KeyMissing => ex
           value = nil
