@@ -87,3 +87,16 @@ Then /^the collection proxy should be empty$/ do
   @proxy.to_a.should be_empty
 end
 
+#Then an exception should be raised when the collection is modified during iteration
+Then /^an exception should be raised when the collection is modified during iteration$/ do
+  (lambda do
+    @proxy.each do |item|
+      @proxy << create_item(@offset)
+    end
+  end).should raise_exception
+  (lambda do
+    @proxy.each do |item|
+      @proxy.detete_at(0)
+    end
+  end).should raise_exception
+end

@@ -137,11 +137,18 @@ module Rod
       element
     end
 
-    # Simple each implementation.
+    # Iterator implementation. It raises an exception when
+    # the collection is modified during iteration.
+    # WARNING: This is not compliant with an Array class!
     def each
       if block_given?
         @size.times do |index|
+          added_size = @added.size
+          deleted_size = @deleted.size
           yield self[index]
+          if added_size != @added.size || deleted_size != @deleted.size
+            raise "Can't modify collection during iteration!"
+          end
         end
       else
         enum_for(:each)

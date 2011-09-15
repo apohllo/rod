@@ -138,3 +138,8 @@ Feature: collection proxy specification
     When I delete an item at position 0 5 times
     Then the collection proxy should be empty
     And the collection proxy should behave like an array
+
+  Scenario: modifying collection during interation
+    Given the initial size of the collection proxy is 5
+    # Can't figure out anything better.
+    Then an exception should be raised when the collection is modified during iteration
