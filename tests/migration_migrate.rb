@@ -36,4 +36,7 @@ count.times do |index|
   user.store
 end
 
+# Force the creation of index key with empty proxy.
+House.find_by_name("doesn't exist")
+
 Database.instance.close_database

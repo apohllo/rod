@@ -14,11 +14,14 @@ module Rod
     # objects. If the klass is nil, the collection holds polymorphic
     # objects.
     def initialize(size,database,offset,klass)
+      raise InvalidArgument.new("collection size",nil) if size.nil?
       @size = size
       @original_size = size
+      raise InvalidArgument.new("collection database",nil) if database.nil?
       @database = database
-      @klass = klass
+      raise InvalidArgument.new("collection offset",nil) if offset.nil?
       @offset = offset
+      @klass = klass
       #@commands = []
       @added = []
       @deleted = []

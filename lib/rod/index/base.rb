@@ -42,7 +42,7 @@ module Rod
           proxy = get(key)
         end
         if proxy.nil?
-          proxy = CollectionProxy.new(0,@klass.database,nil,@klass)
+          proxy = CollectionProxy.new(0,@klass.database,0,@klass)
         else
           unless proxy.is_a?(CollectionProxy)
             offset, count = proxy

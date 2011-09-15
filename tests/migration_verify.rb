@@ -82,5 +82,7 @@ users[1].should == User[1]
 house = House.find_by_name("cottage house")
 house.should_not == nil
 house.name.should == "cottage house"
+house = House.find_by_name("doesn't exist")
+house.should == nil
 
 Database.instance.close_database
