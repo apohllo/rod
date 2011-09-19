@@ -224,7 +224,7 @@ module Rod
         unless skip_indices
           self.classes.each do |klass|
             klass.indexed_properties.each do |property,options|
-              write_index(klass,property,options)
+              klass.index_for(property,options).save
             end
           end
         end
@@ -361,27 +361,6 @@ module Rod
     # Sets the number of pages allocated for given +klass+.
     def set_page_count(klass,value)
       send("_#{klass.struct_name}_page_count=",@handler,value)
-    end
-
-    # Store index of +field+ (with +options+) of +klass+ in the database.
-    # There are two types of indices:
-    # * +:flat+ - marshalled index is stored in one file
-    # * +:segmented+ - marshalled index is stored in many files
-    def write_index(klass,property,options)
-      raise DatabaseError.new("Readonly database.") if readonly_data?
-      class_index = klass.index_for(property,options)
-      if options[:convert]
-        # Only convert the index, without (re)storing the values.
-        index = Index::Base.create(klass.path_for_index(@path,property),klass,options)
-        index.copy(class_index)
-        class_index = index
-      else
-        class_index.each do |key,proxy|
-          proxy.save
-        end
-      end
-      class_index.save
-      class_index = nil
     end
 
     # Store the object in the database.

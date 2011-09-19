@@ -16,11 +16,18 @@ module Rod
 
       # Stores the index on disk.
       def save
+        # The index was not loaded nor modified.
+        return if @index.nil?
         File.open(@path,"w") do |out|
           proxy_index = {}
           #load_index unless loaded?
-          @index.each{|k,col| proxy_index[k] = [col.offset,col.size]}
+          @index.each_key do |key|
+            col = self[key]
+            col.save
+            proxy_index[key] = [col.offset,col.size]
+          end
           out.puts(Marshal.dump(proxy_index))
+          @index = nil
         end
       end
 

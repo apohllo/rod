@@ -27,7 +27,11 @@ module Rod
         @buckets.each do |bucket_number,hash|
           File.open(path_for(bucket_number),"w") do |out|
             proxy_index = {}
-            hash.each{|k,col| proxy_index[k] = [col.offset,col.size]}
+            hash.each_key do |key|
+              col = self[key]
+              col.save
+              proxy_index[key] = [col.offset,col.size]
+            end
             out.puts(Marshal.dump(proxy_index))
           end
         end

@@ -30,6 +30,7 @@ module Rod
         index.each do |key,collection|
           key = key.encode("utf-8") if key.is_a?(String)
           key = Marshal.dump(key)
+          collection.save
           _put(key,collection.offset,collection.size)
         end
         @index.clear
