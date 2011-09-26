@@ -60,8 +60,10 @@ module Rod
 
       # Copies the values from +index+ to this index.
       def copy(index)
-        index.each do |key,value|
-          self.set(key,value)
+        index.each.with_index do |key_value,position|
+          self.set(key_value[0],key_value[1])
+          # TODO #182 implement size for index
+          # report_progress(position,index.size) if $ROD_DEBUG
         end
       end
 

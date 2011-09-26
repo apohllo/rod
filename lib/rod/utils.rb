@@ -25,5 +25,20 @@ module Rod
     def remove_files_but(name)
       remove_files(name.sub(INLINE_PATTERN_RE,"*"),name)
     end
+
+    # Reports progress of long-running operation.
+    # The +index+ is the current operation's step
+    # of +count+ steps.
+    def report_progress(index,count)
+      step = (count.to_f/50).to_i
+      return if step == 0
+      if index % step == 0
+        if index % (5 * step) == 0
+          print "#{(index / (5 * step) * 10)}%"
+        else
+          print "."
+        end
+      end
+    end
   end
 end

@@ -8,6 +8,7 @@ module Rod
   class Model < AbstractModel
     include ActiveModel::Validations
     include ActiveModel::Dirty
+    extend Utils
     extend Enumerable
 
     # A list of updaters that has to be notified when the +rod_id+
@@ -261,8 +262,9 @@ module Rod
       end
       index = index_for(property,properties[property])
       index.destroy
-      self.each do |object|
+      self.each.with_index do |object,position|
         index[object.send(property)] << object
+        report_progress(position,self.count) if $ROD_DEBUG
       end
     end
 
@@ -520,22 +522,26 @@ module Rod
                               old_object.send("_#{name}_length",position+1))
               new_object.send("_#{name}_offset=",position+1,
                               old_object.send("_#{name}_offset",position+1))
+              report_progress(position,self.count) if $ROD_DEBUG
             end
           else
             self.count.times do |position|
               new_object.send("_#{name}=",position + 1,
                               old_object.send("_#{name}",position + 1))
+              report_progress(position,self.count) if $ROD_DEBUG
             end
           end
         elsif self.singular_association?(name)
           self.count.times do |position|
             new_object.send("_#{name}=",position + 1,
                             old_object.send("_#{name}",position + 1))
+            report_progress(position,self.count) if $ROD_DEBUG
           end
           if options[:polymorphic]
             self.count.times do |position|
               new_object.send("_#{name}__class=",position + 1,
                               old_object.send("_#{name}__class",position + 1))
+              report_progress(position,self.count) if $ROD_DEBUG
             end
           end
         else
@@ -544,6 +550,7 @@ module Rod
                             old_object.send("_#{name}_count",position + 1))
             new_object.send("_#{name}_offset=",position + 1,
                             old_object.send("_#{name}_offset",position + 1))
+            report_progress(position,self.count) if $ROD_DEBUG
           end
         end
         puts "done" if $ROD_DEBUG
