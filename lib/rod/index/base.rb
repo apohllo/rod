@@ -78,6 +78,11 @@ module Rod
         set(key,proxy)
       end
 
+      # The default representation shows the index class and path.
+      def to_s
+        "#{self.class}@#{@path}"
+      end
+
       class << self
         # Creats the proper instance of Index or one of its sublcasses.
         # The +path+ is the path were the index is stored, while +index+ is the previous index instance.

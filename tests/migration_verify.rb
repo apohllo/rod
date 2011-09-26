@@ -12,6 +12,7 @@ key_count = 0
 User.index_for(:street,:index => :hash).each do |key,proxy|
   key_count += 1
   proxy.to_a.should == User.find_all_by_street(key).to_a
+  proxy.count.should > 0
 end
 key_count.should > 0
 count.times do |index|
@@ -48,7 +49,7 @@ count.times do |index|
   user = User.find_by_name("Amanda#{index}")
   user.should == user2
   user = User.find_by_city("Bigcity#{index}")
-  #user.should == user2
+  user.should == user2
   user = User.find_by_street("Small street#{index}")
   user.should == user2
   user2.name.should == "Amanda#{index}"

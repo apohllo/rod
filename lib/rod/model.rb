@@ -259,9 +259,8 @@ module Rod
       if properties[property][:index].nil?
         raise RodException.new("Property '#{property}' doesn't have an index!")
       end
-      index_for(property,properties[property]).destroy
-      instance_variable_set("@#{property}_index",nil)
       index = index_for(property,properties[property])
+      index.destroy
       self.each do |object|
         index[object.send(property)] << object
       end

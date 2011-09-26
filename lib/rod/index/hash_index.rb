@@ -6,7 +6,7 @@ module Rod
     # This implementation of index is based on the
     # Berkeley DB Hash access method.
     class HashIndex < Base
-      # Wrapper class for the database struct.
+      # Wrapper class for the database C struct.
       class Handle
       end
 
@@ -15,35 +15,31 @@ module Rod
       def initialize(path,klass,options={})
         @path = path + ".db"
         @klass = klass
-        _open(@path,:create => true)
-        @index = {}
-        @opened = true
+        open(@path,:create => true)
       end
 
       # Stores the index on disk.
       def save
-        return if @index.empty?
-        index = {}
-        self.each{|k,v| index[k] = v}
-        _close()
-        _open(@path,:truncate => true)
-        index.each do |key,collection|
+        raise RodException.new("The index is not opened!") unless opened?
+        if @index.empty?
+          close
+          return
+        end
+        @index.keys.each do |key|
+          collection = self[key]
           key = key.encode("utf-8") if key.is_a?(String)
           key = Marshal.dump(key)
           collection.save
           _put(key,collection.offset,collection.size)
         end
-        @index.clear
-        _close()
-        @opened = false
+        close
       end
 
       # Clears the contents of the index.
       def destroy
-        _close()
-        _open(@path,:truncate => true)
-        _close()
-        @opened = false
+        close if opened?
+        open(@path,:truncate => true)
+        close
       end
 
       # Simple iterator.
@@ -52,7 +48,7 @@ module Rod
           @index.each do |key,value|
             yield key,value
           end
-          _open(@path,{}) unless opened?
+          open(@path) unless opened?
           _each_key do |key|
             next if key.empty?
             key = Marshal.load(key)
@@ -65,15 +61,45 @@ module Rod
         end
       end
 
+      # Copies the index from the given +index+.
+      # The index have to cleared before being copied.
+      def copy(index)
+        close if opened?
+        open(@path,:truncate => true)
+        super(index)
+      end
+
       protected
+      # Opens the index - initializes the index C structures
+      # and the cache.
+      # Options:
+      # * +:truncate+ - clears the contents of the index
+      # * +:create+ - creates the index if it doesn't exist
+      def open(path,options={})
+        raise RodException.new("The index #{path} is already opened!") if opened?
+        _open(path,options)
+        @opened = true
+        @index = {} if @index.nil?
+      end
+
+      # Closes the disk - frees the C structure and clears the cache.
+      def close
+        raise RodException.new("The index #{path} is not opened!") unless opened?
+        _close()
+        @opened = false
+        @index.clear
+      end
+
+      # Checks if the index is opened.
       def opened?
         @opened
       end
 
+      # Returns a value of the index for a given +key+.
       def get(key)
         return @index[key] if @index.has_key?(key)
         begin
-          _open(@path,{}) unless opened?
+          open(@path) unless opened?
           key = key.encode("utf-8") if key.is_a?(String)
           value = _get(Marshal.dump(key))
         rescue Rod::KeyMissing => ex
@@ -82,11 +108,12 @@ module Rod
         @index[key] = value
       end
 
+      # Sets the +value+ for the +key+ in the internal cache.
       def set(key,value)
         @index[key] = value
       end
 
-
+      # C definition of the RodException.
       def self.rod_exception
         str =<<-END
         |VALUE rodException(){
@@ -98,6 +125,7 @@ module Rod
         str.margin
       end
 
+      # C definition of the index struct.
       def self.entry_struct
         str =<<-END
         |typedef struct rod_entry {
@@ -108,6 +136,7 @@ module Rod
         str.margin
       end
 
+      # Converts the key to the C representation.
       def self.convert_key
         str =<<-END
         |void _convert_key(VALUE key, DBT *db_key_p){
@@ -124,6 +153,7 @@ module Rod
         str.margin
       end
 
+      # The C definition of the KeyMissing exception.
       def self.key_missing_exception
         str =<<-END
         |VALUE keyMissingException(){
