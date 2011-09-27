@@ -553,7 +553,7 @@ module Rod
             report_progress(position,self.count) if $ROD_DEBUG
           end
         end
-        puts "done" if $ROD_DEBUG
+        puts " done" if $ROD_DEBUG
       end
       # Migrate the indices.
       new_class.indexed_properties.each do |name,options|
@@ -562,7 +562,7 @@ module Rod
         if old_index_type.nil?
           print "-  building index #{options[:index]} for '#{name}'... " if $ROD_DEBUG
           new_class.rebuild_index(name)
-          puts "done" if $ROD_DEBUG
+          puts " done" if $ROD_DEBUG
         elsif options[:index] == old_index_type
           backup_path = self.index_for(name,options).path
           new_path = new_class.index_for(name,options).path
@@ -573,7 +573,7 @@ module Rod
           new_index = new_class.index_for(name,options)
           old_index = index_for(name,self.properties[name])
           new_index.copy(old_index)
-          puts "done" if $ROD_DEBUG
+          puts " done" if $ROD_DEBUG
         end
       end
     end
