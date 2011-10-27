@@ -39,7 +39,6 @@ module Rod
       def destroy
         close if opened?
         open(@path,:truncate => true)
-        close
       end
 
       # Simple iterator.
