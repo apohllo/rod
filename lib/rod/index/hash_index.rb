@@ -20,7 +20,7 @@ module Rod
 
       # Stores the index on disk.
       def save
-        raise RodException.new("The index is not opened!") unless opened?
+        raise RodException.new("The index #{self} is not opened!") unless opened?
         if @index.empty?
           close
           return
@@ -76,7 +76,7 @@ module Rod
       # * +:truncate+ - clears the contents of the index
       # * +:create+ - creates the index if it doesn't exist
       def open(path,options={})
-        raise RodException.new("The index #{path} is already opened!") if opened?
+        raise RodException.new("The index #{@path} is already opened!") if opened?
         _open(path,options)
         @opened = true
         @index = {} if @index.nil?
