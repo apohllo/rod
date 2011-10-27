@@ -1107,6 +1107,7 @@ module Rod
         # setter
         define_method("#{name}=") do |value|
           proxy = send(name)
+          proxy.clear
           value.each do |object|
             proxy << object
           end

@@ -137,6 +137,14 @@ module Rod
       element
     end
 
+    # Clears the contents of the collection proxy.
+    def clear
+      @deleted = @original_size.times.to_a
+      @added.clear
+      @map.clear
+      @size = 0
+    end
+
     # Iterator implementation. It raises an exception when
     # the collection is modified during iteration.
     # WARNING: This is not compliant with an Array class!
