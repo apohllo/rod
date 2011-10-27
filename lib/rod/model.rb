@@ -1000,7 +1000,7 @@ module Rod
                 end
                 value = database.read_string(length, offset, options)
                 if options[:type] == :object
-                  value = Marshal.load(value)
+                  value = Marshal.load(value) rescue nil
                 end
                 # caching Ruby representation
                 # don't use writer - avoid change tracking
