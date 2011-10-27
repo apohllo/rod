@@ -84,7 +84,7 @@ module Rod
 
       # Closes the disk - frees the C structure and clears the cache.
       def close
-        raise RodException.new("The index #{path} is not opened!") unless opened?
+        return unless opened?
         _close()
         @opened = false
         @index.clear
