@@ -1,3 +1,24 @@
+0.7.1
+- #189 guard object load against empty strings.
+- Don't close hash index when it is destroyed.
+- #188 don't raise exception when HashIndex closed
+- Make the HashIndex exceptions more informative.
+- #187 collection proxy is cleared in assignment
+- Tiny change of diagnostic messages
+- #174 progress for fields migration
+- #181 store only added/updated hash index pairs
+- #180 save collections in index no in Abstract DB
+- #179 raise exception during iteration
+- Fix saving of empty collection proxy.
+- #176 copy index file if its type is the same
+- #168 copy unmodified classes during migration
+- #166 true index type still supported
+- #171 encode strings to utf-8 when searching in hash index
+- #170 fix save for hash index
+- #169 missing each implementation in hash index
+- #167 copy special classes data to backup
+- #165 fix invalid topological class sorting algorithm
+- #164 invalid variable in load metadata
 0.7.0
 - #142 migrate indices during model migration
 - #134 Berkeley DB Hash for indexing properties
