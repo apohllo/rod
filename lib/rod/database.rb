@@ -534,7 +534,6 @@ module Rod
                str =<<-SUBEND
           |  printf("-- #{klass} --\\n");
           |  printf("Size of #{klass.struct_name} %lu\\n",(unsigned long)sizeof(#{klass.struct_name}));
-          |  \n#{klass.layout}
           |  printf("Page count: %lu, count %lu, pointer: %lx\\n",
           |    model_p->#{klass.struct_name}_page_count,
           |    model_p->#{klass.struct_name}_count,

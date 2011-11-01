@@ -12,7 +12,8 @@ module Rod
     :integer => 'long',
     :float => 'double',
     :ulong => 'unsigned long',
-    :object => 'char *'
+    :object => 'char *',
+    :json => 'char *'
   }
 
   RUBY_TO_C_MAPPING = {

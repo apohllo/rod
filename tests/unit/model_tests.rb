@@ -31,7 +31,7 @@ module RodTest
 
   end
 
-	class ModuleTests < Test::Unit::TestCase
+  class ModuleTests < Test::Unit::TestCase
     def setup
       Database.instance.create_database("tmp/test_stored_instances")
     end
@@ -40,30 +40,29 @@ module RodTest
       Database.instance.close_database
     end
 
-		def test_reflection
+    def test_reflection
       # A
 
-      assert AStruct.fields.has_key?(:a1)
-      assert AStruct.fields[:a1].has_key?(:type)
-      assert AStruct.fields[:a1][:type] == :integer
+      assert AStruct.property(:a1)
+      assert AStruct.property(:a1).type
+      assert AStruct.property(:a1).type == :integer
 
-      assert AStruct.fields.has_key?(:a2)
-      assert AStruct.fields[:a2].has_key?(:type)
-      assert AStruct.fields[:a2][:type] == :ulong
-      assert AStruct.fields[:a2].has_key?(:index)
-      assert AStruct.fields[:a2][:index] == :flat
+      assert AStruct.property(:a2)
+      assert AStruct.property(:a2).type
+      assert AStruct.property(:a2).type == :ulong
+      assert AStruct.property(:a2).options[:index]
+      assert AStruct.property(:a2).options[:index] == :flat
 
-      assert AStruct.fields.has_key?("rod_id")
+      assert AStruct.property(:rod_id)
 
-      assert AStruct.plural_associations.has_key?(:b_structs)
-      assert AStruct.plural_associations[:b_structs].has_key?(:class_name)
-      assert AStruct.plural_associations[:b_structs][:class_name] == "RodTest::BStruct"
+      assert AStruct.property(:b_structs)
+      assert AStruct.property(:b_structs).options[:class_name]
+      assert AStruct.property(:b_structs).options[:class_name] == "RodTest::BStruct"
 
       # B
-      assert BStruct.singular_associations.has_key?(:a_struct)
-
-      assert BStruct.fields.has_key?("rod_id")
-		end
+      assert BStruct.property(:a_struct)
+      assert BStruct.property(:rod_id)
+    end
 
     def test_instances
       a1 = AStruct.new
@@ -111,6 +110,6 @@ module RodTest
       assert a1.b_structs_count == a1.b_structs.count
       #p "AStruct.count: #{AStruct.count}" <- should throw a more relevant exception
     end
-	end
+  end
 end
 

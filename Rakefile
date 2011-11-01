@@ -27,7 +27,7 @@ task :uninstall do
   sh "sudo gem uninstall #$gem_name"
 end
 
-task :all_tests => [:test,:regression_test,:spec] do
+task :all_tests => [:test,:unit_test,:regression_test,:features] do
 end
 
 desc "Run performence tests"
@@ -37,7 +37,7 @@ task :perf do
   sh "ruby tests/full_runs.rb"
 end
 
-desc "Run tests and specs"
+desc "Run multi-step tests"
 task :test do
   sh "ruby tests/save_struct.rb"
   sh "ruby tests/load_struct.rb"
@@ -54,10 +54,18 @@ task :test do
   sh "ruby tests/missing_class_verify.rb"
   sh "ruby tests/properties_order_create.rb"
   sh "ruby tests/properties_order_verify.rb"
+end
+
+desc "Run unit tests and model specs"
+task :unit_test do
   sh "ruby tests/unit/model.rb"
   sh "ruby tests/unit/model_tests.rb"
   sh "ruby tests/unit/database.rb"
   sh "ruby tests/unit/abstract_database.rb"
+  sh "ruby spec/property/base.rb"
+  sh "ruby spec/property/field.rb"
+  sh "ruby spec/property/singular_association.rb"
+  sh "ruby spec/property/plural_association.rb"
 end
 
 # Should be removed some time -- specs should cover all these cases
@@ -66,12 +74,12 @@ task :regression_test do
   sh "ruby tests/check_strings.rb"
 end
 
-desc "Run all specs without the ignored ones"
-task :spec do
+desc "Run all cucumber features without the ignored ones"
+task :features do
   sh "bundle exec cucumber --tags ~@ignore features/*"
 end
 
-desc "Run only work-in-progress specs"
+desc "Run only work-in-progress features"
 task :wip do
   sh "bundle exec cucumber --tags @wip features/*"
 end

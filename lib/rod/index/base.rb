@@ -105,7 +105,7 @@ module Rod
               warn("Index type 'true' is deprecated. It will be removed in ROD 0.8.0")
             FlatIndex.new(path,klass,options)
           else
-            raise RodException.new("Invalid index type #{type}")
+            raise RodException.new("Invalid index type '#{type}'")
           end
         end
       end

@@ -9,7 +9,7 @@ Database.instance.open_database("tmp/migration")
 
 count = (ARGV[0] || 10).to_i
 key_count = 0
-User.index_for(:street,:index => :hash).each do |key,proxy|
+User.property(:street).index.each do |key,proxy|
   key_count += 1
   proxy.to_a.should == User.find_all_by_street(key).to_a
   proxy.count.should > 0

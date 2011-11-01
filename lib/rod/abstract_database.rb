@@ -77,8 +77,8 @@ module Rod
       self.classes.each do |klass|
         klass.send(:build_structure)
         remove_file(klass.path_for_data(@path))
-        klass.indexed_properties.each do |property,options|
-          klass.index_for(property,options).destroy
+        klass.indexed_properties.each do |property|
+          property.index.destroy
         end
         next if special_class?(klass)
         remove_files_but(klass.inline_library)
@@ -223,8 +223,8 @@ module Rod
         end
         unless skip_indices
           self.classes.each do |klass|
-            klass.indexed_properties.each do |property,options|
-              klass.index_for(property,options).save
+            klass.indexed_properties.each do |property|
+              property.index.save
             end
           end
         end
@@ -326,25 +326,13 @@ module Rod
     end
 
     # Returns the string of given +length+ starting at given +offset+.
-    # Options:
-    # * +:skip_encoding+ - if set to +true+, the string is left as ASCII-8BIT
-    def read_string(length, offset,options={})
-      # TODO the encoding should be stored in the DB
-      # or configured globally
+    def read_string(length, offset)
       value = _read_string(length, offset, @handler)
-      if options[:skip_encoding]
-        value.force_encoding("ascii-8bit")
-      else
-        value.force_encoding("utf-8")
-      end
     end
 
-    # Stores the string in the DB encoding it to utf-8.
-    # Options:
-    # * +:skip_encoding+ - if set to +true+, the string is not encoded
-    def set_string(value,options={})
+    # Stores the string in the DB.
+    def set_string(value)
       raise DatabaseError.new("Readonly database.") if readonly_data?
-      value = value.encode("utf-8") unless options[:skip_encoding]
       _set_string(value,@handler)
     end
 
@@ -476,9 +464,9 @@ module Rod
           [:fields,:has_one,:has_many].each do |property_type|
             next if metadata[property_type].nil?
             metadata[property_type].each do |property,options|
-              if superclasses.keys.include?(options[:options][:class_name])
-                metadata[property_type][property][:options][:class_name] =
-                  prefix + options[:options][:class_name]
+              if superclasses.keys.include?(options[:class_name])
+                metadata[property_type][property][:class_name] =
+                  prefix + options[:class_name]
               end
             end
           end
