@@ -87,7 +87,7 @@ Grab from rubygems:
    field :data, :string
  end
 
- MyDatabase.create_database("data")
+ MyDatabase.instance.create_database("data")
  user = User.new(:name => 'Fred',
                  :surname => 'Smith',
                  :age => 22)
@@ -107,9 +107,9 @@ Grab from rubygems:
  account.store
  file1.store
  file2.store
- MyDatabase.close_database
+ MyDatabase.instance.close_database
 
- MyDatabase.open_database("data")
+ MyDatabase.instance.open_database("data")
  User.each do |user|
    puts "Name: #{user.name} surname: #{user.surname}"
    puts "login: #{user.account.login} e-mail: #{user.account.email}"
