@@ -66,6 +66,9 @@ task :unit_test do
   sh "ruby spec/property/field.rb"
   sh "ruby spec/property/singular_association.rb"
   sh "ruby spec/property/plural_association.rb"
+  sh "ruby spec/berkeley/environment.rb"
+  sh "ruby spec/berkeley/database.rb"
+  sh "ruby spec/berkeley/transaction.rb"
 end
 
 # Should be removed some time -- specs should cover all these cases

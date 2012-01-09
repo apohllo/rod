@@ -35,3 +35,8 @@ require 'rod/property/base'
 require 'rod/property/field'
 require 'rod/property/singular_association'
 require 'rod/property/plural_association'
+
+require 'rod/berkeley/environment'
+require 'rod/berkeley/database'
+require 'rod/berkeley/transaction'
+require 'rod/berkeley/sequence'
