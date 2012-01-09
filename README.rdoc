@@ -1,6 +1,8 @@
 = ROD -- Ruby Object Database
 
-* http://github.com/apohllo/rod
+* http://github.com/apohllo/rod - source code
+* http://rubydoc.info/github/apohllo/rod/master/frames - API
+* https://www.relishapp.com/apohllo/rod - Cucumber features
 
 == WARNING
 
@@ -170,11 +172,18 @@ Then be sure to write tests covering the added feature/fixed bug.
 Include the tests in Rakefile, run the tests and if everything is fine
 send me a pull request.
 
+== BENCHMARKS:
+
+There is a separate project available under http://github.com/apohllo/rod-benchmark
+that shows how ROD behave compared to the other storage engines.
+It should be noted that this benchmarks are biased towards the design goals
+of ROD. So don't expect general purpose database tests.
+
 == LICENSE:
 
-(The MIT License)
+(The MIT/X11 License)
 
-Copyright (c) 2008-2011 Aleksander Pohl
+Copyright (c) 2008-2012 Aleksander Pohl
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the
