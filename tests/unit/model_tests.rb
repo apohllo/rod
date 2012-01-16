@@ -33,7 +33,7 @@ module RodTest
 
   class ModuleTests < Test::Unit::TestCase
     def create_db
-      Database.instance.create_database("tmp/test_stored_instances") do
+      Database.instance.create_database("tmp/test_stored_instances_#{rand.to_s[2,5]}") do
         yield
       end
     end
@@ -113,6 +113,15 @@ module RodTest
         #p "AStruct.count: #{AStruct.count}" <- should throw a more relevant exception
       end
     end
+
+    def test_handling_exception_during_filling_database
+      assert_nothing_raised do
+        create_db do
+          raise "something"
+        end
+      end
+    end
+    
   end
 end
 
