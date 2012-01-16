@@ -65,7 +65,7 @@ module Rod
     # so it have to be called only in the root class of given model).
     #
     # WARNING: all files in the DB directory are removed during DB creation!
-    def create_database(path, opts={})
+    def create_database(path, options={})
       prepare_database(path)
 
       begin
@@ -74,7 +74,7 @@ module Rod
         puts RodException.new("Database \"#{path}\" couldn't be filled:\n\n#{e.message}\n\n#{e.backtrace.join("\n")}\n").to_s
       end
 
-      close_database(opts[:purge_classes], opts[:skip_indices])
+      close_database(options[:purge_classes], options[:skip_indices])
     end
 
     def prepare_database(path)
