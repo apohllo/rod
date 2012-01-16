@@ -10,5 +10,5 @@ class TestClass < Rod::Model
   database_class TestDatabase
 end
 
-TestDatabase.create_database("tmp/class_compatibility") do
+TestDatabase.instance.create_database("tmp/class_compatibility") do
 end

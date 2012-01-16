@@ -3,7 +3,7 @@ require 'structures'
 
 puts "-- Save sample structures test --"
 Rod::Database.development_mode = true
-RodTest::Database.create_database("tmp/abc") do
+RodTest::Database.instance.create_database("tmp/abc") do
 
   #MAGNITUDE = 100000
   MAGNITUDE = 50

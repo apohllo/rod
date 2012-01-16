@@ -6,7 +6,7 @@ puts "-- Read data while creating DB --"
 Rod::Database.development_mode = true
 
 
-RodTest::Database.create_database("tmp/read_write") do
+RodTest::Database.instance.create_database("tmp/read_write") do
   my_structures = []
   MAGNITUDO.times do |index|
     your_struct = RodTest::YourStruct.new

@@ -5,7 +5,7 @@ require File.join(".",File.dirname(__FILE__),"generate_classes_model")
 Rod::Database.development_mode = true
 
 
-Database.create_database("tmp/generate_classes") do
+Database.instance.create_database("tmp/generate_classes") do
 
   files = 10.times.map{|i| UserFile.new(:data => "#{i} data")}
   files.each{|f| f.store}
