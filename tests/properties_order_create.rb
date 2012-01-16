@@ -9,7 +9,7 @@ end
 
 Rod::Database.development_mode = true
 
-Rod::Database.create_database("tmp/properties_order") do
+Rod::Database.instance.create_database("tmp/properties_order") do
   user = User.new(:name => "John",:surname => "Smith")
   user.store
 end

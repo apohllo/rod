@@ -22,7 +22,7 @@ module RodTest
     FILENAME = "tmp/eff1"
 
 		def setup
-			Model.create_database(FILENAME)
+			Model.instance.create_database(FILENAME)
       @structs = {}
       %w{A B C D E}.each do |letter|
         @structs[letter.to_sym] = []

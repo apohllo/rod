@@ -13,7 +13,7 @@ end
 
 Rod::Database.development_mode = true
 
-Rod::Database.create_database("tmp/missing_class") do
+Rod::Database.instance.create_database("tmp/missing_class") do
   user = User.new(:name => "John")
   user.store
   item = Item.new(:name => "hammer")

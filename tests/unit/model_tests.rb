@@ -33,7 +33,7 @@ module RodTest
 
   class ModuleTests < Test::Unit::TestCase
     def create_db
-      Database.create_database("tmp/test_stored_instances") do
+      Database.instance.create_database("tmp/test_stored_instances") do
         yield
       end
     end

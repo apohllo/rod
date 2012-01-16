@@ -5,7 +5,7 @@ require 'rod'
 class DatabaseTest < Test::Unit::TestCase
   def setup
     @database = Rod::Database.instance
-    @database.create_database("tmp/unit_database")
+    @database.prepare_database("tmp/unit_database")
   end
 
   def teardown
