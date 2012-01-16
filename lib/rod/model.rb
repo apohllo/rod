@@ -159,6 +159,8 @@ module Rod
     # Returns n-th (+index+) object of this class stored in the database.
     # This call is scope-checked.
     def self.[](index)
+      return nil if self.count.zero?
+      
       if index >= 0 && index < self.count
         get(index+1)
       else
