@@ -68,7 +68,11 @@ module Rod
     def create_database(path, opts={})
       prepare_database(path)
 
-      yield
+      begin
+        yield
+      rescue Exception => e
+        puts RodException.new("Database \"#{path}\" couldn't be filled:\n\n#{e.message}\n\n#{e.backtrace.join("\n")}\n").to_s
+      end
 
       close_database(opts[:purge_classes], opts[:skip_indices])
     end
