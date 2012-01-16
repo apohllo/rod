@@ -65,13 +65,15 @@ module Rod
     # so it have to be called only in the root class of given model).
     #
     # WARNING: all files in the DB directory are removed during DB creation!
-    def self.create_database(path, opts={})
-      self.instance.create_database(path)
+    def create_database(path, opts={})
+      prepare_database(path)
+
       yield
-      self.instance.close_database(opts[:purge_classes], opts[:skip_indices])
+
+      close_database(opts[:purge_classes], opts[:skip_indices])
     end
 
-    def create_database(path)
+    def prepare_database(path)
       raise DatabaseError.new("Database already opened.") if opened?
       @readonly = false
       @path = canonicalize_path(path)
