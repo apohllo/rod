@@ -69,7 +69,7 @@ module Rod
       prepare_database(path)
 
       begin
-        yield
+        yield if block_given?
       rescue Exception => e
         puts RodException.new("Database \"#{path}\" couldn't be filled:\n\n#{e.message}\n\n#{e.backtrace.join("\n")}\n").to_s
       end
