@@ -66,43 +66,49 @@ module Rod
     #
     # WARNING: all files in the DB directory are removed during DB creation!
     def create_database(path, options={})
-      prepare_database(path)
 
-      begin
-        yield if block_given?
-      rescue Exception => e
-        puts RodException.new("Database \"#{path}\" couldn't be filled:\n\n#{e.message}\n\n#{e.backtrace.join("\n")}\n").to_s
-      end
+      if block_given?
 
-      close_database(options[:purge_classes], options[:skip_indices])
-    end
+        create_database(path)
 
-    def prepare_database(path)
-      raise DatabaseError.new("Database already opened.") if opened?
-      @readonly = false
-      @path = canonicalize_path(path)
-      if File.exist?(@path)
-        remove_file("#{@path}database.yml")
-      else
-        FileUtils.mkdir_p(@path)
-      end
-      self.classes.each do |klass|
-        klass.send(:build_structure)
-        remove_file(klass.path_for_data(@path))
-        klass.indexed_properties.each do |property|
-          property.index.destroy
+        begin
+          yield
+        rescue Exception => e
+          puts RodException.new("Database \"#{path}\" couldn't be filled:\n\n#{e.message}\n\n#{e.backtrace.join("\n")}\n").to_s
+        ensure
+          close_database(options[:purge_classes], options[:skip_indices])
         end
-        next if special_class?(klass)
-        remove_files_but(klass.inline_library)
+        
+      else
+
+        raise DatabaseError.new("Database already opened.") if opened?
+        @readonly = false
+        @path = canonicalize_path(path)
+        if File.exist?(@path)
+          remove_file("#{@path}database.yml")
+        else
+          FileUtils.mkdir_p(@path)
+        end
+        self.classes.each do |klass|
+          klass.send(:build_structure)
+          remove_file(klass.path_for_data(@path))
+          klass.indexed_properties.each do |property|
+            property.index.destroy
+          end
+          next if special_class?(klass)
+          remove_files_but(klass.inline_library)
+        end
+        remove_files(self.inline_library)
+        generate_c_code(@path, classes)
+        remove_files_but(self.inline_library)
+        @metadata = {}
+        @metadata["Rod"] = {}
+        @metadata["Rod"][:created_at] = Time.now
+        @handler = _init_handler(@path)
+        _create(@handler)
+
       end
-      remove_files(self.inline_library)
-      generate_c_code(@path, classes)
-      remove_files_but(self.inline_library)
-      @metadata = {}
-      @metadata["Rod"] = {}
-      @metadata["Rod"][:created_at] = Time.now
-      @handler = _init_handler(@path)
-      _create(@handler)
+      
     end
 
     # Opens the database at +path+ with +options+. This allows
