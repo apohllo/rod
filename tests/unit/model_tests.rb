@@ -33,8 +33,18 @@ module RodTest
 
   class ModuleTests < Test::Unit::TestCase
     def create_db
-      Database.instance.create_database("tmp/test_stored_instances_#{rand.to_s[2,5]}") do
-        yield
+      @database = Database.instance
+
+      if block_given?
+
+        @database.create_database("tmp/test_stored_instances_#{rand.to_s[2,5]}") do
+          yield
+        end
+
+      else
+
+        @database.create_database("tmp/test_stored_instances_#{rand.to_s[2,5]}")
+
       end
     end
 
@@ -114,12 +124,37 @@ module RodTest
       end
     end
 
-    def test_handling_exception_during_filling_database
-      assert_nothing_raised do
-        create_db do
+    def test_handle_exception_during_filling_database
+      create_db do
+
+        assert_nothing_raised do
           raise "something"
         end
+
       end
+    end
+
+    def test_close_database_after_open_with_block
+      create_db do
+      end
+      
+      assert !@database.opened?
+    end
+
+    def test_not_close_database_after_open_without_block
+      create_db
+      assert @database.opened?
+
+      @database.close_database
+      assert !@database.opened?
+    end
+
+    def test_close_database_if_exception_raised
+      create_db do
+        oh_my_god_I_am_non_existent_method_call
+      end
+
+      assert !@database.opened?
     end
     
   end
