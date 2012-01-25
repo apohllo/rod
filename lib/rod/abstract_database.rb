@@ -73,8 +73,6 @@ module Rod
 
         begin
           yield
-        rescue Exception => e
-          puts RodException.new("Database \"#{path}\" couldn't be filled:\n\n#{e.message}\n\n#{e.backtrace.join("\n")}\n").to_s
         ensure
           close_database(options[:purge_classes], options[:skip_indices])
         end
