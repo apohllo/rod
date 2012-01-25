@@ -5,7 +5,7 @@ require 'rod'
 class DatabaseTest < Test::Unit::TestCase
   def setup
     @database = Rod::Database.instance
-    @database.prepare_database("tmp/unit_database")
+    @database.create_database("tmp/unit_database")
   end
 
   def teardown
@@ -19,7 +19,7 @@ class DatabaseTest < Test::Unit::TestCase
 
     Rod::VERSION.sub!(/.*/,"0.1.1")
     file = "0.1.0"
-    assert(not(@database.send(:valid_version?,file)))
+    assert !(@database.send(:valid_version?,file))
 
     Rod::VERSION.sub!(/.*/,"0.2.1")
     file = "0.2.0"

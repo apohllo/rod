@@ -127,7 +127,7 @@ module RodTest
     def test_handle_exception_during_filling_database
       create_db do
 
-        assert_nothing_raised do
+        assert_raise RuntimeError do
           raise "something"
         end
 
@@ -151,7 +151,11 @@ module RodTest
 
     def test_close_database_if_exception_raised
       create_db do
-        oh_my_god_I_am_non_existent_method_call
+
+        assert_raise NameError do
+          oh_my_god_I_am_non_existent_method_call
+        end
+
       end
 
       assert !@database.opened?
