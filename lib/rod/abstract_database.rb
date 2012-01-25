@@ -65,7 +65,7 @@ module Rod
     # so it have to be called only in the root class of given model).
     #
     # WARNING: all files in the DB directory are removed during DB creation!
-    def create_database(path, options={})
+    def create_database(path)
 
       if block_given?
 
@@ -74,7 +74,7 @@ module Rod
         begin
           yield
         ensure
-          close_database(options[:purge_classes], options[:skip_indices])
+          close_database
         end
         
       else
