@@ -37,13 +37,13 @@ module RodTest
 
       if block_given?
 
-        @database.create_database("tmp/test_stored_instances_#{rand.to_s[2,5]}") do
+        @database.create_database("tmp/test_stored_instances") do
           yield
         end
 
       else
 
-        @database.create_database("tmp/test_stored_instances_#{rand.to_s[2,5]}")
+        @database.create_database("tmp/test_stored_instances")
 
       end
     end
