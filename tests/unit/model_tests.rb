@@ -35,17 +35,14 @@ module RodTest
     def create_db
       @database = Database.instance
 
-      if block_given?
-
-        @database.create_database("tmp/test_stored_instances") do
-          yield
-        end
-
-      else
-
-        @database.create_database("tmp/test_stored_instances")
-
+      @database.create_database("tmp/test_stored_instances") do
+        yield
       end
+    end
+
+    def create_db_without_block
+      @database = Database.instance
+      @database.create_database("tmp/test_stored_instances")
     end
 
     def test_reflection
@@ -142,7 +139,7 @@ module RodTest
     end
 
     def test_not_close_database_after_open_without_block
-      create_db
+      create_db_without_block
       assert @database.opened?
 
       @database.close_database
