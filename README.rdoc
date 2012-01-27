@@ -1,6 +1,7 @@
 = ROD -- Ruby Object Database
 
 * http://github.com/apohllo/rod
+* just testing
 
 == DESCRIPTION
 
