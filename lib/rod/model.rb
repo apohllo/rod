@@ -159,9 +159,9 @@ module Rod
     # Returns n-th (+index+) object of this class stored in the database.
     # This call is scope-checked.
     def self.[](index)
-      if index >= 0 && index < self.count
+      begin
         get(index+1)
-      else
+      rescue IndexError
         nil
       end
     end
@@ -797,6 +797,9 @@ module Rod
       def get(rod_id)
         object = cache[rod_id]
         if object.nil?
+          if rod_id <= 0 || rod_id > self.count
+            raise IndexError.new("Invalid rod_id #{rod_id} for #{self}")
+          end
           object = self.new(rod_id)
           cache[rod_id] = object
         end
