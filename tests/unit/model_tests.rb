@@ -96,7 +96,6 @@ module RodTest
     end
 
     def test_stored_instances
-
       create_db do
         a1 = AStruct.new
         a2 = AStruct.new
@@ -120,44 +119,6 @@ module RodTest
         #p "AStruct.count: #{AStruct.count}" <- should throw a more relevant exception
       end
     end
-
-    def test_handle_exception_during_filling_database
-      create_db do
-
-        assert_raise RuntimeError do
-          raise "something"
-        end
-
-      end
-    end
-
-    def test_close_database_after_open_with_block
-      create_db do
-      end
-      
-      assert !@database.opened?
-    end
-
-    def test_not_close_database_after_open_without_block
-      create_db_without_block
-      assert @database.opened?
-
-      @database.close_database
-      assert !@database.opened?
-    end
-
-    def test_close_database_if_exception_raised
-      create_db do
-
-        assert_raise NameError do
-          oh_my_god_I_am_non_existent_method_call
-        end
-
-      end
-
-      assert !@database.opened?
-    end
-    
   end
 end
 
