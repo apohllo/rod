@@ -272,7 +272,7 @@ Then /^the (\w+) (\w+) should not have (a|an )?(\w+)$/ do |position, class_name,
 end
 
 Then /^the (\w+) (\w+) should not exist$/ do |position,class_name|
-  (lambda {get_instance(class_name,position)}).should raise_error(IndexError)
+  get_instance(class_name,position).should == nil
 end
 
 Then /^the (\w+) of the (\w+) (\w+) should be equal to the (\w+) (\w+)$/ do |field, position1,class1,position2,class2|
