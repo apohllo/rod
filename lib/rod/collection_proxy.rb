@@ -1,5 +1,6 @@
 require 'bsearch'
 require 'rod/reference_updater'
+require 'set'
 
 module Rod
   # This class allows for lazy fetching the elements from
@@ -48,27 +49,12 @@ module Rod
       # So far this optimization works only for monomorphic
       # collection proxies without added elements.
       if @klass && @added.empty?
-        my_ids = self.size.times.map do |index|
-          id_for(index)
-        end.sort
-        other_ids = other.size.times.map do |index|
-          other.id_for(index)
-        end.sort
-        ids = []
-        last_id = nil
-        while(!my_ids.empty?) do
-          id = my_ids.shift
-          other_ids.shift if other_ids.first == id
-          ids << id unless last_id == id
-          last_id = id
-        end
-        while(!other_ids.empty?) do
-          id = other_ids.shift
-          ids << id unless last_id == id
-          last_id = id
-        end
+        my_ids = self.ids_set
+        other_ids = other.ids_set
+        min_ids = (my_ids.size < other_ids.size ? my_ids : other_ids)
+        max_ids = (my_ids.size >= other_ids.size ? my_ids : other_ids)
         result = CollectionProxy.new(0,@database,0,@klass)
-        ids.each{|id| result << [id,@klass]}
+        (min_ids | max_ids).each{|id| result << [id,@klass]}
       else
         result = self.to_a | other.to_a
       end
@@ -80,28 +66,12 @@ module Rod
       # So far this optimization works only for monomorphic
       # collection proxies without added elements.
       if @klass && @added.empty?
-        my_ids = self.size.times.map do |index|
-          id_for(index)
-        end.sort
-        other_ids = other.size.times.map do |index|
-          other.id_for(index)
-        end.sort
-        ids = []
-        last_id = nil
-        while(!my_ids.empty? && !other_ids.empty?) do
-          if my_ids.first == other_ids.first
-            id = my_ids.shift
-            other_ids.shift
-            ids << id unless last_id == id
-            last_id = id
-          elsif my_ids.first < other_ids.first
-            my_ids.shift
-          else
-            other_ids.shift
-          end
-        end
+        my_ids = self.ids_set
+        other_ids = other.ids_set
+        min_ids = (my_ids.size < other_ids.size ? my_ids : other_ids)
+        max_ids = (my_ids.size >= other_ids.size ? my_ids : other_ids)
         result = CollectionProxy.new(0,@database,0,@klass)
-        ids.each{|id| result << [id,@klass]}
+        (max_ids & min_ids).each{|id| result << [id,@klass]}
       else
         result = self.to_a & other.to_a
       end
@@ -321,6 +291,12 @@ module Rod
     end
 
     protected
+    # Returns (memoized) set of ids of the objects.
+    # Warning: this should be used only in monomorphic collection proxies.
+    def ids_set
+      @ids_set ||= Set.new(self.size.times.map{|i| id_for(i)})
+    end
+
     # Returns true if the collection proxy is polymorphic, i.e. each
     # element in the collection might be an instance of a different class.
     def polymorphic?
