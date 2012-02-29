@@ -88,7 +88,7 @@ module Rod
         end.sort
         ids = []
         last_id = nil
-        while(!my_ids.empty?) do
+        while(!my_ids.empty? && !other_ids.empty?) do
           if my_ids.first == other_ids.first
             id = my_ids.shift
             other_ids.shift
