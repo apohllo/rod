@@ -50,16 +50,84 @@ module Rod
       @database.fast_intersection_size(self.offset,self.size,other.offset,other.size)
     end
 
+    # Computes a union with the +other+ collection proxy.
+    def |(other)
+      # So far this optimization works only for monomorphic
+      # collection proxies without added elements.
+      if @klass && @added.empty?
+        my_ids = self.size.times.map do |index|
+          id_for(index)
+        end.sort
+        other_ids = other.size.times.map do |index|
+          other.id_for(index)
+        end.sort
+        ids = []
+        last_id = nil
+        while(!my_ids.empty?) do
+          id = my_ids.shift
+          other_ids.shift if other_ids.first == id
+          ids << id unless last_id == id
+          last_id = id
+        end
+        while(!other_ids.empty?) do
+          id = other_ids.shift
+          ids << id unless last_id == id
+          last_id = id
+        end
+        result = CollectionProxy.new(0,@database,0,@klass)
+        ids.each{|id| result << [id,@klass]}
+      else
+        result = self.to_a | other.to_a
+      end
+      result
+    end
+
+    # Computes an intersection with the +other+ collection proxy.
+    def &(other)
+      # So far this optimization works only for monomorphic
+      # collection proxies without added elements.
+      if @klass && @added.empty?
+        my_ids = self.size.times.map do |index|
+          id_for(index)
+        end.sort
+        other_ids = other.size.times.map do |index|
+          other.id_for(index)
+        end.sort
+        ids = []
+        last_id = nil
+        while(!my_ids.empty?) do
+          if my_ids.first == other_ids.first
+            id = my_ids.shift
+            other_ids.shift
+            ids << id unless last_id == id
+            last_id = id
+          elsif my_ids.first < other_ids.first
+            my_ids.shift
+          else
+            other_ids.shift
+          end
+        end
+        result = CollectionProxy.new(0,@database,0,@klass)
+        ids.each{|id| result << [id,@klass]}
+      else
+        result = self.to_a & other.to_a
+      end
+      result
+    end
+
     # Appends element to the end of the collection.
     def <<(element)
       if element.nil?
         pair = [0,NilClass]
-      else
+      elsif element.is_a?(Model)
         if element.new?
           pair = [element,element.class]
         else
           pair = [element.rod_id,element.class]
         end
+      else
+        # Assume we have an array with direct values of rod_id and class.
+        pair = element
       end
       index = @size
       @map[index] = @added.size
