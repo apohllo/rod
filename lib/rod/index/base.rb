@@ -42,9 +42,9 @@ module Rod
           proxy = get(key)
         end
         if proxy.nil?
-          proxy = CollectionProxy.new(0,@klass.database,0,@klass)
+          proxy = empty_collection_proxy(key)
         else
-          unless proxy.is_a?(CollectionProxy)
+          if Array === proxy
             offset, count = proxy
             proxy = CollectionProxy.new(count,@klass.database,offset,@klass)
           end
@@ -61,6 +61,7 @@ module Rod
       # Copies the values from +index+ to this index.
       def copy(index)
         index.each.with_index do |key_value,position|
+          # TODO #206 this doesn't work for hash
           self.set(key_value[0],key_value[1])
           # TODO #182 implement size for index
           # report_progress(position,index.size) if $ROD_DEBUG
@@ -83,6 +84,14 @@ module Rod
       # The default representation shows the index class and path.
       def to_s
         "#{self.class}@#{@path}"
+      end
+
+      protected
+
+      # Returns an empty collection proxy. Might be changed
+      # in subclasses to provie index-specific collection proxies.
+      def empty_collection_proxy(key)
+        CollectionProxy.new(0,@klass.database,0,@klass)
       end
 
       class << self
