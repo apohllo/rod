@@ -92,11 +92,10 @@ module Rod
       |
       |  // exted the file
       |
-      |  // increase the pages count by 1
+      |  // increase the pages count by numer of pages allocated at-once
       |  model_p->#{klass.struct_name}_page_count += ALLOCATED_PAGES;
       |  {
       |    // open the file for writing
-      |    char* #{klass.struct_name}_empty_data;
       |    FILE * #{klass.struct_name}_file =
       |      fdopen(model_p->#{klass.struct_name}_lib_file,"w+");
       |    if(#{klass.struct_name}_file == NULL){
@@ -107,11 +106,11 @@ module Rod
       |      rb_raise(rodException(),"Could not seek to end file for #{klass.struct_name}.");
       |    }
       |    // write empty data at the end
-      |    #{klass.struct_name}_empty_data = calloc(page_size() * ALLOCATED_PAGES,1);
-      |    if(write(model_p->#{klass.struct_name}_lib_file,#{klass.struct_name}_empty_data,
+      |    if(write(model_p->#{klass.struct_name}_lib_file,model_p->empty_data,
       |      page_size() * ALLOCATED_PAGES) == -1){
       |      rb_raise(rodException(),"Could not write to file for #{klass.struct_name}.");
       |    }
+      |
       |    // seek to the beginning
       |    if(fseek(#{klass.struct_name}_file,0,SEEK_SET) == -1){
       |      rb_raise(rodException(),"Could not seek to start file for #{klass.struct_name}.");
@@ -198,10 +197,28 @@ module Rod
             end.join("\n|\n")}
             |  // the path to the DB
             |  char * path;
+            |  // chunk written to extend file
+            |  char * empty_data;
             |
             |} #{model_struct};
           END
           builder.prefix(str.margin)
+
+          str =<<-END
+          |// Deallocates the model struct.
+          |void model_struct_free(#{model_struct} * model_p){
+          |  if(model_p != NULL){
+          |    if(model_p->path != NULL){
+          |      free(model_p->path);
+          |    }
+          |    if(model_p->empty_data != NULL){
+          |      free(model_p->empty_data);
+          |    }
+          |  free(model_p);
+          |}
+          END
+          builder.prefix(str.margin)
+
 
           #########################################
           # Join indices
@@ -444,10 +461,13 @@ module Rod
           |  model_p->path = malloc(sizeof(char)*(strlen(dir_path)+1));
           |  strcpy(model_p->path,dir_path);
           |
+          |  // initialize empty data written when extending file
+          |  model_p->empty_data = calloc(page_size() * ALLOCATED_PAGES,1);
+          |
           |  //create the wrapping object
           |  cClass = rb_define_class("#{model_struct_name(path).camelcase(true)}",
           |    rb_cObject);
-          |  return Data_Wrap_Struct(cClass, 0, free, model_p);
+          |  return Data_Wrap_Struct(cClass, 0, model_struct_free, model_p);
           |}
           END
           builder.c(str.margin)
