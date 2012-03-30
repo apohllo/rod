@@ -196,6 +196,7 @@ module Rod
         |    flags |= DB_TRUNCATE;
         |  }
         |
+        |  db_pointer->set_cachesize(db_pointer,0,100 * 1024 * 1024,0);
         |  return_value = db_pointer->open(db_pointer,NULL,path,
         |    NULL,DB_HASH,flags,0);
         |  if(return_value != 0){
