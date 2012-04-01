@@ -473,7 +473,8 @@ module Rod
           |  //create the wrapping object
           |  cClass = rb_define_class("#{model_struct_name(path).camelcase(true)}",
           |    rb_cObject);
-          |  return Data_Wrap_Struct(cClass, 0, model_struct_free, model_p);
+          |  //return Data_Wrap_Struct(cClass, 0, model_struct_free, model_p);
+          |  return Data_Wrap_Struct(cClass, 0, free, model_p);
           |}
           END
           builder.c(str.margin)
