@@ -209,10 +209,15 @@ module Rod
           |void model_struct_free(#{model_struct} * model_p){
           |  if(model_p != NULL){
           |    if(model_p->path != NULL){
-          |      free(model_p->path);
+          |      // TODO causes segfault
+          |      //printf("GC %lu %lu\\n",(unsigned long)model_p,
+          |      // (unsigned long)model_p->path);
+          |      //free(model_p->path);
+          |      model_p->path = NULL;
           |    }
           |    if(model_p->empty_data != NULL){
-          |      free(model_p->empty_data);
+          |      //free(model_p->empty_data);
+          |      model_p->empty_data = NULL;
           |    }
           |  }
           |  free(model_p);
