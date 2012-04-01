@@ -396,3 +396,10 @@ end
 Then /^([\w:]+) should be raised$/ do |exception|
   @error.class.to_s.should == exception
 end
+
+# Then some User with 'Fred' name should be equal to the first User
+Then /^some (\w+) with '([^']*)' (\w+) should be equal to the (\w+) (\w+)$/ do |class1,value,field,position2,class2|
+  objects = get_class(class1).send("find_all_by_#{field}",get_value(value))
+  expected = get_instance(class2,position2)
+  objects.any?{|o| o == expected }.should == true
+end

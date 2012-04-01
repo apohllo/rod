@@ -45,6 +45,9 @@ Feature: Access to objects with segmented indices.
     And there should be 1 Caveman with '111222555' identifier
     And there should be 2 Caveman(s) with '1.67' height
     And there should be 1 Caveman with '1.86' height
+    And some Caveman with 'Fred' name should be equal to the first Caveman
+    And some Caveman with 'Barney' name should be equal to the second Caveman
+    And some Caveman with 'Wilma' name should be equal to the third Caveman
 
     # Test re-creation of the database
     When database is created
@@ -62,6 +65,9 @@ Feature: Access to objects with segmented indices.
     And there should be 1 Caveman with 'Fred' name
     And there should be 1 Caveman with 'Wilma' name
     And there should be 1 Caveman with 'Barney' name
+    And some Caveman with 'Fred' name should be equal to the first Caveman
+    And some Caveman with 'Barney' name should be equal to the second Caveman
+    And some Caveman with 'Wilma' name should be equal to the third Caveman
 
   Scenario: extending the DB when segmented index is used
       Rod should allow to extend the DB when the segmented index is used.
@@ -88,6 +94,9 @@ Feature: Access to objects with segmented indices.
     And there should be 1 Caveman with 'Wilma' name
     And there should be 2 Caveman(s) with 'Fred' name
     And there should be 1 Caveman with 'Barney' name
+    And some Caveman with 'Fred' name should be equal to the first Caveman
+    And some Caveman with 'Barney' name should be equal to the second Caveman
+    And some Caveman with 'Wilma' name should be equal to the third Caveman
 
   Scenario: indexing of fields with different DBs for the same model with segmented index
     The contents of indices should be fulshed when the database is reopened.
@@ -120,6 +129,7 @@ Feature: Access to objects with segmented indices.
     Then there should be 3 Caveman(s)
     And there should be 3 Caveman(s) with 'Wilma' name
     And there should be 0 Caveman(s) with 'Fred' name
+    And some Caveman with 'Wilma' name should be equal to the first Caveman
 
   Scenario: indexing of particular values with segmented index
     Given the class space is cleared
