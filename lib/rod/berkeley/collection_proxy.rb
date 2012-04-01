@@ -9,19 +9,11 @@ module Rod
         @key = key
       end
 
-      def [](value_index)
-        index = 0
-        begin
-          @database._get(@key) do |value|
-            if index == value_index
-              return value
-            end
-            index += 1
-          end
-          nil
-        rescue KeyMissing
-          nil
+      def [](object_index)
+        self.each.with_index do |object,index|
+          return object if index == object_index
         end
+        nil
       end
 
       def |(other)
@@ -63,8 +55,8 @@ module Rod
       def each
         if block_given?
           begin
-            @database._get(@key) do |value|
-              yield value
+            @database.each_for(@key) do |rod_id|
+              yield object_for(rod_id)
             end
           rescue KeyMissing
             #ignore
@@ -85,6 +77,11 @@ module Rod
 
       def save
         raise "#{self.class}##{__method__} not implemented yet."
+      end
+
+      protected
+      def object_for(rod_id)
+        @database.klass.find_by_rod_id(rod_id)
       end
     end
   end

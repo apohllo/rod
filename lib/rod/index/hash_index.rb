@@ -10,6 +10,9 @@ module Rod
       class Handle
       end
 
+      # The class given index is associated with.
+      attr_reader :klass
+
       # Initializes the index with +path+ and +class+.
       # Options are not (yet) used.
       def initialize(path,klass,options={})
@@ -30,7 +33,8 @@ module Rod
         open(@path,:truncate => true)
       end
 
-      # Simple iterator.
+      # Iterates over the keys and corresponding
+      # values present in the index.
       def each
         if block_given?
           open(@path) unless opened?
@@ -63,6 +67,18 @@ module Rod
       def put(key,rod_id)
         _put(key,rod_id)
       end
+
+      # Iterates over all values for a given +key+.
+      def each_for(key)
+        begin
+          _get(key) do |value|
+            yield value
+          end
+        rescue KeyMissing
+          nil
+        end
+      end
+
 
       protected
       # Returns an empty BDB based collection proxy.
