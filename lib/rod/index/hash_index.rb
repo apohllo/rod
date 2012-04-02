@@ -79,6 +79,16 @@ module Rod
         end
       end
 
+      # Returns the first value for a given +key+ or
+      # +nil+ if the key is not present.
+      def get_first(key)
+        begin
+          _get_first(key)
+        rescue KeyMissing
+          nil
+        end
+      end
+
 
       protected
       # Returns an empty BDB based collection proxy.
@@ -346,6 +356,46 @@ module Rod
         |    rb_raise(rodException(),"DB handle is NULL\\n");
         |  }
         |  return ULONG2NUM(index);
+        |}
+        END
+        builder.c(str.margin)
+
+        str =<<-END
+        |// Returns the first value for a given +key+ or raises
+        |// KeyMissingException if the key is not present.
+        |VALUE _get_first(VALUE key){
+        |  VALUE handle;
+        |  DB *db_pointer;
+        |  DBT db_key, db_value;
+        |  unsigned long rod_id;
+        |  VALUE result;
+        |  int return_value;
+        |
+        |  handle = rb_iv_get(self,"@handle");
+        |  Data_Get_Struct(handle,DB,db_pointer);
+        |  if(db_pointer != NULL){
+        |    memset(&db_value, 0, sizeof(DBT));
+        |    db_value.data = &rod_id;
+        |    db_value.ulen = sizeof(unsigned long);
+        |    db_value.flags = DB_DBT_USERMEM;
+        |
+        |    memset(&db_key, 0, sizeof(DBT));
+        |    db_key.data = RSTRING_PTR(key);
+        |    db_key.size = RSTRING_LEN(key);
+        |
+        |    return_value = db_pointer->get(db_pointer, NULL, &db_key, &db_value, 0);
+        |    if(return_value == DB_NOTFOUND){
+        |      rb_raise(keyMissingException(),"%s",db_strerror(return_value));
+        |    } else if(return_value != 0){
+        |      rb_raise(rodException(),"%s",db_strerror(return_value));
+        |    }
+        |    return ULONG2NUM(rod_id);
+        |  } else {
+        |    rb_raise(rodException(),"DB handle is NULL\\n");
+        |  }
+        |  // This should never be reached.
+        |  rb_raise(rodException(),"Invalid _get_first implementation!\\n");
+        |  return Qnil;
         |}
         END
         builder.c(str.margin)

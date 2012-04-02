@@ -10,8 +10,13 @@ module Rod
       end
 
       def [](object_index)
-        self.each.with_index do |object,index|
-          return object if index == object_index
+        if object_index == 0
+          return @database.get_first(@key)
+        else
+          # TODO This should be optimized!
+          self.each.with_index do |object,index|
+            return object if index == object_index
+          end
         end
         nil
       end
