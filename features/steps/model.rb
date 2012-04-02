@@ -403,3 +403,9 @@ Then /^some (\w+) with '([^']*)' (\w+) should be equal to the (\w+) (\w+)$/ do |
   expected = get_instance(class2,position2)
   objects.any?{|o| o == expected }.should == true
 end
+
+# Then the first User with 'Fred' name should be equal to the first User
+Then /^the first (\w+) with '([^']*)' (\w+) should be equal to the (\w+) (\w+)$/ do |class1,value,field,position2,class2|
+  get_class(class1).send("find_by_#{field}",get_value(value)).should ==
+    get_instance(class2,position2)
+end

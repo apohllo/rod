@@ -11,7 +11,11 @@ module Rod
 
       def [](object_index)
         if object_index == 0
-          return @database.get_first(@key)
+          begin
+            return object_for(@database.get_first(@key))
+          rescue KeyMissing => ex
+            return nil
+          end
         else
           # TODO This should be optimized!
           self.each.with_index do |object,index|

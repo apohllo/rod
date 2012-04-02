@@ -47,6 +47,9 @@ Feature: Access to objects with indexed fields
     And some Caveman with 'Fred' name should be equal to the first Caveman
     And some Caveman with 'Barney' name should be equal to the second Caveman
     And some Caveman with 'Wilma' name should be equal to the third Caveman
+    And the first Caveman with 'Fred' name should be equal to the first Caveman
+    And the first Caveman with 'Barney' name should be equal to the second Caveman
+    And the first Caveman with 'Wilma' name should be equal to the third Caveman
 
   Scenario: indexing of fields with different DBs for the same model
     The contents of indices should be fulshed when the database is reopened.

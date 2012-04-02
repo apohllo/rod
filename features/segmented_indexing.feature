@@ -48,6 +48,9 @@ Feature: Access to objects with segmented indices.
     And some Caveman with 'Fred' name should be equal to the first Caveman
     And some Caveman with 'Barney' name should be equal to the second Caveman
     And some Caveman with 'Wilma' name should be equal to the third Caveman
+    And the first Caveman with 'Fred' name should be equal to the first Caveman
+    And the first Caveman with 'Barney' name should be equal to the second Caveman
+    And the first Caveman with 'Wilma' name should be equal to the third Caveman
 
     # Test re-creation of the database
     When database is created
@@ -68,6 +71,9 @@ Feature: Access to objects with segmented indices.
     And some Caveman with 'Fred' name should be equal to the first Caveman
     And some Caveman with 'Barney' name should be equal to the second Caveman
     And some Caveman with 'Wilma' name should be equal to the third Caveman
+    And the first Caveman with 'Fred' name should be equal to the first Caveman
+    And the first Caveman with 'Barney' name should be equal to the second Caveman
+    And the first Caveman with 'Wilma' name should be equal to the third Caveman
 
   Scenario: extending the DB when segmented index is used
       Rod should allow to extend the DB when the segmented index is used.
@@ -97,6 +103,8 @@ Feature: Access to objects with segmented indices.
     And some Caveman with 'Fred' name should be equal to the first Caveman
     And some Caveman with 'Barney' name should be equal to the second Caveman
     And some Caveman with 'Wilma' name should be equal to the third Caveman
+    And the first Caveman with 'Barney' name should be equal to the second Caveman
+    And the first Caveman with 'Wilma' name should be equal to the third Caveman
 
   Scenario: indexing of fields with different DBs for the same model with segmented index
     The contents of indices should be fulshed when the database is reopened.

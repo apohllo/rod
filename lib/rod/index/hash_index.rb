@@ -80,13 +80,9 @@ module Rod
       end
 
       # Returns the first value for a given +key+ or
-      # +nil+ if the key is not present.
+      # raises keyMissing exception if it is not present.
       def get_first(key)
-        begin
-          _get_first(key)
-        rescue KeyMissing
-          nil
-        end
+        _get_first(key)
       end
 
 
