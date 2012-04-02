@@ -175,6 +175,22 @@ module Rod
         str.margin
       end
 
+      # The cursor free method.
+      def self.cursor_free
+        str =<<-END
+        |void cursor_free(DBC *cursor){
+        |  int return_value;
+        |  if(cursor != NULL){
+        |    return_value = cursor->close(cursor);
+        |    if(return_value != 0){
+        |      rb_raise(rodException(),"%s",db_strerror(return_value));
+        |    }
+        |  }
+        |}
+        END
+        str.margin
+      end
+
       self.inline(:C) do |builder|
         builder.include '<db.h>'
         builder.include '<stdio.h>'
@@ -183,6 +199,7 @@ module Rod
         builder.prefix(self.rod_exception)
         builder.prefix(self.key_missing_exception)
         builder.prefix(self.convert_key)
+        builder.prefix(self.cursor_free)
 
 
         str =<<-END
@@ -254,12 +271,13 @@ module Rod
         |  DBT db_key, db_value;
         |  int return_value;
         |  rod_entry_struct *entry;
-        |  VALUE key;
+        |  VALUE key, cursor_object;
         |
         |  handle = rb_iv_get(self,"@handle");
         |  Data_Get_Struct(handle,DB,db_pointer);
         |  if(db_pointer != NULL){
         |    db_pointer->cursor(db_pointer,NULL,&cursor,0);
+        |    cursor_object = Data_Wrap_Struct(rb_cObject,NULL,cursor_free,cursor);
         |    memset(&db_key, 0, sizeof(DBT));
         |    memset(&db_value, 0, sizeof(DBT));
         |    db_key.flags = DB_DBT_MALLOC;
@@ -268,7 +286,9 @@ module Rod
         |      free(db_key.data);
         |      rb_yield(key);
         |    }
-        |    cursor->close(cursor);
+        |    // to ensure that the cursor_object variable is not optimized out
+        |    rb_funcall(cursor_object,rb_intern("to_s"),0);
+        |    // the cursor is closed when the wrapping object is disposed
         |    if(return_value != DB_NOTFOUND){
         |      rb_raise(rodException(),"%s",db_strerror(return_value));
         |    }
@@ -288,6 +308,7 @@ module Rod
         |  VALUE result;
         |  int return_value;
         |  DBC *cursor;
+        |  VALUE cursor_object;
         |
         |  handle = rb_iv_get(self,"@handle");
         |  Data_Get_Struct(handle,DB,db_pointer);
@@ -303,12 +324,12 @@ module Rod
         |    db_key.size = RSTRING_LEN(key);
         |
         |    db_pointer->cursor(db_pointer,NULL,&cursor,0);
+        |    // the cursor will be closed when the wrapping object is disposed
+        |    cursor_object = Data_Wrap_Struct(rb_cObject,NULL,cursor_free,cursor);
         |    return_value = cursor->get(cursor, &db_key, &db_value, DB_SET);
         |    if(return_value == DB_NOTFOUND){
-        |      cursor->close(cursor);
         |      rb_raise(keyMissingException(),"%s",db_strerror(return_value));
         |    } else if(return_value != 0){
-        |      cursor->close(cursor);
         |      rb_raise(rodException(),"%s",db_strerror(return_value));
         |    }
         |    while(return_value != DB_NOTFOUND){
@@ -319,7 +340,8 @@ module Rod
         |        rb_raise(rodException(),"%s",db_strerror(return_value));
         |      }
         |    }
-        |    cursor->close(cursor);
+        |    // to ensure that the cursor_object variable is not optimized out
+        |    rb_funcall(cursor_object,rb_intern("to_s"),0);
         |  } else {
         |    rb_raise(rodException(),"DB handle is NULL\\n");
         |  }
