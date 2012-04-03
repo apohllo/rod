@@ -1,6 +1,5 @@
 require 'inline'
 require 'english/inflect'
-require 'active_model/deprecated_error_methods'
 require 'active_model/validator'
 require 'active_model/naming'
 require 'active_model/translation'
