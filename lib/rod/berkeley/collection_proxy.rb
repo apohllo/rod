@@ -68,7 +68,6 @@ module Rod
               yield object_for(rod_id)
             end
           rescue KeyMissing
-            #ignore
             nil
           end
         else

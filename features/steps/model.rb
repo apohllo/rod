@@ -234,6 +234,19 @@ When /^I remove the (\w+) of (?:his|her|its) (\w+)$/ do |position,property|
   @instance.send(property).delete_at(get_position(position))
 end
 
+# When I iterate over the name index of User
+When /^I iterate over the (\w+) index of (\w+)$/ do |field,class_name|
+  klass = get_class(class_name)
+  options = klass.properties[field.to_sym]
+  index = klass.index_for(field.to_sym,options)
+  @results = []
+  index.each do |key,values|
+    values.each do |value|
+      @results << [key,value]
+    end
+  end
+end
+
 ################################################################
 # Then
 ################################################################
@@ -408,4 +421,9 @@ end
 Then /^the first (\w+) with '([^']*)' (\w+) should be equal to the (\w+) (\w+)$/ do |class1,value,field,position2,class2|
   get_class(class1).send("find_by_#{field}",get_value(value)).should ==
     get_instance(class2,position2)
+end
+
+# Then there should be 1 User with 'John' name in the iteration results
+Then /^there should be (\d) (\w+)(?:\([^)]*\))? with '([^']*)' (\w+) in the iteration results$/ do |count,class_name,value,field|
+  @results.select{|k,v| k == value && v.send(field.to_sym) == value}.size.should == count.to_i
 end

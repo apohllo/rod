@@ -188,3 +188,28 @@ Feature: Access to objects with segmented indices.
     Then there should be 1000 User(s) with 'Smith' surname
     Then there should be 1000 User(s) with 'Lara' name
     Then there should be 1000 User(s) with 'Croft' surname
+
+  Scenario: iterating over the index key-values pairs
+      It should be possible to iterate over the keys of a index.
+    Given the class space is cleared
+    And the model is connected with the default database
+    And a class User has a name field of type string with segmented index
+    When database is created
+    And I create a User
+    And his name is 'John'
+    And I store him in the database
+    And I create a User
+    And her name is 'Lara'
+    And I store her in the database
+    And I create a User
+    And her name is 'Lara'
+    And I store her in the database
+    And I create a User
+    And her name is 'Pipi'
+    And I store her in the database
+    And I reopen the database for reading
+    And I iterate over the name index of User
+    Then there should be 1 User with 'John' name in the iteration results
+    And there should be 2 User(s) with 'Lara' name in the iteration results
+    And there should be 1 User with 'Pipi' name in the iteration results
+    And there should be 0 User(s) with 'Fred' name in the iteration results
