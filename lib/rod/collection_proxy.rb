@@ -85,7 +85,7 @@ module Rod
         other_ids = other.ids_set
         min_ids = (my_ids.size < other_ids.size ? my_ids : other_ids)
         max_ids = (my_ids.size >= other_ids.size ? my_ids : other_ids)
-        (max_ids & min_ids).size
+        result = (max_ids & min_ids).size
       else
         result = (self.to_a & other.to_a).size
       end
