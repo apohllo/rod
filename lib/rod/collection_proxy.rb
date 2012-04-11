@@ -78,6 +78,20 @@ module Rod
       result
     end
 
+    # Returns the size of intersection with the other collection proxy.
+    def intersection_size(other)
+      if @klass && @added.empty?
+        my_ids = self.ids_set
+        other_ids = other.ids_set
+        min_ids = (my_ids.size < other_ids.size ? my_ids : other_ids)
+        max_ids = (my_ids.size >= other_ids.size ? my_ids : other_ids)
+        (max_ids & min_ids).size
+      else
+        result = (self.to_a & other.to_a).size
+      end
+      result
+    end
+
     # Appends element to the end of the collection.
     def <<(element)
       if element.nil?
