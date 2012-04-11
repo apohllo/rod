@@ -67,6 +67,10 @@ def get_position(position)
     3
   when "fifth"
     4
+  when "sixth"
+    5
+  when "seventh"
+    6
   when "last"
     -1
   when Fixnum
@@ -426,4 +430,11 @@ end
 # Then there should be 1 User with 'John' name in the iteration results
 Then /^there should be (\d) (\w+)(?:\([^)]*\))? with '([^']*)' (\w+) in the iteration results$/ do |count,class_name,value,field|
   @results.select{|k,v| k == value && v.send(field.to_sym) == value}.size.should == count.to_i
+end
+
+#Then the intersection size of automobiles of the first and the second Caveman should equal 2
+Then /^the intersection size of (\w+) of the (\w+) and the (\w+) (\w+) should equal (\d+)$/ do |field,position1,position2,klass,count|
+  elements1 = get_instance(klass,position1).send(field.to_sym)
+  elements2 = get_instance(klass,position2).send(field.to_sym)
+  elements1.intersection_size(elements2).should == count.to_i
 end

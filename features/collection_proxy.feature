@@ -143,3 +143,53 @@ Feature: collection proxy specification
     Given the initial size of the collection proxy is 5
     # Can't figure out anything better.
     Then an exception should be raised when the collection is modified during iteration
+
+  Scenario: fast intersection computing
+    Given the class space is cleared
+    And the model is connected with the default database
+    And a class Caveman has a name field of type string
+    And a class Automobile has a name field of type string
+    And a class Caveman has many automobiles
+    When the database is created
+    And I create an Automobile
+    And its name is 'Car 1'
+    And I store it in the database
+    And I create another Automobile
+    And its name is 'Car 2'
+    And I store it in the database
+    And I create another Automobile
+    And its name is 'Car 3'
+    And I store it in the database
+    And I create another Automobile
+    And its name is 'Car 4'
+    And I store it in the database
+    And I create another Automobile
+    And its name is 'Car 5'
+    And I store it in the database
+    And I create another Automobile
+    And its name is 'Car 6'
+    And I store it in the database
+    And I create another Automobile
+    And its name is 'Car 7'
+    And I store it in the database
+    And I create a Caveman
+    And his name is 'Fred'
+    And his automobiles contain the first Automobile created
+    And his automobiles contain the second Automobile created
+    And his automobiles contain the third Automobile created
+    And his automobiles contain the fourth Automobile created
+    And I store him in the database
+    And I create another Caveman
+    And his name is 'Bill'
+    And his automobiles contain the third Automobile created
+    And his automobiles contain the fourth Automobile created
+    And his automobiles contain the fifth Automobile created
+    And his automobiles contain the sixth Automobile created
+    And his automobiles contain the seventh Automobile created
+    And I store him in the database
+    And I reopen database for reading
+    Then there should be 2 Caveman(s)
+    And there should be 7 Automobile(s)
+    And the first Caveman should have 4 automobiles
+    And the second Caveman should have 5 automobiles
+    And the intersection size of automobiles of the first and the second Caveman should equal 2
