@@ -360,7 +360,7 @@ module Rod
           |    if(v1 < v2){
           |      i++;
           |    } else {
-          |      if(v1 < v2){
+          |      if(v1 > v2){
           |        j++;
           |      } else {
           |        i++; j++; count++;
