@@ -49,7 +49,11 @@ module Rod
       |    strcpy(path,model_p->path);
       |    strcat(path,"#{klass.path_for_data("")}");
       |    model_p->#{klass.struct_name}_lib_file =
+      |#ifdef __linux__
       |      open(path, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
+      |#else
+      |      open(path, O_RDWR | O_CREAT);
+      |#endif
       |    if(model_p->#{klass.struct_name}_lib_file == -1) {
       |      rb_raise(rodException(),"Could not open file for class #{klass} on path %s writing.",path);
       |    }
