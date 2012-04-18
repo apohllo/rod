@@ -49,11 +49,7 @@ module Rod
       |    strcpy(path,model_p->path);
       |    strcat(path,"#{klass.path_for_data("")}");
       |    model_p->#{klass.struct_name}_lib_file =
-      |#ifdef __linux__
-      |      open(path, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
-      |#else
-      |      open(path, O_RDWR | O_CREAT);
-      |#endif
+      |      open(path, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
       |    if(model_p->#{klass.struct_name}_lib_file == -1) {
       |      rb_raise(rodException(),"Could not open file for class #{klass} on path %s writing.",path);
       |    }
@@ -170,6 +166,7 @@ module Rod
           builder.include '<unistd.h>'
           builder.include '<errno.h>'
           builder.include '<sys/mman.h>'
+          builder.include '<sys/stat.h>'
           classes.each do |klass|
             builder.prefix(klass.typedef_struct)
           end
