@@ -2,4 +2,4 @@ rvm: 1.9.2
 before_script:
   - "sudo apt-get install libdb4.8-dev"
 env:
-  - ROD_HASH_COMPILE_FLAGS='-ldb4.8'
+  - ROD_HASH_COMPILE_FLAGS='-ldb-4.8'
