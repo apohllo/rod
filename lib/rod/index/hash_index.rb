@@ -22,7 +22,6 @@ module Rod
 
       # Stores the index on disk.
       def save
-        raise RodException.new("The index #{self} is not opened!") unless opened?
         close
       end
 
