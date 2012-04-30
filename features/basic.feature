@@ -38,6 +38,7 @@ Feature: Store and load small amount of data from one class
     And a class Caveman has an age field of type integer
     And a class Caveman has an identifier field of type ulong
     And a class Caveman has a height field of type float
+    And a class Caveman has a account_balance field of type float
     And a class Caveman has a symbol field of type object
     And a class Caveman has a empty_string field of type string
     And a class Caveman has a empty_object field of type object
@@ -47,6 +48,7 @@ Feature: Store and load small amount of data from one class
     And his age is '25'
     And his identifier is '111222333'
     And his height is '1.86'
+    And his account_balance is '-0.00000001'
     And his symbol is ':fred'
     # nil is converted to an empty string, consider using object field
     # if you wish to store nil for string fields
@@ -61,6 +63,7 @@ Feature: Store and load small amount of data from one class
     And the age of the first Caveman should be '25'
     And the identifier of the first Caveman should be '111222333'
     And the height of the first Caveman should be '1.86'
+    And the account_balance of the first Caveman should be '-0.00000001'
     And the symbol of the first Caveman should be ':fred'
     And the empty_string of the first Caveman should be ''
     And the empty_object of the first Caveman should be nil
