@@ -292,9 +292,10 @@ Then /^the (\w+) (\w+) should not exist$/ do |position,class_name|
   (lambda {get_instance(class_name,position)}).should raise_error(IndexError)
 end
 
-Then /^the (\w+) of the (\w+) (\w+) should be equal to the (\w+) (\w+)$/ do |field, position1,class1,position2,class2|
+Then /^the (\w+) of the (\w+) (\w+) should be equal to the (\w+) (\w+)( persisted)?$/ do |field, position1,class1,position2,class2,persisted|
+  created = !persisted
   get_instance(class1,position1).send(field.to_sym).should ==
-    get_instance(class2,position2,true)
+    get_instance(class2,position2,created)
 end
 
 Then /^the (\w+) of the (\w+) (\w+) should be nil$/ do |field,position1,class1|
@@ -330,9 +331,10 @@ Then /^(\w+)(\([^)]*\))? from (\d+) to (\d+) should have (\w+) of (\w+) equal to
   end
 end
 
-Then /^the (\w+) of (\w+) of the (\w+) (\w+) should be equal to the (\w+) (\w+)$/ do |position0,field,position1,class1,position2,class2|
+Then /^the (\w+) of (\w+) of the (\w+) (\w+) should be equal to the (\w+) (\w+)( persisted)?$/ do |position0,field,position1,class1,position2,class2,persisted|
+  created = !persisted
   get_instance(class1,position1).send(field.to_sym)[get_position(position0)].should ==
-    get_instance(class2,position2,true)
+    get_instance(class2,position2,created)
 end
 
 Then /^the (\w+) of (\w+) of the (\w+) (\w+) should be nil$/ do |position0,field,position1,class1|

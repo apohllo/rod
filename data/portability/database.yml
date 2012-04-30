@@ -1,0 +1,58 @@
+--- 
+Rod: 
+  :version: 0.7.0
+  :created_at: 2012-04-30 10:49:34.260940 +02:00
+  :updated_at: 2012-04-30 10:49:34.281290 +02:00
+Rod::JoinElement: 
+  :superclass: Rod::AbstractModel
+  :count: 1
+Rod::PolymorphicJoinElement: 
+  :superclass: Rod::JoinElement
+  :count: 0
+Rod::StringElement: 
+  :superclass: Rod::AbstractModel
+  :count: 25
+RodTest::Automobile: 
+  :superclass: RodTest::TestModel
+  :fields: 
+    :name: 
+      :options: 
+        :type: :string
+  :count: 1
+RodTest::Caveman: 
+  :superclass: RodTest::TestModel
+  :fields: 
+    :name: 
+      :options: 
+        :type: :string
+    :age: 
+      :options: 
+        :type: :integer
+    :identifier: 
+      :options: 
+        :type: :ulong
+    :height: 
+      :options: 
+        :type: :float
+    :account_balance: 
+      :options: 
+        :type: :float
+  :has_one: 
+    :automobile: 
+      :options: {}
+
+  :has_many: 
+    :dogs: 
+      :options: {}
+
+  :count: 1
+RodTest::Dog: 
+  :superclass: RodTest::TestModel
+  :fields: 
+    :nickname: 
+      :options: 
+        :type: :string
+  :count: 1
+RodTest::TestModel: 
+  :superclass: Rod::Model
+  :count: 0

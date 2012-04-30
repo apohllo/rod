@@ -855,7 +855,16 @@ module Rod
       |  VALUE klass = rb_funcall(self,rb_intern("class"),0);
       |  #{struct_name} * pointer = (#{struct_name} *)
       |    NUM2ULONG(rb_funcall(klass,rb_intern("rod_pointer"),0));
-      |  return (pointer + object_rod_id - 1)->#{name};
+      |  #{result_type} result = (pointer + object_rod_id - 1)->#{name};
+      |#ifdef __BYTE_ORDER
+      |#  if __BYTE_ORDER == __BIG_ENDIAN
+      |  // This code assumes that all values are 64 bit wide. This is not true
+      |  // on 32-bit systems but is addressed in #221
+      |  uint64_t result_swapped = bswap_64(*((uint64_t *)((char *)&result)));
+      |  result = *(#{result_type} *)((char *)&result_swaped);
+      |#  endif
+      |#endif
+      |  return result;
       |}
       END
       builder.c(str.margin)
@@ -891,6 +900,9 @@ module Rod
       return if @structure_built
 
       inline(:C) do |builder|
+        builder.include '<byteswap.h>'
+        builder.include '<endian.h>'
+        builder.include '<stdint.h>'
         builder.prefix(typedef_struct)
         builder.prefix(Database.rod_exception)
         if Database.development_mode

@@ -29,6 +29,12 @@ module Rod
     :ulong => 'ULONG2NUM'
   }
 
+  BIGENDIAN_READER = {
+    'long' => 'bswap_64(*((long *)result))',
+    'double' => 'bswap_64(*((unsigned long *)result))',
+    'unsigned long' => 'bswap_64(*((unsigned long *)result))'
+  }
+
   INLINE_PATTERN_RE = /\h+\.\w+$/
 
   LEGACY_DATA_SUFFIX = ".old"
