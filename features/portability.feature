@@ -44,7 +44,6 @@ Feature: Portability model
     And the automobile of the first Caveman should be equal to the first Automobile
     And the first of dogs of the first Caveman should be equal to the first Dog
 
-  @wip
   Scenario: class with every type of field and association
       Rod should allow to read data created on little endian 64-bit system
     Given the class space is cleared
