@@ -167,6 +167,9 @@ module Rod
           builder.include '<errno.h>'
           builder.include '<sys/mman.h>'
           builder.include '<sys/stat.h>'
+          builder.include '<byteswap.h>'
+          builder.include '<endian.h>'
+          builder.include '<stdint.h>'
           classes.each do |klass|
             builder.prefix(klass.typedef_struct)
           end
@@ -234,7 +237,13 @@ module Rod
           |VALUE _join_element_index(unsigned long element_offset, unsigned long element_index, VALUE handler){
           |  #{model_struct} * model_p;
           |  Data_Get_Struct(handler,#{model_struct},model_p);
-          |  return ULONG2NUM((model_p->_join_element_table + element_offset + element_index)->offset);
+          |  unsigned long result = (model_p->_join_element_table + element_offset + element_index)->offset;
+          |#ifdef __BYTE_ORDER
+          |#  if __BYTE_ORDER == __BIG_ENDIAN
+          |  bswap_64(result);
+          |#  endif
+          |#endif
+          |  return ULONG2NUM(result);
           |}
           END
           builder.c(str.margin)
@@ -244,8 +253,14 @@ module Rod
           |  unsigned long element_index, VALUE handler){
           |  #{model_struct} * model_p;
           |  Data_Get_Struct(handler,#{model_struct},model_p);
-          |  return ULONG2NUM((model_p->_polymorphic_join_element_table +
-          |    element_offset + element_index)->offset);
+          |  unsigned long result = (model_p->_polymorphic_join_element_table +
+          |    element_offset + element_index)->offset;
+          |#ifdef __BYTE_ORDER
+          |#  if __BYTE_ORDER == __BIG_ENDIAN
+          |  bswap_64(result);
+          |#  endif
+          |#endif
+          |  return ULONG2NUM(result);
           |}
           END
           builder.c(str.margin)
@@ -255,8 +270,14 @@ module Rod
           |  unsigned long element_index, VALUE handler){
           |  #{model_struct} * model_p;
           |  Data_Get_Struct(handler,#{model_struct},model_p);
-          |  return ULONG2NUM((model_p->_polymorphic_join_element_table +
-          |    element_offset + element_index)->class);
+          |  unsigned long result = (model_p->_polymorphic_join_element_table +
+          |    element_offset + element_index)->class;
+          |#ifdef __BYTE_ORDER
+          |#  if __BYTE_ORDER == __BIG_ENDIAN
+          |  bswap_64(result);
+          |#  endif
+          |#endif
+          |  return ULONG2NUM(result);
           |}
           END
           builder.c(str.margin)
@@ -273,6 +294,11 @@ module Rod
           |      rb_raise(rodException(), "Join element indices are inconsistent: %lu %lu!",
           |        element_index, element_p->index);
           |  }
+          |#ifdef __BYTE_ORDER
+          |#  if __BYTE_ORDER == __BIG_ENDIAN
+          |  bswap_64(offset);
+          |#  endif
+          |#endif
           |  element_p->offset = offset;
           |}
           END
@@ -290,6 +316,12 @@ module Rod
           |      rb_raise(rodException(), "Polymorphic join element indices are inconsistent: %lu %lu!",
           |        element_index, element_p->index);
           |  }
+          |#ifdef __BYTE_ORDER
+          |#  if __BYTE_ORDER == __BIG_ENDIAN
+          |  bswap_64(offset);
+          |  bswap_64(class_id);
+          |#  endif
+          |#endif
           |  element_p->offset = offset;
           |  element_p->class = class_id;
           |}
@@ -358,6 +390,12 @@ module Rod
           |  while(i < first_length && j < second_length){
           |    v1 = (model_p->_join_element_table + first_offset + i)->offset;
           |    v2 = (model_p->_join_element_table + second_offset + j)->offset;
+          |#ifdef __BYTE_ORDER
+          |#  if __BYTE_ORDER == __BIG_ENDIAN
+          |    bswap_64(v1);
+          |    bswap_64(v2);
+          |#  endif
+          |#endif
           |    if(v1 < v2){
           |      i++;
           |    } else {
