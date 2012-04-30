@@ -240,7 +240,7 @@ module Rod
           |  unsigned long result = (model_p->_join_element_table + element_offset + element_index)->offset;
           |#ifdef __BYTE_ORDER
           |#  if __BYTE_ORDER == __BIG_ENDIAN
-          |  bswap_64(result);
+          |  result = bswap_64(result);
           |#  endif
           |#endif
           |  return ULONG2NUM(result);
@@ -257,7 +257,7 @@ module Rod
           |    element_offset + element_index)->offset;
           |#ifdef __BYTE_ORDER
           |#  if __BYTE_ORDER == __BIG_ENDIAN
-          |  bswap_64(result);
+          |  result = bswap_64(result);
           |#  endif
           |#endif
           |  return ULONG2NUM(result);
@@ -274,7 +274,7 @@ module Rod
           |    element_offset + element_index)->class;
           |#ifdef __BYTE_ORDER
           |#  if __BYTE_ORDER == __BIG_ENDIAN
-          |  bswap_64(result);
+          |  result = bswap_64(result);
           |#  endif
           |#endif
           |  return ULONG2NUM(result);
@@ -296,7 +296,7 @@ module Rod
           |  }
           |#ifdef __BYTE_ORDER
           |#  if __BYTE_ORDER == __BIG_ENDIAN
-          |  bswap_64(offset);
+          |  offset = bswap_64(offset);
           |#  endif
           |#endif
           |  element_p->offset = offset;
@@ -318,8 +318,8 @@ module Rod
           |  }
           |#ifdef __BYTE_ORDER
           |#  if __BYTE_ORDER == __BIG_ENDIAN
-          |  bswap_64(offset);
-          |  bswap_64(class_id);
+          |  offset = bswap_64(offset);
+          |  class_id = bswap_64(class_id);
           |#  endif
           |#endif
           |  element_p->offset = offset;
@@ -392,8 +392,8 @@ module Rod
           |    v2 = (model_p->_join_element_table + second_offset + j)->offset;
           |#ifdef __BYTE_ORDER
           |#  if __BYTE_ORDER == __BIG_ENDIAN
-          |    bswap_64(v1);
-          |    bswap_64(v2);
+          |    v1 = bswap_64(v1);
+          |    v2 = bswap_64(v2);
           |#  endif
           |#endif
           |    if(v1 < v2){
