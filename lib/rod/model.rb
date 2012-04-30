@@ -792,7 +792,17 @@ module Rod
       |typedef struct {
       |  \n#{self.fields.map do |field,options|
         unless string_field?(options[:type])
-          "|  #{TYPE_MAPPING[options[:type]]} #{field};"
+          <<-SUBEND
+          |#ifdef __BYTE_ORDER
+          |#  if __BYTE_ORDER == __BIG_ENDIAN
+          |   uint64_t #{field};
+          |#  else
+          |  #{TYPE_MAPPING[options[:type]]} #{field};
+          |#  endif
+          |#else
+          |  #{TYPE_MAPPING[options[:type]]} #{field};
+          |#endif
+          SUBEND
         else
           <<-SUBEND
           |  unsigned long #{field}_length;
@@ -855,16 +865,19 @@ module Rod
       |  VALUE klass = rb_funcall(self,rb_intern("class"),0);
       |  #{struct_name} * pointer = (#{struct_name} *)
       |    NUM2ULONG(rb_funcall(klass,rb_intern("rod_pointer"),0));
-      |  #{result_type} result = (pointer + object_rod_id - 1)->#{name};
       |#ifdef __BYTE_ORDER
       |#  if __BYTE_ORDER == __BIG_ENDIAN
       |  // This code assumes that all values are 64 bit wide. This is not true
       |  // on 32-bit systems but is addressed in #221
-      |  uint64_t result_swapped = bswap_64(*((uint64_t *)((char *)&result)));
-      |  result = *(#{result_type} *)((char *)&result_swaped);
+      |  uint64_t as_uint = (pointer + object_rod_id - 1)->#{name};
+      |  uint64_t result_swapped = bswap_64(*((uint64_t *)((char *)&as_uint)));
+      |  return *(#{result_type} *)((char *)&result_swapped);
+      |#  else
+      |  return (pointer + object_rod_id - 1)->#{name};
       |#  endif
+      |#else
+      |  return (pointer + object_rod_id - 1)->#{name};
       |#endif
-      |  return result;
       |}
       END
       builder.c(str.margin)
@@ -881,6 +894,17 @@ module Rod
       |  #{struct_name} * pointer = (#{struct_name} *)
       |    NUM2ULONG(rb_funcall(klass,rb_intern("rod_pointer"),0));
       |  (pointer + object_rod_id - 1)->#{name} = value;
+      |#ifdef __BYTE_ORDER
+      |#  if __BYTE_ORDER == __BIG_ENDIAN
+      |  // TODO #220 #221
+      |  uint64_t value_swapped = bswap_64(*((uint64_t *)((char *)&value)));
+      |  (pointer + object_rod_id - 1)->#{name} = value_swapped;
+      |#  else
+      |  (pointer + object_rod_id - 1)->#{name} = value;
+      |#  endif
+      |#else
+      |  (pointer + object_rod_id - 1)->#{name} = value;
+      |#endif
       |}
       END
       builder.c(str.margin)
