@@ -6,16 +6,14 @@ Given /^the library works in development mode$/ do
   Rod::Database.development_mode = true
 end
 
-Given /^(the )?(\w+) is created( in (\w+))?$/ do |ignore,db_name,location,location_name|
+Given /^(?:the )?(\w+) is created(?: in (\S+))?$/ do |db_name,location|
   get_db(db_name).instance.close_database if get_db(db_name).instance.opened?
-  if File.exist?("tmp")
-    if location
-      db_location = location_name
-    else
-      db_location = db_name
-    end
+  if location
+    db_location = location
+  else
+    db_location = "tmp/#{db_name}"
   end
-  get_db(db_name).instance.create_database("tmp/#{db_location}")
+  get_db(db_name).instance.create_database(db_location)
   @instances = {}
 end
 
@@ -42,27 +40,28 @@ Given /^the class space is cleared$/ do
 end
 
 # Should be split
-When /^I reopen (?:the )?(\w+)( for reading)?( in (\w+))?$/ do |db_name,reading,location,location_name|
+# I reopen the database for reading in tmp/location1
+When /^I reopen (?:the )?(\w+)( for reading)?(?: in (\S+))?$/ do |db_name,reading,location|
   if location
-    db_location = location_name
+    db_location = location
   else
-    db_location = db_name
+    db_location = "tmp/#{db_name}"
   end
   get_db(db_name).instance.close_database
   get_db(db_name).instance.clear_cache
   readonly = reading.nil? ? false : true
-  get_db(db_name).instance.open_database("tmp/#{db_location}",readonly)
+  get_db(db_name).instance.open_database(db_location,readonly)
 end
 
-When /^I open (\w+)( for reading)?( in (\w+))?$/ do |db_name,reading,location,location_name|
+When /^I open (?:the )?(\w+)( for reading)?(?: in (\S+))?$/ do |db_name,reading,location|
   if location
-    db_location = location_name
+    db_location = location
   else
-    db_location = db_name
+    db_location = "tmp/#{db_name}"
   end
   get_db(db_name).instance.clear_cache
   readonly = reading.nil? ? false : true
-  get_db(db_name).instance.open_database("tmp/#{db_location}",readonly)
+  get_db(db_name).instance.open_database(db_location,readonly)
 end
 
 Then /^database should be opened for reading$/ do
