@@ -62,7 +62,7 @@ Feature: Access to objects with indexed fields
     And I store him in the database
     And I reopen database for reading
     And I access the Caveman name index
-    And database is created in location2
+    And database is created in tmp/location2
     And I create a Caveman
     And his name is 'Wilma'
     And I store him in the database
@@ -72,7 +72,7 @@ Feature: Access to objects with indexed fields
     And I create another Caveman
     And his name is 'Wilma'
     And I store him in the database
-    And I reopen database for reading in location2
+    And I reopen database for reading in tmp/location2
     Then there should be 3 Caveman(s)
     And there should be 3 Caveman(s) with 'Wilma' name
     And there should be 0 Caveman(s) with 'Fred' name
