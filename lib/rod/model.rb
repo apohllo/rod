@@ -728,6 +728,9 @@ module Rod
       return if @structure_built
 
       inline(:C) do |builder|
+        builder.include '<byteswap.h>'
+        builder.include '<endian.h>'
+        builder.include '<stdint.h>'
         builder.prefix(typedef_struct)
         builder.prefix(Database.rod_exception)
         if Database.development_mode

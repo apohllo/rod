@@ -120,7 +120,19 @@ module Rod
         |  VALUE klass = rb_funcall(self,rb_intern("class"),0);
         |  #{struct_name} * pointer = (#{struct_name} *)
         |    NUM2ULONG(rb_funcall(klass,rb_intern("rod_pointer"),0));
+        |#ifdef __BYTE_ORDER
+        |#  if __BYTE_ORDER == __BIG_ENDIAN
+        |  // This code assumes that all values are 64 bit wide. This is not true
+        |  // on 32-bit systems but is addressed in #221
+        |  uint64_t as_uint = (pointer + object_rod_id - 1)->#{name};
+        |  uint64_t result_swapped = bswap_64(*((uint64_t *)((char *)&as_uint)));
+        |  return *(#{result_type} *)((char *)&result_swapped);
+        |#  else
         |  return (pointer + object_rod_id - 1)->#{name};
+        |#  endif
+        |#else
+        |  return (pointer + object_rod_id - 1)->#{name};
+        |#endif
         |}
         END
         builder.c(str.margin)
@@ -138,7 +150,17 @@ module Rod
         |  VALUE klass = rb_funcall(self,rb_intern("class"),0);
         |  #{struct_name} * pointer = (#{struct_name} *)
         |    NUM2ULONG(rb_funcall(klass,rb_intern("rod_pointer"),0));
+        |#ifdef __BYTE_ORDER
+        |#  if __BYTE_ORDER == __BIG_ENDIAN
+        |  // TODO #220 #221
+        |  uint64_t value_swapped = bswap_64(*((uint64_t *)((char *)&value)));
+        |  (pointer + object_rod_id - 1)->#{name} = value_swapped;
+        |#  else
         |  (pointer + object_rod_id - 1)->#{name} = value;
+        |#  endif
+        |#else
+        |  (pointer + object_rod_id - 1)->#{name} = value;
+        |#endif
         |}
         END
         builder.c(str.margin)

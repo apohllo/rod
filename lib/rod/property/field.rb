@@ -123,7 +123,18 @@ module Rod
       # Converts the field to fields in a C struct.
       def to_c_struct
         unless variable_size?
-          "#{c_type(@type)} #{@name};"
+          str = <<-SUBEND
+          |#ifdef __BYTE_ORDER
+          |#  if __BYTE_ORDER == __BIG_ENDIAN
+          |  uint64_t #{@name};
+          |#  else
+          |  #{c_type(@type)} #{@name};
+          |#  endif
+          |#else
+          |  #{c_type(@type)} #{@name};
+          |#endif
+          SUBEND
+          str.margin
         else
           "  #{c_type(:ulong)} #{@name}_length;\n" +
             "  #{c_type(:ulong)} #{@name}_offset;\n"

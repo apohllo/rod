@@ -242,6 +242,11 @@ module Rod
         |  }
         |  while(return_value != DB_NOTFOUND){
         |    index++;
+        |#ifdef __BYTE_ORDER
+        |#  if __BYTE_ORDER == __BIG_ENDIAN
+        |    rod_id = bswap_64(rod_id);
+        |#  endif
+        |#endif
         |    rb_yield(ULONG2NUM(rod_id));
         |    return_value = cursor->get(cursor, &db_key, &db_value, DB_NEXT_DUP);
         |    if(return_value != 0 && return_value != DB_NOTFOUND){
@@ -290,6 +295,9 @@ module Rod
       self.inline(:C) do |builder|
         builder.include '<db.h>'
         builder.include '<stdio.h>'
+        builder.include '<byteswap.h>'
+        builder.include '<endian.h>'
+        builder.include '<stdint.h>'
         builder.add_compile_flags self.rod_compile_flags
         builder.prefix(self.entry_struct)
         builder.prefix(self.rod_exception)
@@ -440,6 +448,11 @@ module Rod
         |    } else if(return_value != 0){
         |      rb_raise(rodException(),"%s",db_strerror(return_value));
         |    }
+        |#ifdef __BYTE_ORDER
+        |#  if __BYTE_ORDER == __BIG_ENDIAN
+        |    rod_id = bswap_64(rod_id);
+        |#  endif
+        |#endif
         |    return ULONG2NUM(rod_id);
         |  } else {
         |    rb_raise(rodException(),"DB handle is NULL\\n");
@@ -464,6 +477,11 @@ module Rod
         |  db_key.data = RSTRING_PTR(key);
         |  db_key.size = RSTRING_LEN(key);
         |  memset(&db_value, 0, sizeof(DBT));
+        |#ifdef __BYTE_ORDER
+        |#  if __BYTE_ORDER == __BIG_ENDIAN
+        |  rod_id = bswap_64(rod_id);
+        |#  endif
+        |#endif
         |  db_value.data = &rod_id;
         |  db_value.size = sizeof(unsigned long);
         |  if(db_pointer != NULL){
@@ -504,6 +522,11 @@ module Rod
         |      }
         |    } else {
         |      rod_id = NUM2ULONG(value);
+        |#ifdef __BYTE_ORDER
+        |#  if __BYTE_ORDER == __BIG_ENDIAN
+        |      rod_id = bswap_64(rod_id);
+        |#  endif
+        |#endif
         |      memset(&db_value, 0, sizeof(DBT));
         |      db_value.data = &rod_id;
         |      db_value.size = sizeof(unsigned long);
