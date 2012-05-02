@@ -18,19 +18,19 @@ Feature: Access to objects with hash indices.
     And I create a Caveman
     And his name is 'Fred'
     And his age is '25'
-    And his identifier is '111122223333'
+    And his identifier is '111222333'
     And his height is '1.86'
     And I store him in the database
     And I create another Caveman
     And his name is 'Barney'
     And his age is '26'
-    And his identifier is '111122224444'
+    And his identifier is '111222444'
     And his height is '1.67'
     And I store him in the database
     And I create another Caveman
     And his name is 'Wilma'
     And his age is '25'
-    And his identifier is '111122225555'
+    And his identifier is '111222555'
     And his height is '1.67'
     And I store her in the database
     And I reopen database for reading
@@ -40,9 +40,9 @@ Feature: Access to objects with hash indices.
     And there should be 1 Caveman with 'Barney' name
     And there should be 2 Caveman(s) with '25' age
     And there should be 1 Caveman with '26' age
-    And there should be 1 Caveman with '111122223333' identifier
-    And there should be 1 Caveman with '111122224444' identifier
-    And there should be 1 Caveman with '111122225555' identifier
+    And there should be 1 Caveman with '111222333' identifier
+    And there should be 1 Caveman with '111222444' identifier
+    And there should be 1 Caveman with '111222555' identifier
     And there should be 2 Caveman(s) with '1.67' height
     And there should be 1 Caveman with '1.86' height
     And some Caveman with 'Fred' name should be equal to the first Caveman
@@ -214,3 +214,13 @@ Feature: Access to objects with hash indices.
     And there should be 2 User(s) with 'Lara' name in the iteration results
     And there should be 1 User with 'Pipi' name in the iteration results
     And there should be 0 User(s) with 'Fred' name in the iteration results
+
+  Scenario: indexing with empty database
+      Rod should behave well when there is an index on a model while
+      the database is created and nothing is stored in it.
+    Given the class space is cleared
+    And the model is connected with the default database
+    And a class User has a name field of type string with hash index
+    When database is created
+    And I reopen the database for reading
+    Then there should be 0 User(s)

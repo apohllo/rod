@@ -171,3 +171,13 @@ Feature: Access to objects with indexed fields
     And there should be 2 User(s) with 'Lara' name in the iteration results
     And there should be 1 User with 'Pipi' name in the iteration results
     And there should be 0 User(s) with 'Fred' name in the iteration results
+
+  Scenario: indexing with empty database
+      Rod should behave well when there is an index on a model while
+      the database is created and nothing is stored in it.
+    Given the class space is cleared
+    And the model is connected with the default database
+    And a class User has a name field of type string with flat index
+    When database is created
+    And I reopen the database for reading
+    Then there should be 0 User(s)

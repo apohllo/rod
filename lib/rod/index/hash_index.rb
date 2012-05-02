@@ -18,7 +18,6 @@ module Rod
       def initialize(path,klass,options={})
         @path = path + ".db"
         @klass = klass
-        open(@path,:create => true)
       end
 
       # Stores the index on disk.
@@ -29,7 +28,7 @@ module Rod
       # Clears the contents of the index.
       def destroy
         close if opened?
-        open(@path,:truncate => true)
+        remove_file(@path)
       end
 
       # Iterates over the keys and corresponding
@@ -50,8 +49,7 @@ module Rod
       # Copies the index from the given +index+.
       # The index have to cleared before being copied.
       def copy(index)
-        close if opened?
-        open(@path,:truncate => true)
+        self.destroy
         super(index)
       end
 
