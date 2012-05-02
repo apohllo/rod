@@ -164,10 +164,16 @@ module Rod
         str.margin
       end
 
+      # You can set arbitrary ROD hash index compile flags via
+      # ROD_HASH_COMPILE_FLAGS env. variable.
+      def self.rod_compile_flags
+        ENV['ROD_HASH_COMPILE_FLAGS'] || '-ldb'
+      end
+
       self.inline(:C) do |builder|
         builder.include '<db.h>'
         builder.include '<stdio.h>'
-        builder.add_compile_flags '-ldb-4.8'
+        builder.add_compile_flags self.rod_compile_flags
         builder.prefix(self.entry_struct)
         builder.prefix(self.rod_exception)
         builder.prefix(self.key_missing_exception)
