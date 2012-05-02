@@ -6,7 +6,7 @@ describe Rod::Berkeley::Database do
   describe "a database" do
     before do
       environment = Rod::Berkeley::Environment.new
-      environment.open("tmp/env_cache", :create => true, :cache => true)
+      environment.open("tmp/env_db", :create => true, :cache => true)
       @database = Rod::Berkeley::Database.new(environment)
     end
 

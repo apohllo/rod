@@ -59,7 +59,6 @@ end
 
 desc "Run unit tests and model specs"
 task :unit_test do
-  sh "ruby tests/unit/model.rb"
   sh "ruby tests/unit/model_tests.rb"
   sh "ruby tests/unit/database.rb"
   sh "ruby tests/unit/abstract_database.rb"
