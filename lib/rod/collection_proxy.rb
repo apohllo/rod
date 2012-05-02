@@ -43,6 +43,13 @@ module Rod
       end
     end
 
+    # Returns the size of intersection with the other collection proxy.
+    # XXX this method assumes that the elements are sorted according to rod_id,
+    # the collection is not polymorphic and no elements were added nor deleted.
+    def intersection_size(other)
+      @database.fast_intersection_size(self.offset,self.size,other.offset,other.size)
+    end
+
     # Appends element to the end of the collection.
     def <<(element)
       if element.nil?

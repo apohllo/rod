@@ -23,7 +23,7 @@ Given /^the initial size of the collection proxy is (\d+)$/ do |size|
   @array.each.with_index do |element,index|
     db.expects(:join_index).with(0,index).returns(element).at_least(0)
   end
-	@proxy = Rod::CollectionProxy.new(@array.size,db,@offset,Rod::Model)
+  @proxy = Rod::CollectionProxy.new(@array.size,db,@offset,Rod::Model)
   @offset += size
 end
 

@@ -321,6 +321,34 @@ module Rod
           END
           builder.c(str.margin)
 
+          str =<<-END
+          |VALUE _fast_intersection_size(unsigned long first_offset,
+          |  unsigned long first_length, unsigned long second_offset,
+          |  unsigned long second_length, VALUE handler){
+          |  unsigned long i,j,count,v1,v2;
+          |
+          |  i = 0; j = 0; count = 0;
+          |  #{model_struct} * model_p;
+          |  Data_Get_Struct(handler,#{model_struct},model_p);
+          |
+          |  while(i < first_length && j < second_length){
+          |    v1 = (model_p->_join_element_table + first_offset + i)->offset;
+          |    v2 = (model_p->_join_element_table + second_offset + j)->offset;
+          |    if(v1 < v2){
+          |      i++;
+          |    } else {
+          |      if(v1 > v2){
+          |        j++;
+          |      } else {
+          |        i++; j++; count++;
+          |      }
+          |    }
+          |  }
+          |  return ULONG2NUM(count);
+          |}
+          END
+          builder.c(str.margin)
+
           #########################################
           # Strings
           #########################################

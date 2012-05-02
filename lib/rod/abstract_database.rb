@@ -341,6 +341,12 @@ module Rod
       _allocate_join_elements(size,@handler)
     end
 
+    # Computes fast intersection for sorted join elements.
+    def fast_intersection_size(first_offset,first_length,second_offset,second_length)
+      _fast_intersection_size(first_offset,first_length,second_offset,
+                              second_length,@handler)
+    end
+
     # Returns the string of given +length+ starting at given +offset+.
     def read_string(length, offset)
       value = _read_string(length, offset, @handler)
