@@ -44,6 +44,12 @@ Feature: Access to objects with indexed fields
     And there should be 1 Caveman with '111222555' identifier
     And there should be 2 Caveman(s) with '1.67' height
     And there should be 1 Caveman with '1.86' height
+    And some Caveman with 'Fred' name should be equal to the first Caveman
+    And some Caveman with 'Barney' name should be equal to the second Caveman
+    And some Caveman with 'Wilma' name should be equal to the third Caveman
+    And the first Caveman with 'Fred' name should be equal to the first Caveman
+    And the first Caveman with 'Barney' name should be equal to the second Caveman
+    And the first Caveman with 'Wilma' name should be equal to the third Caveman
 
   Scenario: indexing of fields with different DBs for the same model
     The contents of indices should be fulshed when the database is reopened.
@@ -76,6 +82,7 @@ Feature: Access to objects with indexed fields
     Then there should be 3 Caveman(s)
     And there should be 3 Caveman(s) with 'Wilma' name
     And there should be 0 Caveman(s) with 'Fred' name
+    And some Caveman with 'Wilma' name should be equal to the first Caveman
 
   Scenario: indexing of particular values
     Given the class space is cleared
@@ -139,3 +146,28 @@ Feature: Access to objects with indexed fields
     And I store him in the database
     Then there should exist a User with 'John' name
     And there should be 1 User with 'John' name
+
+  Scenario: iterating over the index key-values pairs
+      It should be possible to iterate over the keys of a index.
+    Given the class space is cleared
+    And the model is connected with the default database
+    And a class User has a name field of type string with flat index
+    When database is created
+    And I create a User
+    And his name is 'John'
+    And I store him in the database
+    And I create a User
+    And her name is 'Lara'
+    And I store her in the database
+    And I create a User
+    And her name is 'Lara'
+    And I store her in the database
+    And I create a User
+    And her name is 'Pipi'
+    And I store her in the database
+    And I reopen the database for reading
+    And I iterate over the name index of User
+    Then there should be 1 User with 'John' name in the iteration results
+    And there should be 2 User(s) with 'Lara' name in the iteration results
+    And there should be 1 User with 'Pipi' name in the iteration results
+    And there should be 0 User(s) with 'Fred' name in the iteration results

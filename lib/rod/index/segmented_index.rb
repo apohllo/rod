@@ -45,6 +45,9 @@ module Rod
 
       def each
         if block_given?
+          @buckets_count.times do |bucket_number|
+            load_bucket(bucket_number) unless @buckets[bucket_number]
+          end
           @buckets.each do |bucket_number,hash|
             hash.each_key do |key|
               yield key, self[key]

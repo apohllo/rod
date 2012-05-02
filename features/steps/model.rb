@@ -238,6 +238,18 @@ When /^I remove the (\w+) of (?:his|her|its) (\w+)$/ do |position,property|
   @instance.send(property).delete_at(get_position(position))
 end
 
+# When I iterate over the name index of User
+When /^I iterate over the (\w+) index of (\w+)$/ do |field,class_name|
+  klass = get_class(class_name)
+  index = klass.property(field.to_sym).index
+  @results = []
+  index.each do |key,values|
+    values.each do |value|
+      @results << [key,value]
+    end
+  end
+end
+
 ################################################################
 # Then
 ################################################################
@@ -276,7 +288,7 @@ Then /^the (\w+) (\w+) should not have (a|an )?(\w+)$/ do |position, class_name,
 end
 
 Then /^the (\w+) (\w+) should not exist$/ do |position,class_name|
-  (lambda {get_instance(class_name,position)}).should raise_error(IndexError)
+  get_instance(class_name,position).should == nil
 end
 
 Then /^the (\w+) of the (\w+) (\w+) should be equal to the (\w+) (\w+)( persisted)?$/ do |field, position1,class1,position2,class2,persisted|
@@ -401,6 +413,24 @@ end
 
 Then /^([\w:]+) should be raised$/ do |exception|
   @error.class.to_s.should == exception
+end
+
+# Then some User with 'Fred' name should be equal to the first User
+Then /^some (\w+) with '([^']*)' (\w+) should be equal to the (\w+) (\w+)$/ do |class1,value,field,position2,class2|
+  objects = get_class(class1).send("find_all_by_#{field}",get_value(value))
+  expected = get_instance(class2,position2)
+  objects.any?{|o| o == expected }.should == true
+end
+
+# Then the first User with 'Fred' name should be equal to the first User
+Then /^the first (\w+) with '([^']*)' (\w+) should be equal to the (\w+) (\w+)$/ do |class1,value,field,position2,class2|
+  get_class(class1).send("find_by_#{field}",get_value(value)).should ==
+    get_instance(class2,position2)
+end
+
+# Then there should be 1 User with 'John' name in the iteration results
+Then /^there should be (\d) (\w+)(?:\([^)]*\))? with '([^']*)' (\w+) in the iteration results$/ do |count,class_name,value,field|
+  @results.select{|k,v| k == value && v.send(field.to_sym) == value}.size.should == count.to_i
 end
 
 #Then the intersection size of automobiles of the first and the second Caveman should equal 2

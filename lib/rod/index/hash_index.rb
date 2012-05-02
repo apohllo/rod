@@ -10,6 +10,9 @@ module Rod
       class Handle
       end
 
+      # The class given index is associated with.
+      attr_reader :klass
+
       # Initializes the index with +path+ and +class+.
       # Options are not (yet) used.
       def initialize(path,klass,options={})
@@ -20,18 +23,6 @@ module Rod
 
       # Stores the index on disk.
       def save
-        raise RodException.new("The index #{self} is not opened!") unless opened?
-        if @index.empty?
-          close
-          return
-        end
-        @index.keys.each do |key|
-          collection = self[key]
-          key = key.encode("utf-8") if key.is_a?(String)
-          key = Marshal.dump(key)
-          collection.save
-          _put(key,collection.offset,collection.size)
-        end
         close
       end
 
@@ -41,19 +32,15 @@ module Rod
         open(@path,:truncate => true)
       end
 
-      # Simple iterator.
+      # Iterates over the keys and corresponding
+      # values present in the index.
       def each
         if block_given?
-          @index.each do |key,value|
-            yield key,value
-          end
-          open(@path) unless opened?
+          open(@path, :create => true) unless opened?
           _each_key do |key|
             next if key.empty?
             key = Marshal.load(key)
-            unless @index[key]
-              yield key,self[key]
-            end
+            yield key,self[key]
           end
         else
           enum_for(:each)
@@ -68,7 +55,41 @@ module Rod
         super(index)
       end
 
+      # Delets given +value+ for the given +key+.
+      # If the +value+ is nil, then the key is removed
+      # with all the values.
+      def delete(key,value=nil)
+        _delete(key,value)
+      end
+
+      # Registers given +rod_id+ for the given +key+.
+      def put(key,rod_id)
+        _put(key,rod_id)
+      end
+
+      # Iterates over all values for a given +key+. Raises
+      # KeyMissing if the key is not present.
+      def each_for(key)
+        _get(key) do |value|
+          yield value
+        end
+      end
+
+      # Returns the first value for a given +key+ or
+      # raises keyMissing exception if it is not present.
+      def get_first(key)
+        _get_first(key)
+      end
+
+
       protected
+      # Returns an empty BDB based collection proxy.
+      def empty_collection_proxy(key)
+        key = key.encode("utf-8") if key.is_a?(String)
+        key = Marshal.dump(key)
+        Rod::Berkeley::CollectionProxy.new(self,key)
+      end
+
       # Opens the index - initializes the index C structures
       # and the cache.
       # Options:
@@ -78,7 +99,6 @@ module Rod
         raise RodException.new("The index #{@path} is already opened!") if opened?
         _open(path,options)
         @opened = true
-        @index = {} if @index.nil?
       end
 
       # Closes the disk - frees the C structure and clears the cache.
@@ -86,7 +106,6 @@ module Rod
         return unless opened?
         _close()
         @opened = false
-        @index.clear
       end
 
       # Checks if the index is opened.
@@ -96,20 +115,14 @@ module Rod
 
       # Returns a value of the index for a given +key+.
       def get(key)
-        return @index[key] if @index.has_key?(key)
-        begin
-          open(@path) unless opened?
-          key = key.encode("utf-8") if key.is_a?(String)
-          value = _get(Marshal.dump(key))
-        rescue Rod::KeyMissing => ex
-          value = nil
-        end
-        @index[key] = value
+        # TODO # 208
+        open(@path,:create => true) unless opened?
+        empty_collection_proxy(key)
       end
 
-      # Sets the +value+ for the +key+ in the internal cache.
-      def set(key,value)
-        @index[key] = value
+      # Sets the +proxy+ for the +key+ in the internal cache.
+      def set(key,proxy)
+        # do nothing - the value is set in proxy#<< method
       end
 
       # C definition of the RodException.
@@ -164,6 +177,112 @@ module Rod
         str.margin
       end
 
+      # The cursor free method.
+      def self.cursor_free
+        str =<<-END
+        |void cursor_free(DBC *cursor){
+        |  int return_value;
+        |  if(cursor != NULL){
+        |    return_value = cursor->close(cursor);
+        |    if(return_value != 0){
+        |      rb_raise(rodException(),"%s",db_strerror(return_value));
+        |    }
+        |  }
+        |}
+        END
+        str.margin
+      end
+
+      # The cursor closing method.
+      def self.close_cursor
+        str =<<-END
+        |VALUE close_cursor(VALUE cursor_object){
+        |  DBC *cursor;
+        |  int return_value;
+        |  Data_Get_Struct(cursor_object,DBC,cursor);
+        |  if(cursor != NULL){
+        |    return_value = cursor->close(cursor);
+        |    DATA_PTR(cursor_object) = NULL;
+        |    if(return_value != 0){
+        |      rb_raise(rodException(),"%s",db_strerror(return_value));
+        |    }
+        |  }
+        |  return Qnil;
+        |}
+        END
+        str.margin
+      end
+
+      def self.iterate_over_values
+        str =<<-END
+        |VALUE iterate_over_values(VALUE arguments){
+        |  DBT db_key, db_value;
+        |  DBC *cursor;
+        |  unsigned long rod_id, index;
+        |  VALUE key, result, cursor_object;
+        |  int return_value;
+        |
+        |  index = 0;
+        |  key = rb_ary_shift(arguments);
+        |  cursor_object = rb_ary_shift(arguments);
+        |  Data_Get_Struct(cursor_object,DBC,cursor);
+        |
+        |  memset(&db_value, 0, sizeof(DBT));
+        |  db_value.data = &rod_id;
+        |  db_value.ulen = sizeof(unsigned long);
+        |  db_value.flags = DB_DBT_USERMEM;
+        |
+        |  memset(&db_key, 0, sizeof(DBT));
+        |  db_key.data = RSTRING_PTR(key);
+        |  db_key.size = RSTRING_LEN(key);
+        |
+        |  return_value = cursor->get(cursor, &db_key, &db_value, DB_SET);
+        |  if(return_value == DB_NOTFOUND){
+        |    rb_raise(keyMissingException(),"%s",db_strerror(return_value));
+        |  } else if(return_value != 0){
+        |    rb_raise(rodException(),"%s",db_strerror(return_value));
+        |  }
+        |  while(return_value != DB_NOTFOUND){
+        |    index++;
+        |    rb_yield(ULONG2NUM(rod_id));
+        |    return_value = cursor->get(cursor, &db_key, &db_value, DB_NEXT_DUP);
+        |    if(return_value != 0 && return_value != DB_NOTFOUND){
+        |      rb_raise(rodException(),"%s",db_strerror(return_value));
+        |    }
+        |  }
+        |  return Qnil;
+        |}
+        END
+        str.margin
+      end
+
+      def self.iterate_over_keys
+        str =<<-END
+        |VALUE iterate_over_keys(VALUE cursor_object){
+        |  DBT db_key, db_value;
+        |  DBC *cursor;
+        |  int return_value;
+        |  rod_entry_struct *entry;
+        |  VALUE key;
+        |
+        |  Data_Get_Struct(cursor_object,DBC,cursor);
+        |  memset(&db_key, 0, sizeof(DBT));
+        |  memset(&db_value, 0, sizeof(DBT));
+        |  db_key.flags = DB_DBT_MALLOC;
+        |  while((return_value = cursor->get(cursor, &db_key, &db_value, DB_NEXT_NODUP)) == 0){
+        |    key = rb_str_new((char *)db_key.data,db_key.size);
+        |    free(db_key.data);
+        |    rb_yield(key);
+        |  }
+        |  if(return_value != DB_NOTFOUND){
+        |    rb_raise(rodException(),"%s",db_strerror(return_value));
+        |  }
+        |  return Qnil;
+        |}
+        END
+        str.margin
+      end
+
       # You can set arbitrary ROD hash index compile flags via
       # ROD_HASH_COMPILE_FLAGS env. variable.
       def self.rod_compile_flags
@@ -178,6 +297,10 @@ module Rod
         builder.prefix(self.rod_exception)
         builder.prefix(self.key_missing_exception)
         builder.prefix(self.convert_key)
+        builder.prefix(self.cursor_free)
+        builder.prefix(self.close_cursor)
+        builder.prefix(self.iterate_over_values)
+        builder.prefix(self.iterate_over_keys)
 
 
         str =<<-END
@@ -193,6 +316,11 @@ module Rod
         |  if(return_value != 0){
         |    rb_raise(rodException(),"%s",db_strerror(return_value));
         |  }
+        |  return_value = db_pointer->set_flags(db_pointer,DB_DUPSORT);
+        |  if(return_value != 0){
+        |    db_pointer->close(db_pointer,0);
+        |    rb_raise(rodException(),"%s",db_strerror(return_value));
+        |  }
         |
         |  flags = 0;
         |  if(rb_hash_aref(options,ID2SYM(rb_intern("create"))) == Qtrue){
@@ -205,6 +333,7 @@ module Rod
         |  return_value = db_pointer->open(db_pointer,NULL,path,
         |    NULL,DB_HASH,flags,0);
         |  if(return_value != 0){
+        |    db_pointer->close(db_pointer,0);
         |    rb_raise(rodException(),"%s",db_strerror(return_value));
         |  }
         |  mod = rb_const_get(rb_cObject, rb_intern("Rod"));
@@ -235,44 +364,63 @@ module Rod
         builder.c(str.margin)
 
         str =<<-END
-        |void _each_key(){
+        |// Iterate over all keys in the database.
+        |// The value returned is the index itself.
+        |VALUE _each_key(){
         |  VALUE handle;
         |  DB *db_pointer;
         |  DBC *cursor;
-        |  DBT db_key, db_value;
-        |  int return_value;
-        |  rod_entry_struct *entry;
-        |  VALUE key;
+        |  VALUE key, cursor_object;
         |
         |  handle = rb_iv_get(self,"@handle");
         |  Data_Get_Struct(handle,DB,db_pointer);
         |  if(db_pointer != NULL){
         |    db_pointer->cursor(db_pointer,NULL,&cursor,0);
-        |    memset(&db_key, 0, sizeof(DBT));
-        |    memset(&db_value, 0, sizeof(DBT));
-        |    db_key.flags = DB_DBT_MALLOC;
-        |    while((return_value = cursor->get(cursor, &db_key, &db_value, DB_NEXT)) == 0){
-        |      key = rb_str_new((char *)db_key.data,db_key.size);
-        |      free(db_key.data);
-        |      rb_yield(key);
-        |    }
-        |    if(return_value != DB_NOTFOUND){
-        |      rb_raise(rodException(),"%s",db_strerror(return_value));
-        |    }
-        |    cursor->close(cursor);
+        |    cursor_object = Data_Wrap_Struct(rb_cObject,NULL,cursor_free,cursor);
+        |    rb_ensure(iterate_over_keys,cursor_object,close_cursor,cursor_object);
         |  } else {
         |    rb_raise(rodException(),"DB handle is NULL\\n");
         |  }
+        |  return self;
         |}
         END
         builder.c(str.margin)
 
         str =<<-END
+        |// Iterate over values for a given key.
+        |// A KeyMissing exception is raised if the key is missing.
+        |// The value returned is the index itself.
         |VALUE _get(VALUE key){
         |  VALUE handle;
         |  DB *db_pointer;
+        |  DBC *cursor;
+        |  VALUE cursor_object, iterate_arguments;
+        |
+        |  handle = rb_iv_get(self,"@handle");
+        |  Data_Get_Struct(handle,DB,db_pointer);
+        |  if(db_pointer != NULL){
+        |    db_pointer->cursor(db_pointer,NULL,&cursor,0);
+        |    cursor_object = Data_Wrap_Struct(rb_cObject,NULL,cursor_free,cursor);
+        |    iterate_arguments = rb_ary_new();
+        |    rb_ary_push(iterate_arguments,key);
+        |    rb_ary_push(iterate_arguments,cursor_object);
+        |    rb_ensure(iterate_over_values,iterate_arguments,close_cursor,cursor_object);
+        |  } else {
+        |    rb_raise(rodException(),"DB handle is NULL\\n");
+        |  }
+        |  return self;
+        |}
+        END
+        builder.c(str.margin)
+
+        str =<<-END
+        |// Returns the first value for a given +key+ or raises
+        |// KeyMissing if the key is not present.
+        |VALUE _get_first(VALUE key){
+        |  VALUE handle;
+        |  DB *db_pointer;
         |  DBT db_key, db_value;
-        |  rod_entry_struct entry;
+        |  unsigned long rod_id;
         |  VALUE result;
         |  int return_value;
         |
@@ -280,8 +428,8 @@ module Rod
         |  Data_Get_Struct(handle,DB,db_pointer);
         |  if(db_pointer != NULL){
         |    memset(&db_value, 0, sizeof(DBT));
-        |    db_value.data = &entry;
-        |    db_value.ulen = sizeof(rod_entry_struct);
+        |    db_value.data = &rod_id;
+        |    db_value.ulen = sizeof(unsigned long);
         |    db_value.flags = DB_DBT_USERMEM;
         |
         |    memset(&db_key, 0, sizeof(DBT));
@@ -293,26 +441,23 @@ module Rod
         |      rb_raise(keyMissingException(),"%s",db_strerror(return_value));
         |    } else if(return_value != 0){
         |      rb_raise(rodException(),"%s",db_strerror(return_value));
-        |    } else {
-        |      result = rb_ary_new();
-        |      rb_ary_push(result,ULONG2NUM(entry.offset));
-        |      rb_ary_push(result,ULONG2NUM(entry.size));
-        |      return result;
         |    }
+        |    return ULONG2NUM(rod_id);
         |  } else {
         |    rb_raise(rodException(),"DB handle is NULL\\n");
         |  }
+        |  // This should never be reached.
+        |  rb_raise(rodException(),"Invalid _get_first implementation!\\n");
         |  return Qnil;
         |}
         END
         builder.c(str.margin)
 
         str =<<-END
-        |void _put(VALUE key,unsigned long offset,unsigned long size){
+        |void _put(VALUE key,unsigned long rod_id){
         |  VALUE handle;
         |  DB *db_pointer;
         |  DBT db_key, db_value;
-        |  rod_entry_struct entry;
         |  int return_value;
         |
         |  handle = rb_iv_get(self,"@handle");
@@ -321,14 +466,63 @@ module Rod
         |  db_key.data = RSTRING_PTR(key);
         |  db_key.size = RSTRING_LEN(key);
         |  memset(&db_value, 0, sizeof(DBT));
-        |  entry.offset = offset;
-        |  entry.size = size;
-        |  db_value.data = &entry;
-        |  db_value.size = sizeof(rod_entry_struct);
+        |  db_value.data = &rod_id;
+        |  db_value.size = sizeof(unsigned long);
         |  if(db_pointer != NULL){
         |    return_value = db_pointer->put(db_pointer, NULL, &db_key, &db_value, 0);
         |    if(return_value != 0){
         |      rb_raise(rodException(),"%s",db_strerror(return_value));
+        |    }
+        |  } else {
+        |    rb_raise(rodException(),"DB handle is NULL\\n");
+        |  }
+        |}
+        END
+        builder.c(str.margin)
+
+        str =<<-END
+        |void _delete(VALUE key,VALUE value){
+        |  VALUE handle;
+        |  DB *db_pointer;
+        |  DBT db_key, db_value;
+        |  DBC *cursor;
+        |  int return_value;
+        |  unsigned long rod_id = 0;
+        |
+        |  handle = rb_iv_get(self,"@handle");
+        |  Data_Get_Struct(handle,DB,db_pointer);
+        |  memset(&db_key, 0, sizeof(DBT));
+        |  db_key.data = RSTRING_PTR(key);
+        |  db_key.size = RSTRING_LEN(key);
+        |  memset(&db_value, 0, sizeof(DBT));
+        |
+        |  if(db_pointer != NULL){
+        |    if(value == Qnil){
+        |      return_value = db_pointer->del(db_pointer, NULL, &db_key, 0);
+        |      if(return_value == DB_NOTFOUND){
+        |        rb_raise(keyMissingException(),"%s",db_strerror(return_value));
+        |      } else if(return_value != 0){
+        |        rb_raise(rodException(),"%s",db_strerror(return_value));
+        |      }
+        |    } else {
+        |      rod_id = NUM2ULONG(value);
+        |      memset(&db_value, 0, sizeof(DBT));
+        |      db_value.data = &rod_id;
+        |      db_value.size = sizeof(unsigned long);
+        |      db_pointer->cursor(db_pointer,NULL,&cursor,0);
+        |      return_value = cursor->get(cursor,&db_key,&db_value,DB_GET_BOTH);
+        |      if(return_value == DB_NOTFOUND){
+        |        cursor->close(cursor);
+        |        rb_raise(keyMissingException(),"%s",db_strerror(return_value));
+        |      } else if(return_value != 0){
+        |        cursor->close(cursor);
+        |        rb_raise(rodException(),"%s",db_strerror(return_value));
+        |      }
+        |      return_value = cursor->del(cursor,0);
+        |      cursor->close(cursor);
+        |      if(return_value != 0){
+        |        rb_raise(rodException(),"%s",db_strerror(return_value));
+        |      }
         |    }
         |  } else {
         |    rb_raise(rodException(),"DB handle is NULL\\n");
