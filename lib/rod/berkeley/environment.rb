@@ -54,12 +54,18 @@ module Rod
       end
 
       class << self
+	# You can set arbitrary Berkeley DB link flags via
+        # ROD_BDB_LINK_FLAGS env. variable.
+        def rod_link_flags
+          ENV['ROD_BDB_LINK_FLAGS'] || '-ldb'
+        end
+
         # Calls methods on the C +builder+ needed to properly configure the
         # C compiler for Berkeley DB.
         def init_builder(builder)
           builder.include '<db.h>'
           builder.include '<stdio.h>'
-          builder.add_compile_flags '-ldb-4.8'
+          builder.add_link_flags self.rod_link_flags
         end
 
         # C definition of the DatabaseError.
