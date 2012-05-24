@@ -286,10 +286,10 @@ module Rod
         str.margin
       end
 
-      # You can set arbitrary ROD hash index compile flags via
-      # ROD_HASH_COMPILE_FLAGS env. variable.
-      def self.rod_compile_flags
-        ENV['ROD_HASH_COMPILE_FLAGS'] || '-ldb'
+      # You can set arbitrary ROD hash index link flags via
+      # ROD_BDB_LINK_FLAGS env. variable.
+      def self.rod_link_flags
+        ENV['ROD_BDB_LINK_FLAGS'] || '-ldb'
       end
 
       self.inline(:C) do |builder|
@@ -298,7 +298,7 @@ module Rod
         builder.include '<byteswap.h>'
         builder.include '<endian.h>'
         builder.include '<stdint.h>'
-        builder.add_compile_flags self.rod_compile_flags
+        builder.add_link_flags self.rod_link_flags
         builder.prefix(self.entry_struct)
         builder.prefix(self.rod_exception)
         builder.prefix(self.key_missing_exception)
