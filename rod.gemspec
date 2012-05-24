@@ -26,7 +26,7 @@ Gem::Specification.new do |s|
   s.add_dependency("english", [">= 0.5.0","< 0.6.0"])
   s.add_dependency("activemodel", ["~> 3.2.2"])
   s.add_dependency("bsearch", [">= 1.5.0","< 1.6.0"])
-  s.add_development_dependency("mocha", [">= 0.9.8","< 1.0.0"])
+  s.add_development_dependency("mocha", "~> 0.9.8")
   s.add_development_dependency("cucumber", "~> 1.0.0")
   s.add_development_dependency("rspec", [">= 2.2.0","< 2.3.0"])
   s.add_development_dependency("rake", [">= 0.9.0","< 1.0.0"])
