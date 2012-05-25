@@ -44,8 +44,10 @@ Feature: Data portability
     And the automobile of the first Caveman should be equal to the first Automobile
     And the first of dogs of the first Caveman should be equal to the first Dog
 
-  Scenario: class with every type of field and association
-      Rod should allow to read data created on little endian 64-bit system
+  # This feature will be turned on when #221 is implemented.
+  @ignore
+  Scenario: simple check of data portability
+      Rod should allow to read data created on a little endian 64-bit system
     Given the class space is cleared
     And the model is connected with the default database
     And a class Caveman has a name field of type string
