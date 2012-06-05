@@ -66,6 +66,7 @@ module Rod
         |*/
         |void seq_free(DB_SEQUENCE * seq_pointer){
         |  int return_value;
+        |
         |  if(seq_pointer != NULL){
         |    return_value = seq_pointer->close(seq_pointer,0);
         |    if(return_value != 0){
@@ -105,7 +106,6 @@ module Rod
         |  DBT db_key;
         |  u_int32_t flags;
         |  int32_t cache_size;
-        |
         |
         |  database = rb_iv_get(self,"@database");
         |  if(NIL_P(database)){
@@ -209,6 +209,7 @@ module Rod
         |void _close(){
         |  DB_SEQUENCE * seq_pointer;
         |  int return_value;
+        |
         |  Data_Get_Struct(self,DB_SEQUENCE,seq_pointer);
         |  seq_free(seq_pointer);
         |  DATA_PTR(self) = NULL;

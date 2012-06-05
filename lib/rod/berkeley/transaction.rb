@@ -98,6 +98,7 @@ module Rod
         |*/
         |void txn_free(DB_TXN * txn_pointer){
         |  int return_value;
+        |
         |  if(txn_pointer != NULL){
         |    return_value = txn_pointer->abort(txn_pointer);
         |    if(return_value != 0){
@@ -219,6 +220,7 @@ module Rod
         |void _abort(){
         |  DB_TXN * txn_pointer;
         |  int return_value;
+        |
         |  Data_Get_Struct(self,DB_TXN,txn_pointer);
         |  txn_free(txn_pointer);
         |  DATA_PTR(self) = NULL;

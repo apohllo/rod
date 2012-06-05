@@ -116,6 +116,9 @@ module Rod
         |#{result_type} _#{name}(unsigned long object_rod_id){
 	|  VALUE klass;
 	|  #{struct_name} * pointer;
+        |  uint64_t as_uint;
+        |  uint64_t result_swapped;
+        |
         |  if(object_rod_id == 0){
         |    rb_raise(rodException(), "Invalid object rod_id (0)");
         |  }
@@ -126,8 +129,8 @@ module Rod
         |#  if __BYTE_ORDER == __BIG_ENDIAN
         |  // This code assumes that all values are 64 bit wide. This is not true
         |  // on 32-bit systems but is addressed in #221
-        |  uint64_t as_uint = (pointer + object_rod_id - 1)->#{name};
-        |  uint64_t result_swapped = bswap_64(*((uint64_t *)((char *)&as_uint)));
+        |  as_uint = (pointer + object_rod_id - 1)->#{name};
+        |  result_swapped = bswap_64(*((uint64_t *)((char *)&as_uint)));
         |  return *(#{result_type} *)((char *)&result_swapped);
         |#  else
         |  return (pointer + object_rod_id - 1)->#{name};
@@ -148,6 +151,8 @@ module Rod
         |void _#{name}_equals(unsigned long object_rod_id,#{arg_type} value){
         |  VALUE klass;
         |  #{struct_name} * pointer;
+        |  uint64_t value_swapped;
+        |
         |  if(object_rod_id == 0){
         |    rb_raise(rodException(), "Invalid object rod_id (0)");
         |  }
@@ -157,7 +162,7 @@ module Rod
         |#ifdef __BYTE_ORDER
         |#  if __BYTE_ORDER == __BIG_ENDIAN
         |  // TODO #220 #221
-        |  uint64_t value_swapped = bswap_64(*((uint64_t *)((char *)&value)));
+        |  value_swapped = bswap_64(*((uint64_t *)((char *)&value)));
         |  (pointer + object_rod_id - 1)->#{name} = value_swapped;
         |#  else
         |  (pointer + object_rod_id - 1)->#{name} = value;

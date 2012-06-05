@@ -236,8 +236,10 @@ module Rod
           str =<<-END
           |VALUE _join_element_index(unsigned long element_offset, unsigned long element_index, VALUE handler){
           |  #{model_struct} * model_p;
+          |  unsigned long result;
+          |
           |  Data_Get_Struct(handler,#{model_struct},model_p);
-          |  unsigned long result = (model_p->_join_element_table + element_offset + element_index)->offset;
+          |  result = (model_p->_join_element_table + element_offset + element_index)->offset;
           |#ifdef __BYTE_ORDER
           |#  if __BYTE_ORDER == __BIG_ENDIAN
           |  result = bswap_64(result);
@@ -252,8 +254,10 @@ module Rod
           |VALUE _polymorphic_join_element_index(unsigned long element_offset,
           |  unsigned long element_index, VALUE handler){
           |  #{model_struct} * model_p;
+          |  unsigned long result;
+          |
           |  Data_Get_Struct(handler,#{model_struct},model_p);
-          |  unsigned long result = (model_p->_polymorphic_join_element_table +
+          |  result = (model_p->_polymorphic_join_element_table +
           |    element_offset + element_index)->offset;
           |#ifdef __BYTE_ORDER
           |#  if __BYTE_ORDER == __BIG_ENDIAN
@@ -269,8 +273,10 @@ module Rod
           |VALUE _polymorphic_join_element_class(unsigned long element_offset,
           |  unsigned long element_index, VALUE handler){
           |  #{model_struct} * model_p;
+          |  unsigned long result;
+          |
           |  Data_Get_Struct(handler,#{model_struct},model_p);
-          |  unsigned long result = (model_p->_polymorphic_join_element_table +
+          |  result = (model_p->_polymorphic_join_element_table +
           |    element_offset + element_index)->class;
           |#ifdef __BYTE_ORDER
           |#  if __BYTE_ORDER == __BIG_ENDIAN
@@ -288,6 +294,7 @@ module Rod
           |  VALUE handler){
           |  #{model_struct} * model_p;
           |  _join_element * element_p;
+          |
           |  Data_Get_Struct(handler,#{model_struct},model_p);
           |  element_p = model_p->_join_element_table + element_offset + element_index;
           |  if(element_p->index != element_index){
@@ -310,6 +317,7 @@ module Rod
           |  VALUE handler){
           |  #{model_struct} * model_p;
           |  _polymorphic_join_element * element_p;
+          |
           |  Data_Get_Struct(handler,#{model_struct},model_p);
           |  element_p = model_p->_polymorphic_join_element_table + element_offset + element_index;
           |  if(element_p->index != element_index){
@@ -334,6 +342,7 @@ module Rod
           |  unsigned long index;
           |  #{model_struct} * model_p;
           |  unsigned long result;
+          |
           |  Data_Get_Struct(handler,#{model_struct},model_p);
           |  result = model_p->_join_element_count;
           |  for(index = 0; index < size; index++){
@@ -357,6 +366,7 @@ module Rod
           |  unsigned long index;
           |  #{model_struct} * model_p;
           |  unsigned long result;
+          |
           |  Data_Get_Struct(handler,#{model_struct},model_p);
           |  result = model_p->_polymorphic_join_element_count;
           |  for(index = 0; index < size; index++){
@@ -418,6 +428,7 @@ module Rod
           |VALUE _read_string(unsigned long length, unsigned long offset, VALUE handler){
           |  #{model_struct} * model_p;
           |  char * str;
+          |
           |  Data_Get_Struct(handler,#{model_struct},model_p);
           |  str = model_p->#{StringElement.struct_name}_table + offset;
           |  return rb_str_new(str, length);
@@ -443,6 +454,7 @@ module Rod
           |  long length_left = length;
           |  // see the routine description above.
           |  VALUE result;
+          |
           |  // get the structure
           |  Data_Get_Struct(handler,#{model_struct},model_p);
           |  // first free byte in current page
@@ -497,9 +509,9 @@ module Rod
             str =<<-END
             |// Store the object in the database.
             |void _store_#{klass.struct_name}(VALUE object, VALUE handler){
-            |
             |  #{model_struct} * model_p;
             |  #{klass.struct_name} * struct_p;
+            |
             |  Data_Get_Struct(handler,#{model_struct},model_p);
             |  if((model_p->#{klass.struct_name}_count+1) * sizeof(#{klass.struct_name}) >=
             |    model_p->#{klass.struct_name}_page_count * page_size()){
@@ -526,8 +538,8 @@ module Rod
           |VALUE _init_handler(char * dir_path){
           |  #{model_struct} * model_p;
           |  VALUE cClass;
-          |  model_p = ALLOC(#{model_struct});
           |
+          |  model_p = ALLOC(#{model_struct});
           |  #{init_structs(classes)}
           |
           |  // set dir path
@@ -567,6 +579,7 @@ module Rod
           str =<<-END
           |void _open(VALUE handler){
           |  #{model_struct} * model_p;
+          |
           |  Data_Get_Struct(handler,#{model_struct},model_p);
           |
           |  \n#{classes.map do |klass|
@@ -597,6 +610,7 @@ module Rod
           |// if +classes+ are Qnil, the DB was open in readonly mode.
           |void _close(VALUE handler){
           |  #{model_struct} * model_p;
+          |
           |  Data_Get_Struct(handler,#{model_struct},model_p);
           |
           |  \n#{classes.map do |klass|
@@ -623,6 +637,7 @@ module Rod
           str = <<-END
           |void _print_layout(VALUE handler){
           |  #{model_struct} * model_p;
+          |
           |  Data_Get_Struct(handler,#{model_struct},model_p);
           |  printf("============= Data layout START =============\\n");
           |  \n#{classes.map do |klass|
@@ -674,6 +689,7 @@ module Rod
       str =<<-END
       |#{result_type} _#{name}(VALUE handler){
       |  #{model_struct} * model_p;
+      |
       |  Data_Get_Struct(handler,#{model_struct},model_p);
       |  return model_p->#{name};
       |}
@@ -686,6 +702,7 @@ module Rod
       str =<<-END
       |void _#{name}_equals(VALUE handler,#{arg_type} value){
       |  #{model_struct} * model_p;
+      |
       |  Data_Get_Struct(handler,#{model_struct},model_p);
       |  model_p->#{name} = value;
       |}
@@ -696,7 +713,9 @@ module Rod
     def self.rod_exception
       str =<<-END
       |VALUE rodException(){
-      |  VALUE klass = rb_const_get(rb_cObject, rb_intern("Rod"));
+      |  VALUE klass;
+      |
+      |  klass = rb_const_get(rb_cObject, rb_intern("Rod"));
       |  klass = rb_const_get(klass, rb_intern("DatabaseError"));
       |  return klass;
       |}

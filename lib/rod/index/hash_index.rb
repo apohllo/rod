@@ -197,6 +197,7 @@ module Rod
         |VALUE close_cursor(VALUE cursor_object){
         |  DBC *cursor;
         |  int return_value;
+        |
         |  Data_Get_Struct(cursor_object,DBC,cursor);
         |  if(cursor != NULL){
         |    return_value = cursor->close(cursor);
@@ -317,6 +318,7 @@ module Rod
         |  VALUE handleClass;
         |  VALUE handle;
         |  VALUE mod;
+        |
         |  db_pointer = ALLOC(DB);
         |  return_value = db_create(&db_pointer,NULL,0);
         |  if(return_value != 0){
@@ -358,6 +360,7 @@ module Rod
         |void _close(){
         |  VALUE handle;
         |  DB *db_pointer;
+        |
         |  handle = rb_iv_get(self,"@handle");
         |  Data_Get_Struct(handle,DB,db_pointer);
         |  if(db_pointer != NULL){

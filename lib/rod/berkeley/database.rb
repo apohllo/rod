@@ -86,7 +86,9 @@ module Rod
         def key_missing_exception
           str =<<-END
           |VALUE keyMissingException(){
-          |  VALUE klass = rb_const_get(rb_cObject, rb_intern("Rod"));
+          |  VALUE klass;
+          |
+          |  klass = rb_const_get(rb_cObject, rb_intern("Rod"));
           |  klass = rb_const_get(klass, rb_intern("KeyMissing"));
           |  return klass;
           |}
@@ -106,6 +108,7 @@ module Rod
         |*/
         |void db_free(DB * db_pointer){
         |  int return_value;
+        |
         |  if(db_pointer != NULL){
         |    return_value = db_pointer->close(db_pointer,0);
         |    if(return_value != 0){
@@ -220,6 +223,7 @@ module Rod
         |void _close(){
         |  DB * db_pointer;
         |  int return_value;
+        |
         |  Data_Get_Struct(self,DB,db_pointer);
         |  db_free(db_pointer);
         |  DATA_PTR(self) = NULL;
@@ -321,6 +325,7 @@ module Rod
         |  char buffer[1024];
         |  VALUE result;
         |  unsigned int size;
+        |
         |  size = _get(self,RSTRING_PTR(key),RSTRING_LEN(key),buffer,1024,transaction);
         |  return rb_str_new(buffer,size);
         |}

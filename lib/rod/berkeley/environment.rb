@@ -72,7 +72,9 @@ module Rod
         def database_error
           str =<<-END
           |VALUE databaseError(){
-          |  VALUE klass = rb_const_get(rb_cObject, rb_intern("Rod"));
+          |  VALUE klass;
+          |
+          |  klass = rb_const_get(rb_cObject, rb_intern("Rod"));
           |  klass = rb_const_get(klass, rb_intern("DatabaseError"));
           |  return klass;
           |}
@@ -91,6 +93,7 @@ module Rod
         |*/
         |void env_free(DB_ENV * env_pointer){
         |  int return_value;
+        |
         |  if(env_pointer != NULL){
         |    return_value = env_pointer->close(env_pointer,0);
         |    if(return_value != 0){
@@ -123,6 +126,7 @@ module Rod
         |  DB_ENV * env_pointer;
         |  u_int32_t flags;
         |  int return_value;
+        |
         |  // the flags has to be set to 0 - cf. db_env_create in documentation
         |  return_value = db_env_create(&env_pointer, 0);
         |  if(return_value != 0){
@@ -192,6 +196,7 @@ module Rod
         |void _close(){
         |  DB_ENV * env_pointer;
         |  int return_value;
+        |
         |  Data_Get_Struct(self,DB_ENV,env_pointer);
         |  env_free(env_pointer);
         |  DATA_PTR(self) = NULL;
