@@ -761,11 +761,13 @@ module Rod
     def self.field_reader(name,result_type,builder)
       str =<<-END
       |#{result_type} _#{name}(unsigned long object_rod_id){
+      |  VALUE klass;
+      |  #{struct_name} * pointer;
       |  if(object_rod_id == 0){
       |    rb_raise(rodException(), "Invalid object rod_id (0)");
       |  }
-      |  VALUE klass = rb_funcall(self,rb_intern("class"),0);
-      |  #{struct_name} * pointer = (#{struct_name} *)
+      |  klass = rb_funcall(self,rb_intern("class"),0);
+      |  pointer = (#{struct_name} *)
       |    NUM2ULONG(rb_funcall(klass,rb_intern("rod_pointer"),0));
       |  return (pointer + object_rod_id - 1)->#{name};
       |}
@@ -777,11 +779,13 @@ module Rod
     def self.field_writer(name,arg_type,builder)
       str =<<-END
       |void _#{name}_equals(unsigned long object_rod_id,#{arg_type} value){
+      |  VALUE klass;
+      |  #{struct_name} * pointer;
       |  if(object_rod_id == 0){
       |    rb_raise(rodException(), "Invalid object rod_id (0)");
       |  }
-      |  VALUE klass = rb_funcall(self,rb_intern("class"),0);
-      |  #{struct_name} * pointer = (#{struct_name} *)
+      |  klass = rb_funcall(self,rb_intern("class"),0);
+      |  pointer = (#{struct_name} *)
       |    NUM2ULONG(rb_funcall(klass,rb_intern("rod_pointer"),0));
       |  (pointer + object_rod_id - 1)->#{name} = value;
       |}
