@@ -392,9 +392,9 @@ module Rod
           |  unsigned long first_length, unsigned long second_offset,
           |  unsigned long second_length, VALUE handler){
           |  unsigned long i,j,count,v1,v2;
+          |  #{model_struct} * model_p;
           |
           |  i = 0; j = 0; count = 0;
-          |  #{model_struct} * model_p;
           |  Data_Get_Struct(handler,#{model_struct},model_p);
           |
           |  while(i < first_length && j < second_length){
