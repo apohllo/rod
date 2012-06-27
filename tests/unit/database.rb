@@ -54,7 +54,7 @@ class DatabaseTest < Test::Unit::TestCase
   def test_superclass
     @database.close_database
     @database.open_database("tmp/unit_database")
-    assert(@database.metadata["Rod::StringElement"][:superclass] ==
+    assert(@database.metadata["Rod::Model::StringElement"][:superclass] ==
            Rod::AbstractModel.name)
   end
 end

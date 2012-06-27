@@ -32,7 +32,7 @@ module Rod
 
     # Default cache for models.
     def self.cache
-      @cache ||= Cache.new
+      @cache ||= Model::Cache.new
     end
 
     # There are no indexed properties.

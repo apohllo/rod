@@ -134,6 +134,12 @@ module Rod
           "count:#{sizeof(:ulong)}]"
       end
 
+      # Updates in the DB the +count+ and +offset+ of elements for the +subject+.
+      def update(subject,count,offset)
+        subject.__send__("_#{self.name}_count=",subject.rod_id,count)
+        subject.__send__("_#{self.name}_offset=",subject.rod_id,offset)
+      end
+
       protected
       # Check if the property has valid options.
       # An exceptions is raised if they are not.

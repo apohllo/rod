@@ -239,6 +239,18 @@ module Rod
         end
       end
 
+      # Updates in the DB this field to the actual value of the +subject+.
+      def update(subject)
+        if self.variable_size?
+          value = self.dump(subject.__send__(self.name))
+          length, offset = subject.database.set_string(value)
+          subject.__send__("_#{self.name}_length=",subject.rod_id,length)
+          subject.__send__("_#{self.name}_offset=",subject.rod_id,offset)
+        else
+          subject.__send__("_#{self.name}=",subject.rod_id,subject.__send__(self.name))
+        end
+      end
+
       protected
       # Check if the property has a valid type.
       # An exceptions is raised if the type is invalid.

@@ -348,7 +348,7 @@ module Rod
           |  for(index = 0; index < size; index++){
           |    if((model_p->_join_element_count + 1) * sizeof(_join_element) >=
           |      page_size() * model_p->_join_element_page_count){
-          |      \n#{mmap_class(JoinElement)}
+          |      \n#{mmap_class(Model::JoinElement)}
           |    }
           |    element = model_p->_join_element_table + model_p->_join_element_count;
           |    model_p->_join_element_count++;
@@ -373,7 +373,7 @@ module Rod
           |    if((model_p->_polymorphic_join_element_count + 1) *
           |      sizeof(_polymorphic_join_element) >=
           |      page_size() * model_p->_polymorphic_join_element_page_count){
-          |      \n#{mmap_class(PolymorphicJoinElement)}
+          |      \n#{mmap_class(Model::PolymorphicJoinElement)}
           |    }
           |    element = model_p->_polymorphic_join_element_table +
           |      model_p->_polymorphic_join_element_count;
@@ -430,7 +430,7 @@ module Rod
           |  char * str;
           |
           |  Data_Get_Struct(handler,#{model_struct},model_p);
-          |  str = model_p->#{StringElement.struct_name}_table + offset;
+          |  str = model_p->#{Model::StringElement.struct_name}_table + offset;
           |  return rb_str_new(str, length);
           |}
           END
@@ -458,14 +458,14 @@ module Rod
           |  // get the structure
           |  Data_Get_Struct(handler,#{model_struct},model_p);
           |  // first free byte in current page
-          |  string_offset = model_p->#{StringElement.struct_name}_count % page_size();
-          |  page_offset = model_p->#{StringElement.struct_name}_count / page_size();
+          |  string_offset = model_p->#{Model::StringElement.struct_name}_count % page_size();
+          |  page_offset = model_p->#{Model::StringElement.struct_name}_count / page_size();
           |  current_page = page_offset;
           |  while(length_left > 0){
           |    if(((unsigned long)length_left) + string_offset >= page_size()){
-          |      \n#{mmap_class(StringElement)}
+          |      \n#{mmap_class(Model::StringElement)}
           |    }
-          |    dest = model_p->#{StringElement.struct_name}_table +
+          |    dest = model_p->#{Model::StringElement.struct_name}_table +
           |      current_page * page_size() + string_offset;
           |    if(((unsigned long)length_left) > page_size()){
           |      memcpy(dest,value,page_size());
@@ -477,7 +477,7 @@ module Rod
           |    length_left -= page_size();
           |  }
           |
-          |  model_p->#{StringElement.struct_name}_count += length;
+          |  model_p->#{Model::StringElement.struct_name}_count += length;
           |
           |  result = rb_ary_new();
           |  rb_ary_push(result, ULONG2NUM(length));

@@ -76,7 +76,7 @@ module Rod
         ensure
           close_database
         end
-        
+
       else
 
         raise DatabaseError.new("Database already opened.") if opened?
@@ -106,7 +106,7 @@ module Rod
         _create(@handler)
 
       end
-      
+
     end
 
     # Opens the database at +path+ with +options+. This allows
@@ -437,7 +437,7 @@ module Rod
 
     # Special classes used by the database.
     def special_classes
-      [JoinElement, PolymorphicJoinElement, StringElement]
+      [Model::JoinElement, Model::PolymorphicJoinElement, Model::StringElement]
     end
 
     def convert_options(options)

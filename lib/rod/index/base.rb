@@ -50,7 +50,7 @@ module Rod
           end
         end
         if unstored_object
-          key.reference_updaters << ReferenceUpdater.for_index(self)
+          key.reference_updaters << Model::ReferenceUpdater.for_index(self)
           @unstored_map[key] = proxy
         else
           set(key,proxy)
@@ -65,6 +65,16 @@ module Rod
           self.set(key_value[0],key_value[1])
           # TODO #182 implement size for index
           # report_progress(position,index.size) if $ROD_DEBUG
+        end
+      end
+
+      # Rebuilds the index. The index is destroyed and then it
+      # is populated with all objects of the class.
+      def rebuild
+        self.destroy
+        @klass.each.with_index do |object,position|
+          self[object.send(property.name)] << object
+          report_progress(position,@klass.count) if $ROD_DEBUG
         end
       end
 

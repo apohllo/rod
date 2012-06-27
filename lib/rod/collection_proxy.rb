@@ -1,5 +1,5 @@
 require 'bsearch'
-require 'rod/reference_updater'
+require 'rod/model/reference_updater'
 
 module Rod
   # This class allows for lazy fetching the elements from
@@ -296,10 +296,10 @@ module Rod
               if object.new?
                 if polymorphic?
                   object.reference_updaters <<
-                    ReferenceUpdater.for_plural(self,index,@database)
+                    Model::ReferenceUpdater.for_plural(self,index,@database)
                 else
                   object.reference_updaters <<
-                    ReferenceUpdater.for_plural(self,index,@database)
+                    Model::ReferenceUpdater.for_plural(self,index,@database)
                 end
                 next
               else

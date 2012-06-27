@@ -128,6 +128,33 @@ module Rod
         end
       end
 
+      # Update the DB information for the +subject+ about the +object+ which
+      # is referenced via this singular association.
+      # If the object is not yet stored, a reference updater
+      # is registered to update the DB when it is stored.
+      def update(subject,object)
+        if object.nil?
+          object_rod_id = 0
+        else
+          if object.new?
+            # There is a referenced object, but its rod_id is not set.
+            object.reference_updaters << Model::ReferenceUpdater.
+              for_singular(subject,self,subject.database)
+            return
+          else
+            object_rod_id = object.rod_id
+          end
+          # clear references, allowing for garbage collection
+          # WARNING: don't use writer, since we don't want this change to be tracked
+          #object.instance_variable_set("@#{name}",nil)
+        end
+        subject.__send__("_#{self.name}=", subject.rod_id, object_rod_id)
+        if self.polymorphic?
+          class_id = object.nil? ? 0 : object.class.name_hash
+          subject.__send__("_#{self.name}__class=", subject.rod_id, class_id)
+        end
+      end
+
       protected
       # Check if the property has valid options.
       # An exceptions is raised if they are not.
