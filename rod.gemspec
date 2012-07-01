@@ -11,8 +11,8 @@ Gem::Specification.new do |s|
   s.authors = ['Aleksander Pohl']
   s.email   = ["apohllo@o2.pl"]
   s.homepage    = "http://github.com/apohllo/rod"
-  s.summary = "Ruby object database"
-  s.description = "Ruby object database is designed for large amount of data, whose structure rarely changes."
+  s.summary = "Ruby Object Database"
+  s.description = "Ruby Object Database is designed for large amounts of data, whose structure rarely changes."
 
   s.rubyforge_project = "rod"
   s.rdoc_options = ["--main", "README.rdoc"]
@@ -26,6 +26,7 @@ Gem::Specification.new do |s|
   s.add_dependency("english", [">= 0.5.0","< 0.6.0"])
   s.add_dependency("activemodel", ["~> 3.2.2"])
   s.add_dependency("bsearch", [">= 1.5.0","< 1.6.0"])
+
   s.add_development_dependency("mocha", "~> 0.9.8")
   s.add_development_dependency("cucumber", "~> 1.0.0")
   s.add_development_dependency("rspec", [">= 2.2.0","< 2.3.0"])

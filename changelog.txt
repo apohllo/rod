@@ -1,3 +1,28 @@
+0.7.2
+- Fix variable declaration place #118
+- Implementation of & and | for collection proxies
+- Fix strange error caused by mocha #219
+- Change compile flags to link flags and API accordingly #200
+- Fix memleak when growing DB file #211
+- Change hash cache size to 0.5 MB
+- Add flags needed on BSD #215
+- Fix destroy of hash index #217 #218
+- Immediate hash index updates #209 #213
+- Add method for computing collections' intersection size #224
+- Add hash index compile flags env. variable #223
+- Add negative float values in basic feature
+- #204 fix features for out-of-scope indexing
+- Fix: too large values for 32-bit systems in tests
+- Remove old unit tests
+- Change directory of Berkeley env
+- #199 spec and new implementation for Model#[]
+- Change libdb to 4.8 in travis script
+- Updated links and year, note about benchmarks
+- Berkeley DB building blocks
+- Update requires for latest Active Model
+- Allow latest version of active model to be used
+- Fix example in README
+- #190 #98 #173 refactoring of properties
 0.7.1
 - #189 guard object load against empty strings.
 - Don't close hash index when it is destroyed.

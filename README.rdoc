@@ -17,22 +17,28 @@ fast access for data, which rarely changes.
 
 == FEATURES:
 
-* nice Ruby interface which mimicks Active Record
+* object-oriented Ruby interface
 * Ruby-to-C on-the-fly translation based on mmap and RubyInline
 * optimized for (reading) speed
 * weak reference collections for easy memory reclaims
 * Berkeley DB hash index for the best index performance
+* immediate updates of hash indices
 * compatibility check of library version
 * compatibility check of data model
-* autogeneration of model (based on the database metadata)
-* automatic model migrations (limitied to addition/removal of properties and indexes)
+* auto-generation of model (based on the database meta-data)
+* automatic model migrations (limited to addition/removal of properties and indexes)
 * full update of the database (removal of objects not available yet)
 * databases interlinking (via direct links or inverted indices)
+* data portability between big and little-endian systems
+* works on Linux and BSD
 
 == PROBLEMS
 
 * tested mostly on 64-bit systems
 * doesn't work on Windows
+* concurrent writes not supported
+* batch-only data input/update
+* data removal not supported
 
 == SYNOPSIS:
 
