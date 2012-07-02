@@ -1,6 +1,4 @@
 $:.unshift("tests")
-require 'ruby-debug'
-Debugger.start
 require 'structures'
 
 puts "-- Save sample structures test --"
