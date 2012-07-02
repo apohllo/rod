@@ -27,7 +27,7 @@ module Rod
       # The key might be a direct value (such as String) or a Rod object.
       def [](key)
         unstored_object = false
-        if key.is_a?(Model)
+        if key.is_a?(Model::Resource)
           if key.new?
             proxy = @unstored_map[key]
             unstored_object = true

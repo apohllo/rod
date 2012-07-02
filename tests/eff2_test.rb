@@ -2,7 +2,7 @@ $:.unshift("lib")
 require 'rod'
 
 module RodTest
-  class Model < Rod::Model
+  class Model < Rod::Model::Base
   end
 
   %w{E D C B A}.each do |letter|
@@ -18,10 +18,10 @@ module RodTest
 
   class EffectivenessTest
 
-		MAGNITUDE = 100000
+    MAGNITUDE = 100000
     FILENAME = "tmp/eff2"
 
-		def setup
+    def setup
       @structs = {}
       %w{A B C D E}.each do |letter|
         @structs[letter.to_sym] = []
@@ -32,11 +32,11 @@ module RodTest
           end
         end
       end
-		end
+    end
 
-		def main
+    def main
       start_t = Time.now.to_f
-			Model.instance.create_database(FILENAME)
+      Model.instance.create_database(FILENAME)
       %w{A B C D E}.each do |letter|
         (MAGNITUDE / 2).times {|i| @structs[letter.to_sym][i].store }
       end
@@ -47,12 +47,12 @@ module RodTest
       puts "Storing the objects in the DB took #{end_t - start_t} seconds"
 
       start_t = Time.now.to_f
-			Model.close_database
+      Model.close_database
       end_t = Time.now.to_f
 
       puts "Closing the DB took #{end_t - start_t} seconds"
-		end
-	end
+    end
+  end
 
 end
 

@@ -1,15 +1,15 @@
 $:.unshift("lib")
 require 'rod'
 
-class User < Rod::Model
-  database_class Rod::Database
+class User < Rod::Model::Base
+  database_class Rod::Native::Database
   field :name, :string
   field :surname, :string
 end
 
-Rod::Database.development_mode = true
+Rod::Database::Base.development_mode = true
 
-Rod::Database.instance.create_database("tmp/properties_order") do
+Rod::Native::Database.instance.create_database("tmp/properties_order") do
   user = User.new(:name => "John",:surname => "Smith")
   user.store
 end

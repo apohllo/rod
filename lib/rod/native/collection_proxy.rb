@@ -34,7 +34,7 @@ module Rod
     def [](index)
       return nil if index >= @size || index < 0
       rod_id = id_for(index)
-      if rod_id.is_a?(Model)
+      if rod_id.is_a?(Model::Resource)
         rod_id
       elsif rod_id == 0
         nil
@@ -119,7 +119,7 @@ module Rod
     def <<(element)
       if element.nil?
         pair = [0,NilClass]
-      elsif element.is_a?(Model)
+      elsif element.is_a?(Model::Resource)
         if element.new?
           pair = [element,element.class]
         else
@@ -241,7 +241,7 @@ module Rod
     # Returns a collection of added items.
     def added
       @added.map do |id_or_object,klass|
-        if id_or_object.is_a?(Model)
+        if id_or_object.is_a?(Model::Resource)
           id_or_object
         else
           id_or_object == 0 ? nil : klass.find_by_rod_id(id_or_object)
@@ -255,7 +255,8 @@ module Rod
         if polymorphic?
           rod_id = @database.polymorphic_join_index(@offset,index)
           if rod_id != 0
-            klass = Model.get_class(@database.polymorphic_join_class(@offset,index))
+            klass = Model::Resource.class_space.
+              get(@database.polymorphic_join_class(@offset,index))
           end
         else
           klass = @klass
@@ -291,7 +292,7 @@ module Rod
         pairs =
           @size.times.map do |index|
             rod_id = id_for(index)
-            if rod_id.is_a?(Model)
+            if rod_id.is_a?(Model::Resource)
               object = rod_id
               if object.new?
                 if polymorphic?
@@ -368,7 +369,8 @@ module Rod
         if direct_index = @map[index]
           @added[direct_index][1]
         else
-          Model.get_class(@database.polymorphic_join_class(@offset,lazy_index(index)))
+          Model::Resource.class_space.
+            get(@database.polymorphic_join_class(@offset,lazy_index(index)))
         end
       else
         @klass

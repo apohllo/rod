@@ -1,6 +1,11 @@
+# encoding: utf-8
+require 'rod/utils'
+
 module Rod
   module Berkeley
     class Sequence
+      extend Utils
+
       # The database of the sequence.
       attr_reader :database
 
@@ -75,7 +80,7 @@ module Rod
         |  }
         |}
         END
-        builder.prefix(str.margin)
+        builder.prefix(Utils.remove_margin(str))
 
         str =<<-END
         |/*
@@ -88,7 +93,7 @@ module Rod
         |  return Data_Wrap_Struct(self,NULL,seq_free,NULL);
         |}
         END
-        builder.c_singleton(str.margin)
+        builder.c_singleton(Utils.remove_margin(str))
 
         str =<<-END
         |/*
@@ -155,7 +160,7 @@ module Rod
         |  DATA_PTR(self) = seq_pointer;
         |}
         END
-        builder.c_raw(str.margin)
+        builder.c_raw(Utils.remove_margin(str))
 
         str =<<-END
         |/*
@@ -166,7 +171,7 @@ module Rod
         |  _open_raw(self,RSTRING_PTR(key),RSTRING_LEN(key),transaction,options);
         |}
         END
-        builder.c(str.margin)
+        builder.c(Utils.remove_margin(str))
 
         str =<<-END
         |/*
@@ -200,7 +205,7 @@ module Rod
         |  return (unsigned long)next_value;
         |}
         END
-        builder.c(str.margin)
+        builder.c(Utils.remove_margin(str))
 
         str =<<-END
         |/*
@@ -215,7 +220,7 @@ module Rod
         |  DATA_PTR(self) = NULL;
         |}
         END
-        builder.c(str.margin)
+        builder.c(Utils.remove_margin(str))
       end
     end
   end

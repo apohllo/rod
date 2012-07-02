@@ -2,7 +2,7 @@ $:.unshift("lib")
 require 'rod'
 require File.join(".",File.dirname(__FILE__),"generate_classes_model")
 
-Rod::Database.development_mode = true
+Rod::Database::Base.development_mode = true
 
 
 Database.instance.create_database("tmp/generate_classes") do

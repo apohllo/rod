@@ -2,11 +2,10 @@ $:.unshift("lib")
 require 'rod'
 require File.join(".",File.dirname(__FILE__),"migration_model1")
 
-Rod::Database.development_mode = true
+Rod::Database::Base.development_mode = true
 
 FileUtils.rm_rf("tmp/migration")
 Database.instance.create_database("tmp/migration") do
-
   count = (ARGV[0] || 10).to_i
   puts "Count in migration test: #{count}"
 
@@ -51,5 +50,4 @@ Database.instance.create_database("tmp/migration") do
 
   house = House.new(:name => "cottage house")
   house.store
-
 end

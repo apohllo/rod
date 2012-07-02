@@ -4,7 +4,7 @@ require 'rod'
 
 class DatabaseTest < Test::Unit::TestCase
   def setup
-    @database = Rod::Database.instance
+    @database = Rod::Native::Database.instance
     @database.create_database("tmp/unit_database")
   end
 
@@ -54,7 +54,7 @@ class DatabaseTest < Test::Unit::TestCase
   def test_superclass
     @database.close_database
     @database.open_database("tmp/unit_database")
-    assert(@database.metadata["Rod::Model::StringElement"][:superclass] ==
-           Rod::AbstractModel.name)
+    element_name = "Rod::Model::StringElement"
+    assert_equal(@database.metadata[element_name][:superclass],Object.name)
   end
 end

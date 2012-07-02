@@ -1,8 +1,8 @@
+# encoding: utf-8
 require 'rod/exception'
-require 'rod/abstract_model'
 
 module Rod
-  class Model < AbstractModel
+  module Model
     # This class provides the set of reference updaters, that is objects
     # used to break down the process of data storage into separate steps.
     # If there is an object A which reference object B, there might be two
@@ -13,22 +13,23 @@ module Rod
     # B), then the object A could not be GC'ed until object B is stored.
     # For large nets of objects, this would result in large non-GCable collections
     # of objects. The reference updater splits the reference of object B to A
-    # and allows for GC of A, even thou B is not yet stored.
+    # and allows for GCing of A, even if B is not yet stored.
     class ReferenceUpdater
       # Singular reference updater holds the +rod_id+ and +class_id+ of the
       # object that has to be updated and the name of the
       # +property+ of the reference to be updated.
       class SingularUpdater
-        def initialize(database,rod_id,class_id,property)
+        def initialize(database,rod_id,class_id,property,class_space)
           @database = database
           @rod_id = rod_id
           @class_id = class_id
           @property = property
+          @class_space = class_space
         end
 
         # Updates the id of the referenced +object+.
         def update(object)
-          subject = Model.get_class(@class_id).find_by_rod_id(@rod_id)
+          subject = @class_space.get(@class_id).find_by_rod_id(@rod_id)
           @property.update(subject,object)
         end
       end
@@ -68,7 +69,8 @@ module Rod
       # Creates singular reference updater of for the +property+
       # of the +object+ that belongs to the +database+.
       def self.for_singular(object,property,database)
-        SingularUpdater.new(database,object.rod_id,object.class.name_hash,property)
+        SingularUpdater.new(database,object.rod_id,object.class.name_hash,
+                            property,object.class_space)
       end
 
       # Creates plural reference updater for given

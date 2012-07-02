@@ -2,9 +2,9 @@ require 'mocha'
 
 def create_item(index)
   rod_id = index + 1
-  element = Rod::Model.new
+  element = Rod::Model::Base.new
   element.expects(:rod_id).returns(rod_id).at_least(0)
-  Rod::Model.expects(:find_by_rod_id).with(rod_id).returns(element).at_least(0)
+  Rod::Model::Base.expects(:find_by_rod_id).with(rod_id).returns(element).at_least(0)
   element
 end
 
@@ -23,7 +23,7 @@ Given /^the initial size of the collection proxy is (\d+)$/ do |size|
   @array.each.with_index do |element,index|
     db.expects(:join_index).with(0,index).returns(element).at_least(0)
   end
-  @proxy = Rod::CollectionProxy.new(@array.size,db,@offset,Rod::Model)
+  @proxy = Rod::CollectionProxy.new(@array.size,db,@offset,Rod::Model::Base)
   @offset += size
 end
 
@@ -51,7 +51,7 @@ end
 #When I insert an item with rod_id = 1 at position 1
 When /^I insert an item with rod_id = (\d+) at position (\d+)(?: (\d+) times)?$/ do |rod_id,position,count|
   (count && count.to_i || 1).times do
-    item = Rod::Model.find_by_rod_id(rod_id.to_i)
+    item = Rod::Model::Base.find_by_rod_id(rod_id.to_i)
     @proxy.insert(position.to_i,item)
     @array.insert(position.to_i,item)
   end
@@ -67,7 +67,7 @@ end
 
 #When I delete an item with rod_id = 1
 When /^I delete an item with rod_id = (\d+)$/ do |rod_id|
-  item = Rod::Model.find_by_rod_id(rod_id.to_i)
+  item = Rod::Model::Base.find_by_rod_id(rod_id.to_i)
   @proxy.delete(item)
   @array.delete(item)
 end

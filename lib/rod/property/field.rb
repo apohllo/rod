@@ -39,6 +39,10 @@ module Rod
         @type = type
       end
 
+      def to_s
+        "Field #{@name}:#{@type}:#{@ptions}@#{@klass}"
+      end
+
       # Creates a copy of the field with a new +klass+.
       def copy(klass)
         self.class.new(klass,@name,@type,@options)
@@ -134,7 +138,7 @@ module Rod
           |  #{c_type(@type)} #{@name};
           |#endif
           SUBEND
-          str.margin
+          Utils.remove_margin(str)
         else
           "  #{c_type(:ulong)} #{@name}_length;\n" +
             "  #{c_type(:ulong)} #{@name}_offset;\n"

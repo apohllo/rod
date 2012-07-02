@@ -3,7 +3,7 @@ require 'rod'
 require 'rspec/expectations'
 require File.join(".",File.dirname(__FILE__),"migration_model2")
 
-Rod::Database.development_mode = true
+Rod::Database::Base.development_mode = true
 
 Database.instance.open_database("tmp/migration")
 

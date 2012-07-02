@@ -5,10 +5,10 @@ Feature: Store and load data from multiple databases
 
   Scenario: two classes with two dbs
     Given the class space is cleared
-    And a class Caveman inherits from Rod::Model
+    And a class Caveman inherits from Rod::Model::Base
     And a class Caveman has a name field of type string
     And a class Caveman is connected to Database1
-    And a class Automobile inherits from Rod::Model
+    And a class Automobile inherits from Rod::Model::Base
     And a class Automobile has a name field of type string
     And a class Automobile is connected to Database2
     When Database1 is created
@@ -32,7 +32,7 @@ Feature: Store and load data from multiple databases
       C < B connected to DB2
 
     Given the class space is cleared
-    And a class Person inherits from Rod::Model
+    And a class Person inherits from Rod::Model::Base
     And a class Person has a name field of type string
     And a class Person is connected to Database1
     And a class User inherits from Person
@@ -75,7 +75,7 @@ Feature: Store and load data from multiple databases
       C < B connected to DB1
 
     Given the class space is cleared
-    And a class Person inherits from Rod::Model
+    And a class Person inherits from Rod::Model::Base
     And a class Person has a name field of type string
     And a class Person is connected to Database1
     And a class User inherits from Person

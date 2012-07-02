@@ -6,7 +6,7 @@ Feature: Store and load data for classes with inheritence relation
       connected to the same database.
 
     Given the class space is cleared
-    And a class Person inherits from Rod::Model
+    And a class Person inherits from Rod::Model::Base
     And a class Person has a name field of type string
     And a class Person is connected to Database1
     And a class User inherits from Person
@@ -31,7 +31,7 @@ Feature: Store and load data for classes with inheritence relation
       connected to the same database.
 
     Given the class space is cleared
-    And a class Person inherits from Rod::Model
+    And a class Person inherits from Rod::Model::Base
     And a class Person has a name field of type string
     And a class Person is connected to Database1
     And a class User inherits from Person
@@ -69,16 +69,16 @@ Feature: Store and load data for classes with inheritence relation
       connected to the same database.
 
     Given the class space is cleared
-    And a class Automobile inherits from Rod::Model
+    And a class Automobile inherits from Rod::Model::Base
     And a class Automobile has a name field of type string
     And a class Automobile is connected to Database1
-    And a class Dog inherits from Rod::Model
+    And a class Dog inherits from Rod::Model::Base
     And a class Dog has a name field of type string
     And a class Dog is connected to Database1
-    And a class Account inherits from Rod::Model
+    And a class Account inherits from Rod::Model::Base
     And a class Account has a id field of type integer
     And a class Account is connected to Database1
-    And a class Person inherits from Rod::Model
+    And a class Person inherits from Rod::Model::Base
     And a class Person has a name field of type string
     And a class Person has one automobile
     And a class Person has one dog
@@ -121,16 +121,16 @@ Feature: Store and load data for classes with inheritence relation
       connected to the same database.
 
     Given the class space is cleared
-    And a class Automobile inherits from Rod::Model
+    And a class Automobile inherits from Rod::Model::Base
     And a class Automobile has a name field of type string
     And a class Automobile is connected to Database1
-    And a class Dog inherits from Rod::Model
+    And a class Dog inherits from Rod::Model::Base
     And a class Dog has a name field of type string
     And a class Dog is connected to Database1
-    And a class Account inherits from Rod::Model
+    And a class Account inherits from Rod::Model::Base
     And a class Account has a id field of type integer
     And a class Account is connected to Database1
-    And a class Person inherits from Rod::Model
+    And a class Person inherits from Rod::Model::Base
     And a class Person has a name field of type string
     And a class Person has many automobiles
     And a class Person has many dogs
@@ -191,10 +191,10 @@ Feature: Store and load data for classes with inheritence relation
       It should be possible to access instances of a class inheriting
       directly form Model via polymorhpic association.
     Given the class space is cleared
-    And a class Automobile inherits from Rod::Model
+    And a class Automobile inherits from Rod::Model::Base
     And a class Automobile has a name field of type string
     And a class Automobile is connected to Database1
-    And a class Person inherits from Rod::Model
+    And a class Person inherits from Rod::Model::Base
     And a class Person has a name field of type string
     And a class Person has one polymorphic automobile
     And a class Person is connected to Database1

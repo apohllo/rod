@@ -3,7 +3,7 @@ require File.join(File.dirname(__FILE__),"test_helper")
 #$ROD_DEBUG = true
 
 Given /^the library works in development mode$/ do
-  Rod::Database.development_mode = true
+  Rod::Database::Base.development_mode = true
 end
 
 Given /^(?:the )?(\w+) is created(?: in (\S+))?$/ do |db_name,location|
@@ -33,9 +33,9 @@ Given /^the class space is cleared$/ do
     RodTest.send(:remove_const,constant)
   end
   # TODO separate step?
-  default_db = Class.new(Rod::Database)
+  default_db = Class.new(Rod::Native::Database)
   RodTest.const_set("Database",default_db)
-  default_model = Class.new(Rod::Model)
+  default_model = Class.new(Rod::Model::Base)
   RodTest.const_set("TestModel",default_model)
 end
 

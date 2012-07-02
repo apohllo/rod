@@ -1,11 +1,11 @@
 $:.unshift("lib")
 require 'rod'
 
-Rod::Database.development_mode = true
-class TestDatabase < Rod::Database
+Rod::Database::Base.development_mode = true
+class TestDatabase < Rod::Native::Database
 end
 
-class TestClass < Rod::Model
+class TestClass < Rod::Model::Base
   field :test, :string
   database_class TestDatabase
 end

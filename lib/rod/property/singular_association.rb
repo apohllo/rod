@@ -94,7 +94,7 @@ module Rod
               value = nil
             else
               if property.polymorphic?
-                klass = Model.get_class(send("_#{name}__class",@rod_id))
+                klass = class_space.get(send("_#{name}__class",@rod_id))
               end
               value = klass.find_by_rod_id(rod_id)
             end

@@ -1,9 +1,13 @@
+# encoding: utf-8
+require 'rod/utils'
 require 'inline'
 require 'fileutils'
 
 module Rod
   module Berkeley
     class Environment
+      extend Utils
+
       # Initialization of the environment.
       def initialize
         @opened = false
@@ -79,7 +83,7 @@ module Rod
           |  return klass;
           |}
           END
-          str.margin
+          Utils.remove_margin(str)
         end
       end
 
@@ -102,7 +106,7 @@ module Rod
         |  }
         |}
         END
-        builder.prefix(str.margin)
+        builder.prefix(Utils.remove_margin(str))
 
         str =<<-END
         |/*
@@ -115,7 +119,7 @@ module Rod
         |  return Data_Wrap_Struct(self,NULL,env_free,NULL);
         |}
         END
-        builder.c_singleton(str.margin)
+        builder.c_singleton(Utils.remove_margin(str))
 
         str =<<-END
         |/*
@@ -187,7 +191,7 @@ module Rod
         |  DATA_PTR(self) = env_pointer;
         |}
         END
-        builder.c(str.margin)
+        builder.c(Utils.remove_margin(str))
 
         str =<<-END
         |/*
@@ -202,7 +206,7 @@ module Rod
         |  DATA_PTR(self) = NULL;
         |}
         END
-        builder.c(str.margin)
+        builder.c(Utils.remove_margin(str))
       end
     end
   end

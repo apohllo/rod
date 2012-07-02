@@ -1,6 +1,11 @@
+# encoding: utf-8
+require 'rod/utils'
+
 module Rod
   module Berkeley
     class Database
+      extend Utils
+
       # The environment of the database.
       attr_reader :environment
 
@@ -93,7 +98,7 @@ module Rod
           |  return klass;
           |}
           END
-          str.margin
+          Utils.remove_margin(str)
         end
       end
 
@@ -117,7 +122,7 @@ module Rod
         |  }
         |}
         END
-        builder.prefix(str.margin)
+        builder.prefix(Utils.remove_margin(str))
 
         str =<<-END
         |/*
@@ -130,7 +135,7 @@ module Rod
         |  return Data_Wrap_Struct(self,NULL,db_free,NULL);
         |}
         END
-        builder.c_singleton(str.margin)
+        builder.c_singleton(Utils.remove_margin(str))
 
         str =<<-END
         |/*
@@ -214,7 +219,7 @@ module Rod
         |  DATA_PTR(self) = db_pointer;
         |}
         END
-        builder.c(str.margin)
+        builder.c(Utils.remove_margin(str))
 
         str =<<-END
         |/*
@@ -229,7 +234,7 @@ module Rod
         |  DATA_PTR(self) = NULL;
         |}
         END
-        builder.c(str.margin)
+        builder.c(Utils.remove_margin(str))
 
         str =<<-END
         |void _put(VALUE self,void * key,unsigned int key_size, void * value,
@@ -264,7 +269,7 @@ module Rod
         |  }
         |}
         END
-        builder.prefix(str.margin)
+        builder.prefix(Utils.remove_margin(str))
 
         str =<<-END
         |/*
@@ -275,7 +280,7 @@ module Rod
         |    RSTRING_LEN(value),transaction);
         |}
         END
-        builder.c(str.margin)
+        builder.c(Utils.remove_margin(str))
 
         str =<<-END
         |unsigned int _get(VALUE self, void * key, unsigned int key_size,
@@ -314,7 +319,7 @@ module Rod
         |  return db_value.size;
         |}
         END
-        builder.prefix(str.margin)
+        builder.prefix(Utils.remove_margin(str))
 
         str =<<-END
         |/*
@@ -330,7 +335,7 @@ module Rod
         |  return rb_str_new(buffer,size);
         |}
         END
-        builder.c(str.margin)
+        builder.c(Utils.remove_margin(str))
       end
     end
   end

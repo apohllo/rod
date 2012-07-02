@@ -5,9 +5,9 @@ require 'rspec/expectations'
 module RodTest
 end
 
-Rod::Database.development_mode = true
+Rod::Database::Base.development_mode = true
 
-Rod::Database.instance.open_database("tmp/generate_classes",:generate => RodTest)
+Rod::Native::Database.instance.open_database("tmp/generate_classes",:generate => RodTest)
 
 user = RodTest::User[0]
 user = RodTest::User.find_by_name("John")
@@ -43,4 +43,4 @@ users = RodTest::User.find_all_by_files(file)
 users.size.should == 2
 users[1].should == user
 
-Rod::Database.instance.close_database
+Rod::Native::Database.instance.close_database

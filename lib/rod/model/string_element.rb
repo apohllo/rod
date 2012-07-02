@@ -1,8 +1,10 @@
-require 'rod/abstract_model'
+# encoding: utf-8
 
 module Rod
-  class Model < AbstractModel
-    class StringElement < AbstractModel
+  module Model
+    class StringElement
+      extend SimpleResource
+
       def self.typedef_struct
         ""
       end

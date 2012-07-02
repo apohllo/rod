@@ -11,10 +11,10 @@ Feature: Access to objects with indexed associations
       objects from the second. In such a case, the second DB can have
       indices for the associations to speed-up object look-up.
     Given the class space is cleared
-    And a class Caveman inherits from Rod::Model
+    And a class Caveman inherits from Rod::Model::Base
     And a class Caveman has a name field of type string
     And a class Caveman is connected to Database1
-    And a class Automobile inherits from Rod::Model
+    And a class Automobile inherits from Rod::Model::Base
     And a class Automobile has a name field of type string
     And a class Automobile is connected to Database2
     And a class Caveman has one automobile with flat index
@@ -36,10 +36,10 @@ Feature: Access to objects with indexed associations
 
   Scenario: indexing of plural associations
     Given the class space is cleared
-    And a class Caveman inherits from Rod::Model
+    And a class Caveman inherits from Rod::Model::Base
     And a class Caveman has a name field of type string
     And a class Caveman is connected to Database1
-    And a class Automobile inherits from Rod::Model
+    And a class Automobile inherits from Rod::Model::Base
     And a class Automobile has a name field of type string
     And a class Automobile is connected to Database2
     And a class Caveman has many automobiles with flat index

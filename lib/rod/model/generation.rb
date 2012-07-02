@@ -1,11 +1,11 @@
-require 'rod/abstract_model'
+# encoding: utf-8
 
 module Rod
-  class Model < AbstractModel
+  module Model
     module Generation
       # Generates the model class based on the metadata and places
       # it in the +module_instance+ or Object (default scope) if module is nil.
-      def generate_class(class_name,metadata)
+      def self.generate_class(class_name,metadata)
         superclass = metadata[:superclass].constantize
         namespace = define_context(class_name)
         klass = Class.new(superclass)
@@ -28,7 +28,7 @@ module Rod
       # Defines the namespace (contex) for given +class_name+ - if the constants
       # (modules and classes) are defined, they are just digged into,
       # if not - they are defined as modules.
-      def define_context(class_name)
+      def self.define_context(class_name)
         class_name.split("::")[0..-2].inject(Object) do |mod,segment|
           begin
             mod.const_get(segment,false)

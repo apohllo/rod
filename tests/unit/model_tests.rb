@@ -3,10 +3,10 @@ require 'rod'
 require 'test/unit'
 
 module RodTest
-  class Database < Rod::Database
+  class Database < Rod::Native::Database
   end
 
-  class Model < Rod::Model
+  class Model < Rod::Model::Base
     attr_accessor :used
     database_class Database
   end

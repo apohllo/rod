@@ -1,6 +1,11 @@
+# encoding: utf-8
+require 'rod/utils'
+
 module Rod
   module Berkeley
     class Transaction
+      extend Utils
+
       # The environment of the transaction.
       attr_reader :environment
 
@@ -107,7 +112,7 @@ module Rod
         |  }
         |}
         END
-        builder.prefix(str.margin)
+        builder.prefix(Utils.remove_margin(str))
 
         str =<<-END
         |/*
@@ -120,7 +125,7 @@ module Rod
         |  return Data_Wrap_Struct(self,NULL,txn_free,NULL);
         |}
         END
-        builder.c_singleton(str.margin)
+        builder.c_singleton(Utils.remove_margin(str))
 
         str =<<-END
         |/*
@@ -178,7 +183,7 @@ module Rod
         |  DATA_PTR(self) = txn_pointer;
         |}
         END
-        builder.c(str.margin)
+        builder.c(Utils.remove_margin(str))
 
         str =<<-END
         |/*
@@ -211,7 +216,7 @@ module Rod
         |  DATA_PTR(self) = NULL;
         |}
         END
-        builder.c(str.margin)
+        builder.c(Utils.remove_margin(str))
 
         str =<<-END
         |/*
@@ -226,7 +231,7 @@ module Rod
         |  DATA_PTR(self) = NULL;
         |}
         END
-        builder.c(str.margin)
+        builder.c(Utils.remove_margin(str))
       end
     end
   end

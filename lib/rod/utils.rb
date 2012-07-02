@@ -40,5 +40,30 @@ module Rod
         end
       end
     end
+
+    # Removes a margin from a string, usually a here-doc.
+    # If +n+ is provided the result is shifted right for n spaces.
+    #
+    #  s =<<-END
+    #  |def abc
+    #  |  puts "x"
+    #  |end
+    #  END
+    #
+    #  margin(s) =>
+    #
+    #  def abc
+    #    puts "x"
+    #  end
+    def self.remove_margin(string,n=0)
+      d = ((/\A.*\n\s*(.)/.match(string)) ||
+          (/\A\s*(.)/.match(string)))[1]
+      return '' unless d
+      if n == 0
+        string.gsub(/\n\s*\Z/,'').gsub(/^\s*[#{d}]/, '')
+      else
+        string.gsub(/\n\s*\Z/,'').gsub(/^\s*[#{d}]/, ' ' * n)
+      end
+    end
   end
 end

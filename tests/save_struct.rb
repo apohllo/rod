@@ -1,8 +1,11 @@
 $:.unshift("tests")
+require 'ruby-debug'
+Debugger.start
 require 'structures'
 
 puts "-- Save sample structures test --"
-Rod::Database.development_mode = true
+Rod::Database::Base.development_mode = true
+
 RodTest::Database.instance.create_database("tmp/abc") do
 
   #MAGNITUDE = 100000

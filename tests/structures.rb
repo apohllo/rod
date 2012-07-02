@@ -2,10 +2,10 @@ $:.unshift("lib")
 require 'rod'
 
 module RodTest
-  class Database < Rod::Database
+  class Database < Rod::Native::Database
   end
 
-  class Model < Rod::Model
+  class Model < Rod::Model::Base
     database_class Database
   end
 

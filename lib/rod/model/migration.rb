@@ -1,7 +1,5 @@
-require 'rod/abstract_model'
-
 module Rod
-  class Model < AbstractModel
+  module Model
     module Migration
       # Migrates the class to the new model, i.e. it copies all the
       # values of properties that both belong to the class in the old

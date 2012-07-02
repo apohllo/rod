@@ -1,9 +1,10 @@
 require 'rod/exception'
 require 'rod/constants'
+require 'rod/utils'
 
 module Rod
   module Property
-    # This class defines the properties which are used in Rod::Model.
+    # This class defines the properties which are used in Rod::Model::Resource.
     # These might be:
     # * fields
     # * has_one associations
@@ -11,6 +12,8 @@ module Rod
     # It provides basic data concerning these properties, such as name,
     # options, etc.
     class Base
+      include Utils
+
       # The name of the property.
       attr_reader :name
 
@@ -26,6 +29,10 @@ module Rod
         @name = name
         check_options(options)
         @options = options.dup.freeze
+      end
+
+      def to_s
+        "#{self.class.name.split("::").last} #{@name}:#{@ptions}@#{@klass}"
       end
 
       # Checks the difference in options between this and the +other+
@@ -140,7 +147,7 @@ module Rod
         |#endif
         |}
         END
-        builder.c(str.margin)
+        builder.c(Utils.remove_margin(str))
       end
 
       # Writes the value of a field +name+ of the C struct +struct_name+
@@ -172,7 +179,7 @@ module Rod
         |#endif
         |}
         END
-        builder.c(str.margin)
+        builder.c(Utils.remove_margin(str))
       end
 
       # Returns the size of the C type.

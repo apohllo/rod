@@ -1,8 +1,10 @@
-require 'rod/abstract_model'
+require 'rod/model/simple_resource'
 
 module Rod
-  class Model < AbstractModel
-    class JoinElement < AbstractModel
+  module Model
+    class JoinElement
+      extend SimpleResource
+
       def self.typedef_struct
         str = <<-END
         |typedef struct {
@@ -10,7 +12,7 @@ module Rod
         |  unsigned long index;
         |} _join_element;
         END
-        str.margin
+        Utils.remove_margin(str)
       end
 
       def self.layout
@@ -33,7 +35,7 @@ module Rod
         |  unsigned long class;
         |} _polymorphic_join_element;
         END
-        str.margin
+        Utils.remove_margin(str)
       end
 
       def self.struct_name

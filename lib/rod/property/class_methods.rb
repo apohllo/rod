@@ -43,36 +43,33 @@ module Rod
         if self.property(name)
           raise InvalidArgument.new(name,"doubled property name")
         end
-        self.singular_associations << Property::SingularAssociation.new(self,name,options)
+        self.singular_associations <<
+          Property::SingularAssociation.new(self,name,options)
         # clear cached properties
         @properties = nil
       end
 
       # Returns the fields of this class.
       def fields
-        if self == Rod::Model
-          @fields ||= [Property::Field.new(self,:rod_id,:ulong)]
-        else
-          @fields ||= superclass.fields.map{|p| p.copy(self)}
-        end
+        @fields ||= superclass.fields.map{|p| p.copy(self)}
+      rescue NoMethodError
+        @fields = [Property::Field.new(self,:rod_id,:ulong)]
       end
 
       # Returns singular associations of this class.
       def singular_associations
-        if self == Rod::Model
-          @singular_associations ||= []
-        else
-          @singular_associations ||= superclass.singular_associations.map{|p| p.copy(self)}
-        end
+        @singular_associations ||= superclass.
+          singular_associations.map{|p| p.copy(self)}
+      rescue NoMethodError
+        @singular_associations = []
       end
 
       # Returns plural associations of this class.
       def plural_associations
-        if self == Rod::Model
-          @plural_associations ||= []
-        else
-          @plural_associations ||= superclass.plural_associations.map{|p| p.copy(self)}
-        end
+        @plural_associations ||= superclass.
+          plural_associations.map{|p| p.copy(self)}
+      rescue NoMethodError
+        @plural_associations = []
       end
 
       # Fields, singular and plural associations.

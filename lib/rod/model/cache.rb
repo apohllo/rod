@@ -1,8 +1,7 @@
 require 'singleton'
-require 'rod/abstract_model'
 
 module Rod
-  class Model < AbstractModel
+  module Model
     class Cache
       class InternalMap
         include Singleton

@@ -3,7 +3,7 @@ require 'structures'
 
 puts "-- Load sample structures test --"
 
-Rod::Database.development_mode = true
+Rod::Database::Base.development_mode = true
 RodTest::Database.instance.open_database("tmp/abc")
 RodTest::Database.instance.print_layout
 puts RodTest::MyStruct.count

@@ -1,5 +1,6 @@
 # encoding: utf-8
 require 'rod/index/base'
+require 'rod/utils'
 
 module Rod
   module Index
@@ -132,7 +133,7 @@ module Rod
         |  return klass;
         |}
         END
-        str.margin
+        Utils.remove_margin(str)
       end
 
       # C definition of the index struct.
@@ -143,7 +144,7 @@ module Rod
         |  unsigned long size;
         |} rod_entry_struct;
         END
-        str.margin
+        Utils.remove_margin(str)
       end
 
       # Converts the key to the C representation.
@@ -160,7 +161,7 @@ module Rod
         |  db_key.size = RSTRING_LEN(key);
         |}
         END
-        str.margin
+        Utils.remove_margin(str)
       end
 
       # The C definition of the KeyMissing exception.
@@ -172,7 +173,7 @@ module Rod
         |  return klass;
         |}
         END
-        str.margin
+        Utils.remove_margin(str)
       end
 
       # The cursor free method.
@@ -188,7 +189,7 @@ module Rod
         |  }
         |}
         END
-        str.margin
+        Utils.remove_margin(str)
       end
 
       # The cursor closing method.
@@ -209,7 +210,7 @@ module Rod
         |  return Qnil;
         |}
         END
-        str.margin
+        Utils.remove_margin(str)
       end
 
       def self.iterate_over_values
@@ -257,7 +258,7 @@ module Rod
         |  return Qnil;
         |}
         END
-        str.margin
+        Utils.remove_margin(str)
       end
 
       def self.iterate_over_keys
@@ -284,7 +285,7 @@ module Rod
         |  return Qnil;
         |}
         END
-        str.margin
+        Utils.remove_margin(str)
       end
 
       # You can set arbitrary ROD hash index link flags via
@@ -354,7 +355,7 @@ module Rod
         |  rb_iv_set(self,"@handle",handle);
         |}
         END
-        builder.c(str.margin)
+        builder.c(Utils.remove_margin(str))
 
         str =<<-END
         |void _close(){
@@ -371,7 +372,7 @@ module Rod
         |  }
         |}
         END
-        builder.c(str.margin)
+        builder.c(Utils.remove_margin(str))
 
         str =<<-END
         |// Iterate over all keys in the database.
@@ -394,7 +395,7 @@ module Rod
         |  return self;
         |}
         END
-        builder.c(str.margin)
+        builder.c(Utils.remove_margin(str))
 
         str =<<-END
         |// Iterate over values for a given key.
@@ -421,7 +422,7 @@ module Rod
         |  return self;
         |}
         END
-        builder.c(str.margin)
+        builder.c(Utils.remove_margin(str))
 
         str =<<-END
         |// Returns the first value for a given +key+ or raises
@@ -466,7 +467,7 @@ module Rod
         |  return Qnil;
         |}
         END
-        builder.c(str.margin)
+        builder.c(Utils.remove_margin(str))
 
         str =<<-END
         |void _put(VALUE key,unsigned long rod_id){
@@ -498,7 +499,7 @@ module Rod
         |  }
         |}
         END
-        builder.c(str.margin)
+        builder.c(Utils.remove_margin(str))
 
         str =<<-END
         |void _delete(VALUE key,VALUE value){
@@ -554,7 +555,7 @@ module Rod
         |  }
         |}
         END
-        builder.c(str.margin)
+        builder.c(Utils.remove_margin(str))
       end
     end
   end

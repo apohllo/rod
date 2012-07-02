@@ -9,7 +9,7 @@ def get_class(class_name,type=:model)
       when :model
         RodTest::TestModel
       when :db
-        Rod::Database
+        Rod::Native::Database
       end
     klass = Class.new(superclass)
     RodTest.const_set(class_name,klass)
