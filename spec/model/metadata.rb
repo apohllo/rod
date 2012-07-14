@@ -18,10 +18,6 @@ module Rod
                           klass
                         }
 
-      it "describes the superclass of the resource" do
-        subject.superclass_name.wont_be :nil?
-      end
-
       it "acts as hash" do
         subject[:name].must_equal klass.name
       end
