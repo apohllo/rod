@@ -1,3 +1,3 @@
-rvm: 1.9.2
+rvm: 1.9.2-p290
 before_script:
   - "sudo apt-get install libdb4.8-dev"
