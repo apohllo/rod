@@ -31,5 +31,6 @@ Gem::Specification.new do |s|
   s.add_development_dependency("cucumber", "~> 1.0.0")
   s.add_development_dependency("rspec", [">= 2.2.0","< 2.3.0"])
   s.add_development_dependency("rake", [">= 0.9.0","< 1.0.0"])
-  s.add_development_dependency("minitest", "~> 2.7.0")
+  s.add_development_dependency("minitest", "~> 3.2.0")
+  s.add_development_dependency("rr", "~> 1.0.4")
 end

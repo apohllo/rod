@@ -1,17 +1,12 @@
 require 'bundler/setup'
 require 'minitest/autorun'
+require_relative '../spec_helper'
 require 'rod'
 
 describe Rod::Property::SingularAssociation do
   before do
-    @klass = MiniTest::Mock.new
-    @builder = MiniTest::Mock.new
-    @klass.expect :nil?,false
-  end
-
-  after do
-    @klass.verify
-    @builder.verify
+    @klass = stub
+    @builder = stub
   end
 
   describe "a singular association" do
@@ -36,29 +31,29 @@ describe Rod::Property::SingularAssociation do
       @association.plural?.wont_equal true
     end
 
-    it "must produce proper metadata" do
-      @association.metadata.must_equal({:polymorphic => true})
+    it "must correctly convert to hash" do
+      @association.to_hash.must_equal({:polymorphic => true})
     end
 
     it "must define C accessors" do
-      @klass.expect :struct_name, "struct_name"
-      @builder.expect :c,nil,[String]
+      stub(@klass).struct_name {"struct_name"}
+      stub(@builder).c(is_a(String)) {nil}
       @association.define_c_accessors(@builder)
     end
 
     it "must seal C accessors" do
-      @klass.expect :send,nil,[:private,String]
+      stub(@klass).send(:private,is_a(String)) {nil}
       @association.seal_c_accessors
     end
 
     it "must define getter" do
-      @klass.expect :send,nil,[:define_method,"user"]
-      @klass.expect :scope_name,"Rod"
+      stub(@klass).send(:define_method,"user") {nil}
+      stub(@klass).scope_name {"Rod"}
       @association.define_getter
     end
 
     it "must define setter" do
-      @klass.expect :send,nil,[:define_method,"user="]
+      stub(@klass).send(:define_method,"user=") {nil}
       @association.define_setter
     end
   end

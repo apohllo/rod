@@ -1,17 +1,13 @@
 require 'bundler/setup'
 require 'minitest/autorun'
+require_relative "../spec_helper"
 require 'rod'
 
 describe Rod::Property::Base do
   describe "a property" do
     before do
-      @klass = MiniTest::Mock.new
-      @klass.expect :nil?,false
+      @klass = stub
       @field = Rod::Property::Field.new(@klass,:user_name,:string)
-    end
-
-    after do
-      @klass.verify
     end
 
     it "must have proper name" do
@@ -23,7 +19,7 @@ describe Rod::Property::Base do
     end
 
     it "must produce its metadata" do
-      @field.metadata.wont_be_nil
+      @field.to_hash.wont_be_nil
     end
 
     it "must covert to C struct" do
@@ -41,8 +37,7 @@ describe Rod::Property::Base do
 
   describe "an indexed property" do
     before do
-      @klass = MiniTest::Mock.new
-      @klass.expect :nil?,false
+      @klass = stub
       @field = Rod::Property::Field.new(@klass,:user_name,:string,:index => :flat)
     end
 
@@ -51,23 +46,19 @@ describe Rod::Property::Base do
     end
 
     it "must return an index" do
-      database = MiniTest::Mock.new
-      database.expect :path,"path"
-      @klass.expect :database,database
-      @klass.expect :model_path,"model_path"
+      stub(database = Object.new).path {"path"}
+      stub(@klass).database {database}
+      stub(@klass).model_path {"model_path"}
       @field.index.wont_be_nil
-      database.verify
     end
 
     it "must define finders" do
-      database = MiniTest::Mock.new
-      database.expect :nil?,false
-      database.expect :path,"path"
-      @klass.expect :database,database
-      @klass.expect :model_path,"model_path"
+      database = stub
+      stub(database).path {"path"}
+      stub(@klass).database {database}
+      stub(@klass).model_path {"model_path"}
       @field.define_finders
       proc {@klass.find_by_user_name("Name")}.must_be_silent
-      database.verify
     end
   end
 end

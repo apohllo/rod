@@ -5,3 +5,4 @@ work
 Gemfile.lock
 .bundle
 pkg
+tags

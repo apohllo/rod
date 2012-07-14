@@ -1,25 +1,17 @@
 require 'bundler/setup'
 require 'minitest/autorun'
+require_relative '../spec_helper'
 require 'rod'
 
 describe Rod::Property::Field do
   before do
-    @klass = MiniTest::Mock.new
-    @klass.expect :nil?,false
-  end
-
-  after do
-    @klass.verify
+    @klass = stub
   end
 
   describe "a generic field" do
     before do
-      @builder = MiniTest::Mock.new
+      @builder = stub
       @field = Rod::Property::Field.new(@klass,:user_name,:string)
-    end
-
-    after do
-      @builder.verify
     end
 
     it "must be a field" do
@@ -31,24 +23,24 @@ describe Rod::Property::Field do
     end
 
     it "must define C accessors" do
-      @klass.expect :struct_name, "struct_name"
-      @builder.expect :c,nil,[String]
+      stub(@klass).struct_name {"struct_name"}
+      stub(@builder).c(is_a(String)) {nil}
       @field.define_c_accessors(@builder)
     end
 
     it "must seal C accessors" do
-      @klass.expect :send,nil,[:private,String]
+      stub(@klass).send(:private,is_a(String)) {nil}
       @field.seal_c_accessors
     end
 
     it "must define getter" do
-      @klass.expect :send,nil,[:define_method,"user_name"]
-      @klass.expect :database,nil
+      stub(@klass).send(:define_method,"user_name") {nil}
+      stub(@klass).database {nil}
       @field.define_getter
     end
 
     it "must define setter" do
-      @klass.expect :send,nil,[:define_method,"user_name="]
+      stub(@klass).send(:define_method,"user_name=") {nil}
       @field.define_setter
     end
   end
@@ -82,8 +74,8 @@ describe Rod::Property::Field do
       @field.identifier?.wont_equal true
     end
 
-    it "must produce proper metadata" do
-      @field.metadata.must_equal({:type => :string})
+    it "must correctly convert to hash" do
+      @field.to_hash.must_equal({:type => :string})
     end
   end
 
@@ -112,8 +104,8 @@ describe Rod::Property::Field do
       @field.load(Marshal::dump(:value)).must_equal :value
     end
 
-    it "must produce proper metadata" do
-      @field.metadata.must_equal({:type => :object})
+    it "must correctly convert to hash" do
+      @field.to_hash.must_equal({:type => :object})
     end
   end
 
@@ -142,8 +134,8 @@ describe Rod::Property::Field do
       @field.load(JSON::dump(["value"])).must_equal "value"
     end
 
-    it "must produce proper metadata" do
-      @field.metadata.must_equal({:type => :json})
+    it "must correctly convert to hash" do
+      @field.to_hash.must_equal({:type => :json})
     end
   end
 
@@ -172,8 +164,8 @@ describe Rod::Property::Field do
       @field.load(-10).must_equal -10
     end
 
-    it "must produce proper metadata" do
-      @field.metadata.must_equal({:type => :integer})
+    it "must correctly convert to hash" do
+      @field.to_hash.must_equal({:type => :integer})
     end
   end
 
@@ -202,8 +194,8 @@ describe Rod::Property::Field do
       @field.load(-10.0).must_equal -10.0
     end
 
-    it "must produce proper metadata" do
-      @field.metadata.must_equal({:type => :float})
+    it "must correctly convert to hash" do
+      @field.to_hash.must_equal({:type => :float})
     end
   end
 
@@ -237,8 +229,8 @@ describe Rod::Property::Field do
       @field.load(10).must_equal 10
     end
 
-    it "must produce proper metadata" do
-      @field.metadata.must_equal({:type => :ulong})
+    it "must correctly convert to hash" do
+      @field.to_hash.must_equal({:type => :ulong})
     end
   end
 end
