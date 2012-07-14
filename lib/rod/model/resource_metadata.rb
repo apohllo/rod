@@ -7,7 +7,7 @@ module Rod
         super
         Property::ClassMethods::ACCESSOR_MAPPING.each do |type,method|
           property_type_data = {}
-          @klass.send(method).each do |property|
+          klass.send(method).each do |property|
             next if property.to_hash.empty?
             property_type_data[property.name] = property.to_hash
           end

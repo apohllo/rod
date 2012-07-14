@@ -5,16 +5,11 @@ module Rod
     # The metadata class provides metadata abstraction
     # for resources.
     class Metadata
-      # The name of the superclass of the class the metadata is about.
-      attr_reader :superclass_name
-
       # Initializes the metadata with a given +klass+.
       def initialize(klass)
-        @klass = klass
-        @superclass_name = klass.superclass.name
         @data = {}
-        @data[:name] = @klass.name
-        @data[:superclass] = @superclass_name
+        @data[:name] = klass.name
+        @data[:superclass] = klass.superclass.name
         @data[:count] = 0
       end
 
