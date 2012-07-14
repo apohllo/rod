@@ -94,7 +94,7 @@ module Rod
         |  // exted the file
         |
         |  // increase the pages count by numer of pages allocated at-once
-        |  model_p->#{klass.struct_name}_page_count += ALLOCATED_PAGES;
+        |  model_p->#{klass.struct_name}_page_count += 1;
         |  {
         |    // open the file for writing
         |    FILE * #{klass.struct_name}_file =
@@ -108,7 +108,7 @@ module Rod
         |    }
         |    // write empty data at the end
         |    if(write(model_p->#{klass.struct_name}_lib_file,model_p->empty_data,
-        |      page_size() * ALLOCATED_PAGES) == -1){
+        |      page_size()) == -1){
         |      rb_raise(rodException(),"Could not write to file for #{klass.struct_name}.");
         |    }
         |
@@ -179,7 +179,7 @@ module Rod
 
             str =<<-END
             |unsigned int page_size(){
-            |  return sysconf(_SC_PAGE_SIZE);
+            |  return sysconf(_SC_PAGE_SIZE) * ALLOCATED_PAGES;
             |}
             END
             builder.prefix(Utils.remove_margin(str))
@@ -548,7 +548,7 @@ module Rod
             |  strcpy(model_p->path,dir_path);
             |
             |  // initialize empty data written when extending file
-            |  model_p->empty_data = calloc(page_size() * ALLOCATED_PAGES,1);
+            |  model_p->empty_data = calloc(page_size(),1);
             |
             |  //create the wrapping object
             |  cClass = rb_define_class("#{model_struct_name(path).camelcase(true)}",
