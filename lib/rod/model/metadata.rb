@@ -71,6 +71,8 @@ module Rod
       def to_yaml(*args)
         @data.to_yaml(*args)
       end
+
+      alias psych_to_yaml to_yaml
     end
   end
 end
