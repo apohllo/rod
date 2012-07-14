@@ -1,6 +1,13 @@
 module Rod
   module Property
     module ClassMethods
+      # The mapping between macro functions and property accessors.
+      ACCESSOR_MAPPING = {
+        :field => :fields,
+        :has_one => :singular_associations,
+        :has_many => :plural_associations
+      }
+
       # A macro-style function used to indicate that given piece of data
       # is stored in the database. See Rod::Property::Field for valid
       # types and options.

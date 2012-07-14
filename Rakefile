@@ -69,6 +69,7 @@ task :unit_test do
   sh "ruby spec/berkeley/environment.rb"
   sh "ruby spec/berkeley/database.rb"
   sh "ruby spec/berkeley/transaction.rb"
+  sh "ruby spec/model/metadata.rb"
 end
 
 # Should be removed some time -- specs should cover all these cases

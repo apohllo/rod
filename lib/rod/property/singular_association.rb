@@ -42,7 +42,7 @@ module Rod
       end
 
       # Returns the metadata of the association in form of a hash.
-      def metadata
+      def to_hash
         @options.dup
       end
 

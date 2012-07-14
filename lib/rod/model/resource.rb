@@ -35,7 +35,6 @@ module Rod
         base.__send__(:extend,SimpleResource)
         base.__send__(:extend,Property::ClassMethods)
         base.__send__(:extend,Database::ClassMethods)
-        base.__send__(:extend,Metadata)
         base.__send__(:extend,ClassMethods)
         base.register(self.class_space)
       end
@@ -190,6 +189,14 @@ module Rod
           rescue IndexError
             nil
           end
+        end
+
+        # Returns the metadata for the resource.
+        # If the +metadata_factory+ is provided, it is
+        # used to create the metadata. By default this is
+        # ResourceMetadata class.
+        def metadata(metadata_factory=ResourceMetadata)
+          super(metadata_factory)
         end
 
         # The module context of the class.

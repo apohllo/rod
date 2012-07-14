@@ -32,7 +32,7 @@ module Rod
             if superclasses.keys.include?(metadata[:superclass])
               metadata[:superclass] = prefix + metadata[:superclass]
             end
-            [:fields,:has_one,:has_many].each do |property_type|
+            Property::ClassMethods::ACCESSOR_MAPPING.keys.each do |property_type|
               next if metadata[property_type].nil?
               metadata[property_type].each do |property,options|
                 if superclasses.keys.include?(options[:class_name])

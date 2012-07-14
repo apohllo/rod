@@ -144,11 +144,11 @@ module Rod
             # new class
             next
           end
-          unless klass.compatible?(meta) || options[:generate] || options[:migrate]
+          unless klass.metadata.compatible?(meta) || options[:generate] || options[:migrate]
               raise IncompatibleVersion.
                 new("Incompatible definition of '#{klass.name}' class.\n" +
                     "Database and runtime versions are different:\n  " +
-                    klass.difference(meta).
+                    klass.metadata.difference(meta).
                     map{|e1,e2| "DB: #{e1} vs. RT: #{e2}"}.join("\n  "))
           end
           set_count(klass,meta[:count])

@@ -10,10 +10,10 @@ module Rod
         namespace = define_context(class_name)
         klass = Class.new(superclass)
         namespace.const_set(class_name.split("::")[-1],klass)
-        [:fields,:has_one,:has_many].each do |type|
+        Property::ClassMethods::ACCESSOR_MAPPING.keys.each do |type|
           (metadata[type] || []).each do |name,options|
             next if superclass.property(name)
-            if type == :fields
+            if type == :field
               internal_options = options.dup
               field_type = internal_options.delete(:type)
               klass.send(:field,name,field_type,internal_options)

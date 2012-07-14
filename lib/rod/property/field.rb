@@ -120,8 +120,12 @@ module Rod
       end
 
       # Returns the metadata of the field in form of a hash.
-      def metadata
-        @options.merge({:type => @type})
+      def to_hash
+        if self.identifier?
+          {}
+        else
+          @options.merge({:type => @type})
+        end
       end
 
       # Converts the field to fields in a C struct.
