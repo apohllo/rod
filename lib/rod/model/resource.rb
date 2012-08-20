@@ -104,6 +104,36 @@ module Rod
       # Public API
       #########################################################################
 
+      # If +options+ is +nil+ (default) the object will be initialized
+      # with the default values (0 for integer, 0.0 for float, etc.).
+      # If +options+ is an integer it is the +rod_id+ of the object.
+      # If +options+ is a hash, it is used to initialize the values
+      # of fields and associations. Nested hashes are not supported
+      # so far, but you can provide the actual ROD-persistable
+      # objects in the hash.
+      def initialize(options=nil)
+        @reference_updaters = []
+        case options
+        when Integer
+          @rod_id = options
+        when Hash
+          @rod_id = 0
+          initialize_fields
+          options.each do |key,value|
+            begin
+              self.send("#{key}=",value)
+            rescue NoMethodError
+              raise RodException.new("There is no field or association with name #{key}!")
+            end
+          end
+        when NilClass
+          @rod_id = 0
+          initialize_fields
+        else
+          raise InvalidArgument.new("initialize(options)",options)
+        end
+      end
+
       # Returns duplicated object, which shares the state of fields and
       # associations, but is separatly persisted (has its own +rod_id+,
       # dirty attributes, etc.).
