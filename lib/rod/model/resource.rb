@@ -9,13 +9,71 @@ require 'rod/property/class_methods'
 
 module Rod
   module Model
+    # The core module of the ROD library. Any class that has to be
+    # storable in ROD has to include this module.
+    #
+    # The module provides macro-style methods used to define the
+    # fields and associations of the class, that should be stored
+    # in the DB. It also provides methods for accessing the
+    # data that is stored.
+    #
+    # A basic definition of a class looks as follows:
+    # class Person
+    #   include Rod::Model::Resource
+    #   field :name, :string
+    #   field :surname, :string, :index => :hash
+    #   has_one :address
+    #   has_many :children, :class_name => "Person"
+    # end
+    #
+    # There are the following types of fields:
+    # * :string
+    # * :integer
+    # * :ulong
+    # * :float
+    # * :object
+    # * :json
+    # You can set an index on the fields. In that case you can use
+    # find_(all_)by_name-of-the-field accessors, to get the specific object.
+    # Otherwise these call is not available.
+    #
+    # Consult the Rod::Property::Field and Rod::Index::Base classes
+    # to find out more about filed types and indexing.
+    #
+    # The are only two types of associations in ROD: has_one and has_many.
+    # There is no has_and_belongs_to_many association, since the association
+    # model is different than in relational database - the association is not
+    # symetric by default. It also mean that you are responsible for creating
+    # the connection in both directions. At present it is not possible to
+    # automatically create the inverse, even if there is a proper association
+    # on the other side.
+    #
+    # The names of the association classes are inferred from the names
+    # of the associations (as in ActiveRecord). You can override this behavior
+    # by providing the :class_name option. This means that on the other side,
+    # there are object only of particular type. But it is possible to
+    # create polymorphic associations by providing :polymorphic option.
+    # In such case, the hash of the name of the class is stored together
+    # with the association and it allows for selecting the proper class
+    # when the association is accessed.
+    #
+    # The associations are also indexible. In most of the cases it is better
+    # to create an inverse association, however. There is only one case you
+    # would prefere the index - if you have two separate database, both
+    # having objects with cross-database associations. Such associations
+    # are not allowed in ROD, but on the side that defines the association
+    # you can define an index. That index will serve as the reverse association.
+    #
+    # To find out more about the association check out the
+    # Rod::Property::SingularAssociation and Rod::Property::PluralAssociation
+    # classes.
     module Resource
       # A list of updaters that has to be notified when the +rod_id+
-      # of this object is defined. See ReferenceUpdater for details.
+      # of this object is defined. See Rod::Model::ReferenceUpdater for details.
       attr_reader :reference_updaters
 
       # Returns the class space of the resources, i.e. all classes
-      # that are defined as resource.
+      # that are defined as resources.
       def self.class_space
         @class_space ||= ClassSpace.new
       end
@@ -25,6 +83,9 @@ module Rod
         @class_space = class_space
       end
 
+      # Be sure to call super when you override this
+      # method. Most of ROD feature won't be available
+      # otherwise!
       def self.included(base)
         super
         base.__send__(:include,ActiveModel::Dirty)
@@ -57,7 +118,18 @@ module Rod
 
       # Stores the instance in the database. This might be called
       # only if the database is opened for writing (see +create+).
-      # To skip validation pass false.
+      # To skip validation pass +false+.
+      #
+      # The object keeps track of the changes of the fields and
+      # singular associations, so they are not stored, if they didn't
+      # change. The plural associations are always updated, but
+      # the collection proxy has it's dirty tracking mechanism.
+      #
+      # If there are objects with associations to this object
+      # that had been stored, before this object have been stored, they
+      # are notified in order to fix the association. It also means that
+      # if you stop the storage of objects in the middle you will have
+      # objects with invalid associations.
       def store(validate=true)
         if validate
           if valid?
@@ -136,7 +208,7 @@ module Rod
         result
       end
 
-      # Returns the database given instance belongs to (is or will be stored within).
+      # Returns the database given instance belongs to (is or will be stored in).
       def database
         self.class.database
       end
@@ -182,7 +254,7 @@ module Rod
         end
 
         # Returns n-th (+index+) object of this class stored in the database.
-        # This call is scope-checked.
+        # This call is scope-checked. So far negative indices are not supported.
         def [](index)
           begin
             get(index+1)
@@ -222,7 +294,7 @@ module Rod
           Utils.remove_margin(result)
         end
 
-        # Registers the class in class space of resources and the database
+        # Registers the class in the class space of resources and the database
         # it belongs to.
         def register(class_space)
           class_space.add(self)

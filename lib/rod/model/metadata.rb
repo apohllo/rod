@@ -3,9 +3,14 @@
 module Rod
   module Model
     # The metadata class provides metadata abstraction
-    # for resources.
+    # for resources. The meta-data stores information
+    # about various aspects of the class allowing for
+    # checking if the runtime class definition is compatible
+    # with the database class definition as well as for
+    # re-generating the class in order to get the access to
+    # the data, even if the class definition is not available.
     class Metadata
-      # Initializes the metadata with a given +klass+.
+      # Initializes the metadata for a given +klass+.
       def initialize(klass)
         @data = {}
         @data[:name] = klass.name
@@ -23,7 +28,7 @@ module Rod
         @data[key] = value
       end
 
-      # Iterates over the data.
+      # Iterates over the meta-data.
       def each(&block)
         @data.each(&block)
       end
@@ -34,9 +39,9 @@ module Rod
       end
 
 
-      # Checks if the +metadata+ are compatible with the class definition.
-      def compatible?(metadata)
-        self.difference(metadata).empty?
+      # Checks if the +other+ meta-data are compatible these meta-data.
+      def compatible?(other)
+        self.difference(other).empty?
       end
 
       # Calculates the difference between this metadata

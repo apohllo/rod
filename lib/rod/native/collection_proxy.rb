@@ -178,7 +178,7 @@ module Rod
       element
     end
 
-    # Removes the element at +index+ from the colelction.
+    # Removes the element at +index+ from the collection.
     # So far the +index+ has to be positive.
     def delete_at(index)
       return nil if index >= @size || index < 0
