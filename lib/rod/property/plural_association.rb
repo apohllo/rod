@@ -80,7 +80,8 @@ module Rod
           if options[:class_name]
             options[:class_name]
           else
-            "#{@klass.scope_name}::#{::English::Inflect.singular(name).camelcase}"
+            # +parent_name+ is defined in ActiveSupport core extensions.
+            "#{@klass.parent_name}::#{::English::Inflect.singular(name).camelcase}"
           end
         klass = options[:polymorphic] ? nil : class_name.constantize
         database = @klass.database

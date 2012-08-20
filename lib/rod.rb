@@ -9,6 +9,7 @@ require 'active_model/dirty'
 require 'active_support/dependencies'
 require 'active_support/deprecation/behaviors'
 require 'active_support/deprecation/reporting'
+require 'active_support/core_ext/module/introspection'
 
 # XXX This should be done in a different way, since a library should not
 # impose on a user of another library specific way of using it.

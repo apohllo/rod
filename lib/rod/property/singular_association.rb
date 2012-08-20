@@ -81,7 +81,8 @@ module Rod
           if @options[:class_name]
             @options[:class_name]
           else
-            "#{@klass.scope_name}::#{name.camelcase}"
+            # +parent_name+ is defined in ActiveSupport core extensions.
+            "#{@klass.parent_name}::#{name.camelcase}"
           end
         klass = options[:polymorphic] ? nil : class_name.constantize
         @klass.send(:define_method,name) do

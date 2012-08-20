@@ -194,24 +194,9 @@ module Rod
         # Returns the metadata for the resource.
         # If the +metadata_factory+ is provided, it is
         # used to create the metadata. By default this is
-        # ResourceMetadata class.
+        # the ResourceMetadata class.
         def metadata(metadata_factory=ResourceMetadata)
           super(metadata_factory)
-        end
-
-        # The module context of the class.
-        def module_context
-          context = name[0...(name.rindex( '::' ) || 0)]
-          context.empty? ? Object : eval(context)
-        end
-
-        # Returns the name of the scope of the class.
-        def scope_name
-          if self.module_context == Object
-            ""
-          else
-            self.module_context.to_s
-          end
         end
 
         # Converts the name of the including model to the C struct name.
