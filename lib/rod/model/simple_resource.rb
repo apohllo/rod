@@ -24,14 +24,6 @@ module Rod
       def cache(cache_factory=Cache)
         @cache ||= cache_factory.new
       end
-
-      # Returns the metadata for the simple resource.
-      # If the +metadata_factory+ is provided, it is
-      # used to create the metadata. By default this is
-      # Metadata class.
-      def metadata(metadata_factory=Metadata)
-        @metadata ||= metadata_factory.new(self)
-      end
     end
   end
 end

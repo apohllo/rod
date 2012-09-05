@@ -35,16 +35,11 @@ module Rod
         self.classes.each do |klass|
           next unless special_class?(klass) or legacy_class?(klass)
           meta = @metadata[klass.name]
-          set_count(klass,meta[:count])
-          file_size = File.new(klass.path_for_data(@path)).size
-          unless file_size % _page_size == 0
-            raise DatabaseError.new("Size of data file of #{klass} is invalid: #{file_size}")
-          end
-          set_page_count(klass,file_size / _page_size)
+          configure_count(klass,meta.count)
           next unless legacy_class?(klass)
           new_class = klass.name.sub(LEGACY_RE,"").constantize
-          set_count(new_class,meta[:count])
-          pages = (meta[:count] * new_class.struct_size / _page_size.to_f).ceil
+          set_count(new_class,meta.count)
+          pages = (meta.count * new_class.struct_size / _page_size.to_f).ceil
           set_page_count(new_class,pages)
         end
         _open(@handler)

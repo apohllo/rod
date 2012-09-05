@@ -48,7 +48,7 @@ describe Rod::Property::SingularAssociation do
 
     it "must define getter" do
       stub(@klass).send(:define_method,"user") {nil}
-      stub(@klass).scope_name {"Rod"}
+      stub(@klass).parent_name {"Rod"}
       @association.define_getter
     end
 

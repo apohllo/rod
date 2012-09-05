@@ -1,9 +1,6 @@
 module Rod
   VERSION = "0.7.2"
 
-  # The name of file containing the data base.
-  DATABASE_FILE = "database.yml"
-
   # Invalid names of fields.
   INVALID_NAMES = {"rod_id" => true}
 

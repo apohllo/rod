@@ -13,6 +13,6 @@ end
 begin
   TestDatabase.instance.open_database("tmp/class_compatibility")
   raise "Should raise an error"
-rescue Rod::IncompatibleVersion => ex
+rescue Rod::IncompatibleClass => ex
   # ok, this should be thrown
 end

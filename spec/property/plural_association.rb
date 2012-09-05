@@ -49,7 +49,7 @@ describe Rod::Property::PluralAssociation do
     it "must define getter" do
       stub(@klass).send(:define_method,"users") {nil}
       stub(@klass).send(:define_method,"users_count") {nil}
-      stub(@klass).scope_name {"Rod"}
+      stub(@klass).parent_name {"Rod"}
       stub(@klass).database { nil}
       @association.define_getter
     end

@@ -58,6 +58,14 @@ module Rod
     end
   end
 
+  # This exception is raised when name_hash is computed for a class
+  # that does not have a name yet.
+  class AnonymousClass < RodException
+    def initialize
+      super("name_hash called for annonymous resource")
+    end
+  end
+
   # This exception is throw when an objects id is needed, but it is not
   # yet stored in the database. The object might be accessed via +object+
   # attribute of the exception.
@@ -73,6 +81,14 @@ module Rod
   # This exception is thrown if the database is not compatible with
   # the library or the runtime definition of classes.
   class IncompatibleVersion < RodException
+    def initialize(message)
+      super(message)
+    end
+  end
+
+  # This exception is thrown if the classes in the DB are not compatible with
+  # the classes in the runtime.
+  class IncompatibleClass < RodException
     def initialize(message)
       super(message)
     end

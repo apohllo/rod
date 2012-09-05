@@ -4,6 +4,7 @@ module Rod
   module Model
     class JoinElement
       extend SimpleResource
+      extend NameConversion
 
       def self.typedef_struct
         str = <<-END

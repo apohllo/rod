@@ -293,23 +293,14 @@ module Rod
           end
         end
 
-        # Returns the metadata for the resource.
-        # If the +metadata_factory+ is provided, it is
-        # used to create the metadata. By default this is
-        # the ResourceMetadata class.
-        def metadata(metadata_factory=ResourceMetadata)
-          super(metadata_factory)
-        end
-
         # Converts the name of the including model to the C struct name.
         def struct_name
-          return @struct_name unless @struct_name.nil?
-          name = NameConversion.struct_name_for(self.to_s)
-          unless name =~ /^\#/
-            # not an anonymous class
-            @struct_name = name
+          return @struct_name if defined?(@struct_name)
+          if self.to_s =~ /^\#/
+            ""
+          else
+            @struct_name = NameConversion.struct_name_for(self.to_s)
           end
-          name
         end
 
         # The C structure representing this class.

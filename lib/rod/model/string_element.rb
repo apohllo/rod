@@ -4,6 +4,7 @@ module Rod
   module Model
     class StringElement
       extend SimpleResource
+      extend NameConversion
 
       def self.typedef_struct
         ""

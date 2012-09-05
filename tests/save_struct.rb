@@ -4,48 +4,45 @@ require 'structures'
 puts "-- Save sample structures test --"
 Rod::Database::Base.development_mode = true
 
-RodTest::Database.instance.create_database("tmp/abc") do
-
+RodTest::Database.instance.create_database("tmp/simple_test") do
   #MAGNITUDE = 100000
   MAGNITUDE = 50
 
   his = []
-  (MAGNITUDE * 10).times do |i|
-    his[i] = RodTest::HisStruct.new
-    his[i].inde = i
+  (MAGNITUDE * 10).times do |index|
+    his[index] = RodTest::HisStruct.new
+    his[index].inde = index
   end
 
-  ys = []
-  (MAGNITUDE * 1).times do |i|
-    ys[i] = RodTest::YourStruct.new
-    ys[i].counter = 10
-    ys[i].his_structs = his[i*10...(i+1)*10]
+  your_structure = []
+  (MAGNITUDE * 1).times do |index|
+    structure = your_structure[index] = RodTest::YourStruct.new
+    structure.counter = 10
+    structure.his_structs = his[index*10...(index+1)*10]
   end
 
-  ms = []
-  (MAGNITUDE * 1).times do |i|
-    ms[i] = RodTest::MyStruct.new
-    ms[i].count = 10 * i
-    ms[i].precision = 0.1 * i
-    ms[i].identifier = i
-    ms[i].your_struct = ys[i]
-    ms[i].title = "title_#{i}"
-    ms[i].title2 = "title2_#{i}"
-    ms[i].body = "body_#{i}"
+  my_structure = []
+  (MAGNITUDE * 1).times do |index|
+    structure = my_structure[index] = RodTest::MyStruct.new
+    structure.count = 10 * index
+    structure.precision = 0.1 * index
+    structure.identifier = index
+    structure.your_struct = your_structure[index]
+    structure.title = "title_#{index}"
+    structure.title2 = "title2_#{index}"
+    structure.body = "body_#{index}"
   end
 
   RodTest::Database.instance.print_layout
-  ms.each_with_index{|s,i|
+  my_structure.each_with_index do |structure,index|
     begin
-      puts i if i % 1000 == 0
-      s.store
+      structure.store
     rescue Exception => e
       puts e
       raise
     end
-  }
-  ys.each{|y| y.store}
+  end
+  your_structure.each{|y| y.store}
   his.each{|h| h.store}
   RodTest::Database.instance.print_layout
-
 end

@@ -14,4 +14,4 @@ end
 Rod::Database::Base.development_mode = true
 
 (lambda {Rod::Native::Database.instance.open_database("tmp/properties_order")}).
-  should raise_error(Rod::IncompatibleVersion)
+  should raise_error(Rod::IncompatibleClass)

@@ -27,7 +27,7 @@ task :uninstall do
   sh "sudo gem uninstall #$gem_name"
 end
 
-task :all_tests => [:test,:unit_test,:regression_test,:features] do
+task :all_tests => [:test,:spec,:regression_test,:features] do
 end
 
 desc "Run performence tests"
@@ -58,18 +58,21 @@ task :test do
 end
 
 desc "Run unit tests and model specs"
-task :unit_test do
+task :spec do
   sh "ruby tests/unit/model_tests.rb"
-  sh "ruby tests/unit/database.rb"
   sh "ruby tests/unit/abstract_database.rb"
+
   sh "bundle exec ruby spec/property/base.rb"
   sh "bundle exec ruby spec/property/field.rb"
   sh "bundle exec ruby spec/property/singular_association.rb"
   sh "bundle exec ruby spec/property/plural_association.rb"
+
   sh "bundle exec ruby spec/berkeley/environment.rb"
   sh "bundle exec ruby spec/berkeley/database.rb"
   sh "bundle exec ruby spec/berkeley/transaction.rb"
-  sh "bundle exec ruby spec/model/metadata.rb"
+
+  sh "bundle exec ruby spec/database/metadata.rb"
+  sh "bundle exec ruby spec/database/resource_metadata/resource.rb"
 end
 
 # Should be removed some time -- specs should cover all these cases
