@@ -5,9 +5,16 @@ module Rod
   module Utils
     # Removes single file.
     def remove_file(file_name)
+      Utils.remove_file(file_name)
+    end
+
+    # Removes single file (singleton method).
+    def self.remove_file(file_name)
       if test(?f,file_name)
         File.delete(file_name)
         puts "Removing #{file_name}" if $ROD_DEBUG
+      else
+        raise RodException.new("#{file_name} is not a file.")
       end
     end
 
@@ -64,6 +71,11 @@ module Rod
       else
         string.gsub(/\n\s*\Z/,'').gsub(/^\s*[#{d}]/, ' ' * n)
       end
+    end
+
+    # Converts the model +name+ to the C struct name.
+    def self.struct_name_for(name)
+      name.underscore.gsub(/\//,"__")
     end
   end
 end

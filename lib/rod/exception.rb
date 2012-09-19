@@ -37,7 +37,7 @@ module Rod
 
     def to_s
       "Database not selected for class #{@klass}!\n" +
-        "Provide the database class via call to Rod::Model::Resource.database_class."
+        "Provide the database id via call to Rod::Model::Resource.database_id."
     end
   end
 

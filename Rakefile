@@ -62,17 +62,19 @@ task :spec do
   sh "ruby tests/unit/model_tests.rb"
   sh "ruby tests/unit/abstract_database.rb"
 
-  sh "bundle exec ruby spec/property/base.rb"
-  sh "bundle exec ruby spec/property/field.rb"
-  sh "bundle exec ruby spec/property/singular_association.rb"
-  sh "bundle exec ruby spec/property/plural_association.rb"
+  sh "ruby spec/property/base.rb"
+  sh "ruby spec/property/field.rb"
+  sh "ruby spec/property/singular_association.rb"
+  sh "ruby spec/property/plural_association.rb"
 
-  sh "bundle exec ruby spec/berkeley/environment.rb"
-  sh "bundle exec ruby spec/berkeley/database.rb"
-  sh "bundle exec ruby spec/berkeley/transaction.rb"
+  sh "ruby spec/berkeley/environment.rb"
+  sh "ruby spec/berkeley/database.rb"
+  sh "ruby spec/berkeley/transaction.rb"
 
-  sh "bundle exec ruby spec/database/metadata.rb"
-  sh "bundle exec ruby spec/database/resource_metadata/resource.rb"
+  sh "ruby spec/database/metadata.rb"
+  sh "ruby spec/database/resource_metadata/resource.rb"
+
+  sh "ruby spec/native/raw_database.rb"
 end
 
 # Should be removed some time -- specs should cover all these cases
