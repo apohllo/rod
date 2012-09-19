@@ -14,7 +14,7 @@ module Rod
         File.delete(file_name)
         puts "Removing #{file_name}" if $ROD_DEBUG
       else
-        raise RodException.new("#{file_name} is not a file.")
+        puts "#{file_name} is not a file." if $ROD_DEBUG
       end
     end
 
