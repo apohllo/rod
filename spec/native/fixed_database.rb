@@ -1,15 +1,15 @@
 require 'bundler/setup'
 require 'minitest/autorun'
-require_relative '../../lib/rod/native/raw_database'
+require_relative '../../lib/rod/native/fixed_database'
 require_relative '../../lib/rod/exception'
 require_relative '../spec_helper'
 
 module Rod
   module Native
-    describe RawDatabase do
-      subject                     { RawDatabase.new(path,element_size,element_count,
+    describe FixedDatabase do
+      subject                     { FixedDatabase.new(path,element_size,element_count,
                                                     readonly) }
-      let(:path)                  { "tmp/native_object_database.rod" }
+      let(:path)                  { "tmp/native_fixed_database.rod" }
       let(:element_size)          { 1 }
       let(:element_count)         { 5 }
       let(:readonly)              { false }
@@ -19,35 +19,35 @@ module Rod
       end
 
       it "doesn't accept nil path" do
-        (->(){ RawDatabase.new(nil,element_size,element_count,readonly)}).must_raise InvalidArgument
+        (->(){ FixedDatabase.new(nil,element_size,element_count,readonly)}).must_raise InvalidArgument
       end
 
       it "doesn't accept non-string path" do
-        (->(){ RawDatabase.new(10,element_size,element_count,readonly)}).must_raise InvalidArgument
+        (->(){ FixedDatabase.new(10,element_size,element_count,readonly)}).must_raise InvalidArgument
       end
 
       it "doesn't accept nil element_size" do
-        (->(){ RawDatabase.new(path,nil,element_count,readonly)}).must_raise InvalidArgument
+        (->(){ FixedDatabase.new(path,nil,element_count,readonly)}).must_raise InvalidArgument
       end
 
       it "doesn't accept non-numeric element_size" do
-        (->(){ RawDatabase.new(path,"abc",element_count,readonly)}).must_raise InvalidArgument
+        (->(){ FixedDatabase.new(path,"abc",element_count,readonly)}).must_raise InvalidArgument
       end
 
       it "doesn't accept negative element_size" do
-        (->(){ RawDatabase.new(path,-1,element_count,readonly)}).must_raise InvalidArgument
+        (->(){ FixedDatabase.new(path,-1,element_count,readonly)}).must_raise InvalidArgument
       end
 
       it "doesn't accept nil element_count" do
-        (->(){ RawDatabase.new(path,element_size,nil,readonly)}).must_raise InvalidArgument
+        (->(){ FixedDatabase.new(path,element_size,nil,readonly)}).must_raise InvalidArgument
       end
 
       it "doesn't accept non-numeric element_count" do
-        (->(){ RawDatabase.new(path,element_size,"abc",readonly)}).must_raise InvalidArgument
+        (->(){ FixedDatabase.new(path,element_size,"abc",readonly)}).must_raise InvalidArgument
       end
 
       it "doesn't accept negative element_count" do
-        (->(){ RawDatabase.new(path,element_size,-1,readonly)}).must_raise InvalidArgument
+        (->(){ FixedDatabase.new(path,element_size,-1,readonly)}).must_raise InvalidArgument
       end
 
       it "must allow to open itself" do
@@ -109,7 +109,7 @@ module Rod
         end
       end
 
-      it "saves and reads an integer value" do
+      it "saves and reads an integer values" do
         subject.open(:truncate => true) do
           subject.save_integer(0,0,10)
           subject.read_integer(0,0).must_equal 10
@@ -118,7 +118,7 @@ module Rod
         end
       end
 
-      it "doesn't save a non-integer values as integers" do
+      it "doesn't save non-integer values as integers" do
         subject.open(:truncate => true) do
           (->(){ subject.save_integer(2,0,1.5) }).must_raise InvalidArgument
           (->(){ subject.save_integer(2,0,2 ** 65) }).must_raise InvalidArgument
@@ -126,7 +126,7 @@ module Rod
         end
       end
 
-      it "saves and reads a float value" do
+      it "saves and reads a float values" do
         subject.open(:truncate => true) do
           subject.save_float(0,0,10.1)
           subject.read_float(0,0).must_equal 10.1
@@ -141,7 +141,7 @@ module Rod
         end
       end
 
-      it "saves and reads an unsigned long value" do
+      it "saves and reads an unsigned long values" do
         subject.open(:truncate => true) do
           subject.save_ulong(0,0,2 ** 31)
           subject.read_ulong(0,0).must_equal 2 ** 31
