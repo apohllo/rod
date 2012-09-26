@@ -74,7 +74,8 @@ task :spec do
   sh "ruby spec/database/metadata.rb"
   sh "ruby spec/database/resource_metadata/resource.rb"
 
-  sh "ruby spec/native/raw_database.rb"
+  sh "ruby spec/native/fixed_database.rb"
+  sh "ruby spec/native/flexible_database.rb"
 end
 
 # Should be removed some time -- specs should cover all these cases
