@@ -39,21 +39,21 @@ module Rod
         _init(path,page_count,element_size,8,element_count)
       end
 
-      # Save the integer +value+ in the database at +element_offset+
+      # Write the integer +value+ to the database at +element_offset+
       # with +property_offset+.
       #
       # Storing of integers is limited by the architecture of the system.
       # The maximum value that might be stored is the maximum value of
       # Fixnum. However the data with larger values is portable accross systems
       # with different architecture (due to automatic conversion to Bignum).
-      def save_integer(element_offset,property_offset,value)
+      def write_integer(element_offset,property_offset,value)
         raise InvalidArgument.new(value,"integer") unless Fixnum === value
-        check_save_state()
+        check_write_state()
         check_offsets(element_offset,property_offset)
-        _save_integer(element_offset,property_offset,value)
+        _write_integer(element_offset,property_offset,value)
       end
 
-      # Save the integer +value+ from the database at +element_offset+
+      # Read the integer +value+ from the database at +element_offset+
       # with +property_offset+.
       def read_integer(element_offset,property_offset)
         check_read_state()
@@ -61,17 +61,17 @@ module Rod
         _read_integer(element_offset,property_offset)
       end
 
-      # Save the unsgined long +value+ in the database at +element_offset+
+      # Write the unsgined long +value+ to the database at +element_offset+
       # with +property_offset+.
-      def save_ulong(element_offset,property_offset,value)
+      def write_ulong(element_offset,property_offset,value)
         raise InvalidArgument.new(value,"ulong") unless Integer === value
         raise InvalidArgument.new(value,"ulong") unless value >= 0
-        check_save_state()
+        check_write_state()
         check_offsets(element_offset,property_offset)
-        _save_ulong(element_offset,property_offset,value)
+        _write_ulong(element_offset,property_offset,value)
       end
 
-      # Save the unsigned long +value+ from the database at +element_offset+
+      # Read the unsigned long +value+ from the database at +element_offset+
       # with +property_offset+.
       def read_ulong(element_offset,property_offset)
         check_read_state()
@@ -79,16 +79,16 @@ module Rod
         _read_ulong(element_offset,property_offset)
       end
 
-      # Save the float +value+ in the database at +element_offset+
+      # Write the float +value+ to the database at +element_offset+
       # with +property_offset+.
-      def save_float(element_offset,property_offset,value)
+      def write_float(element_offset,property_offset,value)
         raise InvalidArgument.new(value,"float") unless Numeric === value
-        check_save_state()
+        check_write_state()
         check_offsets(element_offset,property_offset)
-        _save_float(element_offset,property_offset,value)
+        _write_float(element_offset,property_offset,value)
       end
 
-      # Save the float +value+ from the database at +element_offset+
+      # Read the float +value+ from the database at +element_offset+
       # with +property_offset+.
       def read_float(element_offset,property_offset)
         check_read_state()
@@ -150,6 +150,7 @@ module Rod
         builder.c(element_count_equals_definition)
         builder.c(page_count_definition)
         builder.c(page_count_equals_definition)
+        builder.c(allocate_elements_definition)
 
         str =<<-END
         |/*
@@ -164,14 +165,12 @@ module Rod
         END
         builder.c(Utils.remove_margin(str))
 
-        builder.c(Utils.remove_margin(str))
-
         TYPES.each do |name,cname|
           str =<<-END
           |/*
-          |* Save a(n) #{name} to the database.
+          |* Write a(n) #{name} to the database.
           |*/
-          |void _save_#{name}(unsigned long element_offset,unsigned long property_offset,
+          |void _write_#{name}(unsigned long element_offset,unsigned long property_offset,
           |       #{cname} value){
           |  union data_union {
           |    uint64_t as_uint;

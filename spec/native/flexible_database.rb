@@ -68,7 +68,7 @@ module Rod
       it "allows to pass a block to open" do
         subject.open(:truncate => true) do
           subject.must_be :opened?
-          subject.save_bytes(0,"abc")
+          subject.write_bytes(0,"abc")
           subject.read_bytes(0,3).must_equal "abc"
         end
         subject.wont_be :opened?
@@ -79,7 +79,7 @@ module Rod
 
       it "truncates itself" do
         subject.open do
-          subject.save_bytes(0,"xyz")
+          subject.write_bytes(0,"xyz")
           subject.read_bytes(0,3).must_equal "xyz"
         end
         subject.open(:truncate => true)
@@ -97,32 +97,32 @@ module Rod
         end
       end
 
-      it "saves and reads byte sequences" do
+      it "writes and reads byte sequences" do
         subject.open(:truncate => true) do
-          subject.save_bytes(0,"abc")
+          subject.write_bytes(0,"abc")
           subject.read_bytes(0,3).must_equal "abc"
         end
       end
 
-      it "saves and reads byte sequences with zeros" do
+      it "writes and reads byte sequences with zeros" do
         subject.open(:truncate => true) do
-          subject.save_bytes(0,"\x00abc")
+          subject.write_bytes(0,"\x00abc")
           subject.read_bytes(0,4).must_equal "\x00abc"
         end
       end
 
-      it "saves and reads strings with utf-8 codes" do
+      it "writes and reads strings with utf-8 codes" do
         subject.open(:truncate => true) do
-          subject.save_bytes(0,"ąęć")
+          subject.write_bytes(0,"ąęć")
           subject.read_bytes(0,"ąęć".bytesize).force_encoding("utf-8").must_equal "ąęć"
         end
       end
 
-      it "doesn't save non-byte sequence values as byte sequences" do
+      it "doesn't write non-byte sequence values as byte sequences" do
         subject.open(:truncate => true) do
-          (->(){ subject.save_bytes(2,1.5) }).must_raise InvalidArgument
-          (->(){ subject.save_bytes(2,2 ** 65) }).must_raise InvalidArgument
-          (->(){ subject.save_bytes(2,-5) }).must_raise InvalidArgument
+          (->(){ subject.write_bytes(2,1.5) }).must_raise InvalidArgument
+          (->(){ subject.write_bytes(2,2 ** 65) }).must_raise InvalidArgument
+          (->(){ subject.write_bytes(2,-5) }).must_raise InvalidArgument
         end
       end
 
@@ -130,7 +130,7 @@ module Rod
         subject.open(:truncate => true) do
           new_elements_count = 10
           subject.allocate_elements(new_elements_count)
-          subject.save_bytes(new_elements_count + element_count - 1,"t")
+          subject.write_bytes(new_elements_count + element_count - 1,"t")
           subject.read_bytes(new_elements_count + element_count - 1,1).must_equal "t"
         end
       end
@@ -139,7 +139,7 @@ module Rod
         subject.open(:truncate => true) do
           new_elements_count = 100000
           subject.allocate_elements(new_elements_count)
-          subject.save_bytes(new_elements_count + element_count - 1,"g")
+          subject.write_bytes(new_elements_count + element_count - 1,"g")
           subject.read_bytes(new_elements_count + element_count - 1,1).must_equal "g"
         end
       end

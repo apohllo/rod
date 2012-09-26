@@ -80,7 +80,7 @@ module Rod
       it "allows to pass a block to open" do
         subject.open(:truncate => true) do
           subject.must_be :opened?
-          subject.save_integer(0,0,40)
+          subject.write_integer(0,0,40)
           subject.read_integer(0,0).must_equal 40
         end
         subject.wont_be :opened?
@@ -91,7 +91,7 @@ module Rod
 
       it "truncates itself" do
         subject.open do
-          subject.save_integer(0,0,60)
+          subject.write_integer(0,0,60)
           subject.read_integer(0,0).must_equal 60
         end
         subject.open(:truncate => true)
@@ -109,76 +109,76 @@ module Rod
         end
       end
 
-      it "saves and reads an integer values" do
+      it "writes and reads an integer values" do
         subject.open(:truncate => true) do
-          subject.save_integer(0,0,10)
+          subject.write_integer(0,0,10)
           subject.read_integer(0,0).must_equal 10
-          subject.save_integer(1,0,-20)
+          subject.write_integer(1,0,-20)
           subject.read_integer(1,0).must_equal -20
         end
       end
 
-      it "doesn't save non-integer values as integers" do
+      it "doesn't write non-integer values as integers" do
         subject.open(:truncate => true) do
-          (->(){ subject.save_integer(2,0,1.5) }).must_raise InvalidArgument
-          (->(){ subject.save_integer(2,0,2 ** 65) }).must_raise InvalidArgument
-          (->(){ subject.save_integer(2,0,"string") }).must_raise InvalidArgument
+          (->(){ subject.write_integer(2,0,1.5) }).must_raise InvalidArgument
+          (->(){ subject.write_integer(2,0,2 ** 65) }).must_raise InvalidArgument
+          (->(){ subject.write_integer(2,0,"string") }).must_raise InvalidArgument
         end
       end
 
-      it "saves and reads a float values" do
+      it "writes and reads a float values" do
         subject.open(:truncate => true) do
-          subject.save_float(0,0,10.1)
+          subject.write_float(0,0,10.1)
           subject.read_float(0,0).must_equal 10.1
-          subject.save_float(1,0,20.1)
+          subject.write_float(1,0,20.1)
           subject.read_float(1,0).must_equal 20.1
         end
       end
 
-      it "doesn't save non-float values as floats" do
+      it "doesn't write non-float values as floats" do
         subject.open(:truncate => true) do
-          (->(){ subject.save_float(2,0,"string") }).must_raise InvalidArgument
+          (->(){ subject.write_float(2,0,"string") }).must_raise InvalidArgument
         end
       end
 
-      it "saves and reads an unsigned long values" do
+      it "writes and reads an unsigned long values" do
         subject.open(:truncate => true) do
-          subject.save_ulong(0,0,2 ** 31)
+          subject.write_ulong(0,0,2 ** 31)
           subject.read_ulong(0,0).must_equal 2 ** 31
-          subject.save_ulong(1,0,2 ** 30)
+          subject.write_ulong(1,0,2 ** 30)
           subject.read_ulong(1,0).must_equal 2 ** 30
-          subject.save_ulong(2,0,0)
+          subject.write_ulong(2,0,0)
           subject.read_ulong(2,0).must_equal 0
         end
       end
 
-      it "doesn't save non-ulong values as ulongs" do
+      it "doesn't write non-ulong values as ulongs" do
         subject.open(:truncate => true) do
-          (->(){ subject.save_ulong(3,0,-1) }).must_raise InvalidArgument
-          (->(){ subject.save_ulong(3,0,1.5) }).must_raise InvalidArgument
-          (->(){ subject.save_ulong(3,0,"string") }).must_raise InvalidArgument
+          (->(){ subject.write_ulong(3,0,-1) }).must_raise InvalidArgument
+          (->(){ subject.write_ulong(3,0,1.5) }).must_raise InvalidArgument
+          (->(){ subject.write_ulong(3,0,"string") }).must_raise InvalidArgument
         end
       end
 
       it "doesn't store values with invalid element offset" do
         subject.open(:truncate => true) do
-          (->(){ subject.save_integer(element_count,0,1) }).must_raise InvalidArgument
-          (->(){ subject.save_float(element_count,0,1.0) }).must_raise InvalidArgument
-          (->(){ subject.save_ulong(element_count,0,1) }).must_raise InvalidArgument
-          (->(){ subject.save_integer(-1,0,1) }).must_raise InvalidArgument
-          (->(){ subject.save_float(-1,0,1.0) }).must_raise InvalidArgument
-          (->(){ subject.save_ulong(-1,0,1) }).must_raise InvalidArgument
+          (->(){ subject.write_integer(element_count,0,1) }).must_raise InvalidArgument
+          (->(){ subject.write_float(element_count,0,1.0) }).must_raise InvalidArgument
+          (->(){ subject.write_ulong(element_count,0,1) }).must_raise InvalidArgument
+          (->(){ subject.write_integer(-1,0,1) }).must_raise InvalidArgument
+          (->(){ subject.write_float(-1,0,1.0) }).must_raise InvalidArgument
+          (->(){ subject.write_ulong(-1,0,1) }).must_raise InvalidArgument
         end
       end
 
       it "doesn't store values with invalid property offset" do
         subject.open(:truncate => true) do
-          (->(){ subject.save_integer(0,element_size,1) }).must_raise InvalidArgument
-          (->(){ subject.save_float(0,element_size,1.0) }).must_raise InvalidArgument
-          (->(){ subject.save_ulong(0,element_size,1) }).must_raise InvalidArgument
-          (->(){ subject.save_integer(0,-1,1) }).must_raise InvalidArgument
-          (->(){ subject.save_float(0,-1,1.0) }).must_raise InvalidArgument
-          (->(){ subject.save_ulong(0,-1,1) }).must_raise InvalidArgument
+          (->(){ subject.write_integer(0,element_size,1) }).must_raise InvalidArgument
+          (->(){ subject.write_float(0,element_size,1.0) }).must_raise InvalidArgument
+          (->(){ subject.write_ulong(0,element_size,1) }).must_raise InvalidArgument
+          (->(){ subject.write_integer(0,-1,1) }).must_raise InvalidArgument
+          (->(){ subject.write_float(0,-1,1.0) }).must_raise InvalidArgument
+          (->(){ subject.write_ulong(0,-1,1) }).must_raise InvalidArgument
         end
       end
 
@@ -186,7 +186,7 @@ module Rod
         subject.open(:truncate => true) do
           new_elements_count = 10
           subject.allocate_elements(new_elements_count)
-          subject.save_integer(new_elements_count + element_count - 1,0,11)
+          subject.write_integer(new_elements_count + element_count - 1,0,11)
           subject.read_integer(new_elements_count + element_count - 1,0).must_equal 11
         end
       end
@@ -195,7 +195,7 @@ module Rod
         subject.open(:truncate => true) do
           new_elements_count = 100000
           subject.allocate_elements(new_elements_count)
-          subject.save_integer(new_elements_count + element_count - 1,0,51)
+          subject.write_integer(new_elements_count + element_count - 1,0,51)
           subject.read_integer(new_elements_count + element_count - 1,0).must_equal 51
         end
       end

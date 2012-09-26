@@ -24,11 +24,11 @@ module Rod
         _init(path,page_count,1,1,element_count)
       end
 
-      # Save +bytes+ to the database at +offset+.
-      def save_bytes(offset,bytes)
+      # Write +bytes+ in the database at +offset+.
+      def write_bytes(offset,bytes)
         raise InvalidArgument.new(bytes,"bytes") unless String === bytes
         check_offset_and_length(offset,bytes.bytesize)
-        _save_bytes(offset,bytes)
+        _write_bytes(offset,bytes)
       end
 
       # Read +length+ bytes from the database at +offset+.
@@ -97,7 +97,7 @@ module Rod
         |/*
         |* Store a byte sequence in the database.
         |*/
-        |void _save_bytes(unsigned long offset, VALUE bytes){
+        |void _write_bytes(unsigned long offset, VALUE bytes){
         |  unsigned long length;
         |  char * value;
         |  char * destination;
