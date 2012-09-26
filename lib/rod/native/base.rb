@@ -89,7 +89,7 @@ module Rod
       def allocate_elements(count)
         raise InvalidArgument.new(count,"count") unless Fixnum === count
         raise InvalidArgument.new(count,"count") if count < 0
-        check_save_state
+        check_write_state
         _allocate_elements(count)
       end
 
@@ -469,9 +469,9 @@ module Rod
       end
 
       protected
-      # Checks the state of the database for save operation.
+      # Checks the state of the database for write operation.
       # Throws an exception if the database is in invalid state.
-      def check_save_state
+      def check_write_state
         raise DatabaseError.new("Database is closed.") unless opened?
         raise DatabaseError.new("Database is readonly.") if readonly?
       end
