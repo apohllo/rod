@@ -19,7 +19,7 @@ module Rod
       # * +:proxy_factor+ - factory used to create collection proxies
       #   (Rod::Berkeley::CollectionProxy by default).
       def initialize(path,klass,options={})
-        proxy_factory = @options[:proxy_factory] || Rod::Berkeley::CollectionProxy
+        proxy_factory = options[:proxy_factory] || Rod::Berkeley::CollectionProxy
         super(path + ".db",klass,proxy_factory)
       end
 
