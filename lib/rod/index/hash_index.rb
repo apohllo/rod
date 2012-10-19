@@ -15,10 +15,12 @@ module Rod
       attr_reader :klass
 
       # Initializes the index with +path+ and +class+.
-      # Options are not (yet) used.
+      # Options:
+      # * +:proxy_factor+ - factory used to create collection proxies
+      #   (Rod::Berkeley::CollectionProxy by default).
       def initialize(path,klass,options={})
-        @path = path + ".db"
-        @klass = klass
+        proxy_factory = @options[:proxy_factory] || Rod::Berkeley::CollectionProxy
+        super(path + ".db",klass,proxy_factory)
       end
 
       # Stores the index on disk.
@@ -86,7 +88,7 @@ module Rod
       def empty_collection_proxy(key)
         key = key.encode("utf-8") if key.is_a?(String)
         key = Marshal.dump(key)
-        Rod::Berkeley::CollectionProxy.new(self,key)
+        @proxy_factory.new(self,key)
       end
 
       # Opens the index - initializes the index C structures

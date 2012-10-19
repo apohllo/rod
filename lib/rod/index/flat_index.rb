@@ -9,8 +9,7 @@ module Rod
       # Creats the index with given +path+ for given +klass+.
       # Options are not used in the case of FlatIndex.
       def initialize(path,klass,options={})
-        super(klass)
-        @path = path + ".idx"
+        super(path + ".idx",klass)
         @index = nil
       end
 

@@ -17,9 +17,13 @@ module Rod
       # The path of the index.
       attr_reader :path
 
-      # Sets the class this index belongs to.
-      def initialize(klass)
+      # Creates new index on the given +path+ and configured with
+      # +klass+ it belongs to. The +proxy_factory+ is used to
+      # create collection proxies for keys with many values.
+      def initialize(path,klass,proxy_factory=CollectionProxy)
+        @path = path
         @klass = klass
+        @proxy_factory = proxy_factory
         @unstored_map = {}
       end
 
@@ -46,7 +50,7 @@ module Rod
         else
           if Array === proxy
             offset, count = proxy
-            proxy = CollectionProxy.new(count,@klass.database,offset,@klass)
+            proxy = @proxy_factory.new(count,@klass.database,offset,@klass)
           end
         end
         if unstored_object
@@ -106,7 +110,8 @@ module Rod
 
       class << self
         # Creats the proper instance of Index or one of its sublcasses.
-        # The +path+ is the path were the index is stored, while +index+ is the previous index instance.
+        # The +path+ is the path were the index is stored, while +index+
+        # is the previous index instance.
         # The +klass+ is the class given index belongs to.
         # Options might include class-specific options.
         def create(path,klass,options)

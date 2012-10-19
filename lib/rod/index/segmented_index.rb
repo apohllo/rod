@@ -12,8 +12,7 @@ module Rod
       # and the following +options+:
       # * +:buckets_count+ - the number of buckets.
       def initialize(path,klass,options={:buckets_count => BUCKETS_COUNT})
-        super(klass)
-        @path = path + "_idx/"
+        super(path + "_idx/",klass)
         @buckets_count = options[:buckets_count] || BUCKETS_COUNT
         @buckets_ceil = Math::log2(@buckets_count).ceil
         @buckets = {}
