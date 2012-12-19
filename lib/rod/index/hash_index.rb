@@ -82,8 +82,8 @@ module Rod
         _get_first(key)
       end
 
+     protected
 
-      protected
       # Returns an empty BDB based collection proxy.
       def empty_collection_proxy(key)
         key = key.encode("utf-8") if key.is_a?(String)
