@@ -82,15 +82,6 @@ module Rod
         _get_first(key)
       end
 
-     protected
-
-      # Returns an empty BDB based collection proxy.
-      def empty_collection_proxy(key)
-        key = key.encode("utf-8") if key.is_a?(String)
-        key = Marshal.dump(key)
-        @proxy_factory.new(self,key)
-      end
-
       # Opens the index - initializes the index C structures
       # and the cache.
       # Options:
@@ -107,6 +98,15 @@ module Rod
         return unless opened?
         _close()
         @opened = false
+      end
+
+     protected
+
+      # Returns an empty BDB based collection proxy.
+      def empty_collection_proxy(key)
+        key = key.encode("utf-8") if key.is_a?(String)
+        key = Marshal.dump(key)
+        @proxy_factory.new(self,key)
       end
 
       # Checks if the index is opened.
