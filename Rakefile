@@ -76,6 +76,14 @@ task :spec do
 
   sh "ruby spec/native/fixed_database.rb"
   sh "ruby spec/native/flexible_database.rb"
+
+  sh "ruby spec/database/accessor/float_accessor.rb"
+  sh "ruby spec/database/accessor/integer_accessor.rb"
+  sh "ruby spec/database/accessor/object_accessor.rb"
+  sh "ruby spec/database/accessor/singular_accessor.rb"
+  sh "ruby spec/database/accessor/string_accessor.rb"
+  sh "ruby spec/database/accessor/json_accessor.rb"
+  sh "ruby spec/database/accessor/ulong_accessor.rb"
 end
 
 # Should be removed some time -- specs should cover all these cases
