@@ -38,7 +38,7 @@ module Rod
       # values present in the index.
       def each
         if block_given?
-          open(@path, :create => true) unless opened?
+          open(:create => true) unless opened?
           _each_key do |key|
             next if key.empty?
             key = Marshal.load(key)
@@ -87,9 +87,9 @@ module Rod
       # Options:
       # * +:truncate+ - clears the contents of the index
       # * +:create+ - creates the index if it doesn't exist
-      def open(path,options={})
+      def open(options={})
         raise RodException.new("The index #{@path} is already opened!") if opened?
-        _open(path,options)
+        _open(@path, options)
         @opened = true
       end
 
@@ -117,7 +117,7 @@ module Rod
       # Returns a value of the index for a given +key+.
       def get(key)
         # TODO # 208
-        open(@path,:create => true) unless opened?
+        open(:create => true) unless opened?
         empty_collection_proxy(key)
       end
 
