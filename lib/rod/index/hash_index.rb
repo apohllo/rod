@@ -294,11 +294,25 @@ module Rod
         ENV['ROD_BDB_LINK_FLAGS'] || '-ldb'
       end
 
+      def self.endianess
+        str =<<-END
+        #ifdef OS_FREEBSD
+        #include <sys/endian.h>
+        #define bswap_16(x) bswap16(x)
+        #define bswap_32(x) bswap32(x)
+        #define bswap_64(x) bswap64(x)
+        #else
+        #include <byteswap.h>
+        #include <endian.h>
+        #endif /* OS_FREEBSD */
+        END
+        Utils.remove_margin(str)
+      end
+
+
       self.inline(:C) do |builder|
         builder.include '<db.h>'
         builder.include '<stdio.h>'
-        builder.include '<byteswap.h>'
-        builder.include '<endian.h>'
         builder.include '<stdint.h>'
         builder.add_link_flags self.rod_link_flags
         builder.prefix(self.entry_struct)
