@@ -267,9 +267,8 @@ module Rod
           return if @structure_built
 
           inline(:C) do |builder|
-            builder.include '<byteswap.h>'
-            builder.include '<endian.h>'
             builder.include '<stdint.h>'
+            builder.prefix(Index::HashIndex.endianess)
             builder.prefix(typedef_struct)
             builder.prefix(Native::Database.rod_exception)
             if Database::Base.development_mode

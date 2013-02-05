@@ -168,8 +168,7 @@ module Rod
             builder.include '<errno.h>'
             builder.include '<sys/mman.h>'
             builder.include '<sys/stat.h>'
-            builder.include '<byteswap.h>'
-            builder.include '<endian.h>'
+            builder.prefix(Index::HashIndex.endianess)
             builder.include '<stdint.h>'
             classes.each do |klass|
               builder.prefix(klass.typedef_struct)

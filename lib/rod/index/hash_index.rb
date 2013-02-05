@@ -296,15 +296,15 @@ module Rod
 
       def self.endianess
         str =<<-END
-        #ifdef OS_FREEBSD
-        #include <sys/endian.h>
-        #define bswap_16(x) bswap16(x)
-        #define bswap_32(x) bswap32(x)
-        #define bswap_64(x) bswap64(x)
-        #else
-        #include <byteswap.h>
-        #include <endian.h>
-        #endif /* OS_FREEBSD */
+        |#ifdef __linux__
+        |#include <byteswap.h>
+        |#include <endian.h>
+        |#else
+        |#include <sys/endian.h>
+        |#define bswap_16(x) bswap16(x)
+        |#define bswap_32(x) bswap32(x)
+        |#define bswap_64(x) bswap64(x)
+        |#endif
         END
         Utils.remove_margin(str)
       end
@@ -314,6 +314,7 @@ module Rod
         builder.include '<db.h>'
         builder.include '<stdio.h>'
         builder.include '<stdint.h>'
+        builder.prefix(self.endianess)
         builder.add_link_flags self.rod_link_flags
         builder.prefix(self.entry_struct)
         builder.prefix(self.rod_exception)
