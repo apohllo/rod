@@ -38,7 +38,7 @@ module Rod
       # values present in the index.
       def each
         if block_given?
-          open(@path, :create => true) unless opened?
+          open(:create => true) unless opened?
           _each_key do |key|
             next if key.empty?
             key = Marshal.load(key)
@@ -82,23 +82,14 @@ module Rod
         _get_first(key)
       end
 
-
-      protected
-      # Returns an empty BDB based collection proxy.
-      def empty_collection_proxy(key)
-        key = key.encode("utf-8") if key.is_a?(String)
-        key = Marshal.dump(key)
-        @proxy_factory.new(self,key)
-      end
-
       # Opens the index - initializes the index C structures
       # and the cache.
       # Options:
       # * +:truncate+ - clears the contents of the index
       # * +:create+ - creates the index if it doesn't exist
-      def open(path,options={})
+      def open(options={})
         raise RodException.new("The index #{@path} is already opened!") if opened?
-        _open(path,options)
+        _open(@path, options)
         @opened = true
       end
 
@@ -109,6 +100,15 @@ module Rod
         @opened = false
       end
 
+     protected
+
+      # Returns an empty BDB based collection proxy.
+      def empty_collection_proxy(key)
+        key = key.encode("utf-8") if key.is_a?(String)
+        key = Marshal.dump(key)
+        @proxy_factory.new(self,key)
+      end
+
       # Checks if the index is opened.
       def opened?
         @opened
@@ -117,7 +117,7 @@ module Rod
       # Returns a value of the index for a given +key+.
       def get(key)
         # TODO # 208
-        open(@path,:create => true) unless opened?
+        open(:create => true) unless opened?
         empty_collection_proxy(key)
       end
 
