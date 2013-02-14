@@ -6,8 +6,8 @@ require 'rod/utils'
 module Rod
   module Index
     # This implementation of index is based on the
-    # Berkeley DB Hash access method.
-    class HashIndex < BerkeleyIndex
+    # Berkeley DB Btree access method.
+    class BtreeIndex < BerkeleyIndex
       # Wrapper class for the database C struct.
       class Handle
       end
@@ -73,14 +73,14 @@ module Rod
         |
         |  db_pointer->set_cachesize(db_pointer,0,5 * 1024 * 1024,0);
         |  return_value = db_pointer->open(db_pointer,NULL,path,
-        |    NULL,DB_HASH,flags,0);
+        |    NULL,DB_BTREE,flags,0);
         |  if(return_value != 0){
         |    db_pointer->close(db_pointer,0);
         |    rb_raise(rodException(),"%s",db_strerror(return_value));
         |  }
         |  mod = rb_const_get(rb_cObject, rb_intern("Rod"));
         |  mod = rb_const_get(mod, rb_intern("Index"));
-        |  mod = rb_const_get(mod, rb_intern("HashIndex"));
+        |  mod = rb_const_get(mod, rb_intern("BtreeIndex"));
         |  handleClass = rb_const_get(mod, rb_intern("Handle"));
         |  // TODO the handle memory should be made free
         |  handle = Data_Wrap_Struct(handleClass,0,0,db_pointer);

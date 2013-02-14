@@ -44,7 +44,9 @@ require 'rod/native/database'
 
 require 'rod/index/base'
 require 'rod/index/flat_index'
+require 'rod/index/berkeley_index'
 require 'rod/index/hash_index'
+require 'rod/index/btree_index'
 require 'rod/index/segmented_index'
 
 require 'rod/property/base'

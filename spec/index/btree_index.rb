@@ -4,15 +4,15 @@ require 'rod/utils'
 require 'inline'
 require 'rod/model/resource' # Need to change implementation of [] method i lib/rod/index/base.rb
 require 'rspec/expectations'
-require_relative '../../lib/rod/index/hash_index'
+require_relative '../../lib/rod/index/btree_index'
 require_relative '../../lib/rod/exception'
 require_relative '../spec_helper'
 
 module Rod
   module Index
-    describe HashIndex < BerkeleyIndex do
-      subject                     { HashIndex.new(path, klass, options={:index=>:hash,:proxy_factory=>proxy_factory}) }
-      let(:path)                  { 'tmp/hash_index' }
+    describe BtreeIndex < BerkeleyIndex do
+      subject                     { BtreeIndex.new(path, klass, options={:index=>:btree,:proxy_factory=>proxy_factory}) }
+      let(:path)                  { 'tmp/btree_index' }
       let(:klass)                 { Object.new() }      
       let(:proxy_factory)					{ stub(proxy_factory = Object.new).new { collection_proxy } 
                                     proxy_factory
@@ -116,7 +116,7 @@ module Rod
           
           it "copies index to the given index" do
             skip("To pass this test implement #TODO 206")
-            index_new = HashIndex.new('tmp/some_path', 'some class', options={:index=>:hash, :proxy_factory=>proxy_factory})
+            index_new = BtreeIndex.new('tmp/some_path', 'some class', options={:index=>:btree, :proxy_factory=>proxy_factory})
           
             index_new.copy(subject) 
             index_new.path.must_equal subject.path
