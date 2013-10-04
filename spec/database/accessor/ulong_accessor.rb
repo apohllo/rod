@@ -1,7 +1,7 @@
 require 'bundler/setup'
 require 'minitest/autorun'
-require_relative '../../../lib/rod/database/accessor/ulong_accessor'
-require_relative '../../../lib/rod/exception'
+require 'rod/database/accessor/ulong_accessor'
+require 'rod/exception'
 require_relative '../../spec_helper'
 
 module Rod

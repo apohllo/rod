@@ -1,7 +1,7 @@
 require 'bundler/setup'
 require 'minitest/autorun'
 require 'ostruct'
-require_relative '../../../lib/rod/database/accessor/singular_accessor'
+require 'rod/database/accessor/singular_accessor'
 require_relative '../../spec_helper'
 
 module Rod
