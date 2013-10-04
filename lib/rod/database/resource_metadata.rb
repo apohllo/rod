@@ -2,11 +2,15 @@ module Rod
   module Database
     module ResourceMetadata
       # Builds the meta-data for the +resource+ given.
-      def self.build(resource,database)
+      #
+      # If the +descriptor+ is provided it is used to setup the properties of the
+      # meta-data. In that case the +resource+ might be nil, but should be
+      # setup, before the metadata is used.
+      def self.build(resource,database,descriptor=nil)
         if resource.included_modules.include?(Model::Resource)
-          Resource.new(resource,database)
+          Resource.new(resource,database,descriptor)
         else
-          SimpleResource.new(resource,database)
+          SimpleResource.new(resource,database,descriptor)
         end
       end
 
@@ -19,9 +23,6 @@ module Rod
       # the data, even if the resource (i.e. Ruby class)
       # definition is not available.
       class SimpleResource
-        # The tag used to indicate this data in YAML dump.
-        yaml_tag "simple_resource"
-
         # The meta-data as a map.
         attr_reader :data
 
@@ -38,14 +39,19 @@ module Rod
         attr_accessor :name
 
         # Initializes the metadata for a given +resource+ and a given +database+.
-        def initialize(resource,database)
-          @data = {}
-          @data[:name_hash] = resource.name_hash
-          @data[:superclass] = resource.superclass.name
-          @data[:count] = 0
+        def initialize(resource,database,descriptor=nil)
+          raise RodException.new("Empty database for the resource metadata") if database.nil?
+          if resource.nil? && descriptor.nil?
+            raise RodException.new("Empty resource for the resource metadata")
+          end
+
           @resource = resource
           @database = database
-          @name = resource.name
+          if descriptor
+            from_hash(descriptor)
+          else
+            initialize_empty
+          end
         end
 
         # Returns the metadata as a string.
@@ -75,7 +81,7 @@ module Rod
         # an unscoped resource path.
         def model_path
           # TODO move name conversion to the metadata class.
-          @model_path ||= Model::NameConversion.struct_name_for(@name)
+          @model_path ||= Utils.struct_name_for(@name)
         end
 
 
@@ -87,20 +93,23 @@ module Rod
         # TODO Remove this when #238 is implemented.
         alias superclass parent
 
-        # Used to dump the data into YAML format.
-        def encode_with(coder)
+        def to_hash
           @data[:count] = @database.count(@resource)
-          @data.each do |key,value|
-            coder[":#{key}"] = value
-          end
+          Marshal.load(Marshal.dump(@data))
         end
 
-        # Used to load the data from YAML format.
-        def init_with(coder)
+        private
+        def from_hash(hash)
+          @data = hash
+          @name = hash.delete(:name)
+        end
+
+        def initialize_empty
           @data = {}
-          coder.map.each do |key,value|
-            @data[key] = value
-          end
+          @data[:name_hash] = @resource.name_hash
+          @data[:superclass] = @resource.superclass.name
+          @data[:count] = 0
+          @name = resource.name
         end
       end
 
@@ -110,22 +119,13 @@ module Rod
       # allows to recreate the resource (at least data access methods)
       # if its definition is not provided.
       class Resource < SimpleResource
-        yaml_tag "resource"
-
         # Initialize the meta-data with the +resource+ and the +database+
         # it is created for.
-        def initialize(resource,database)
+        #
+        # An optional +descriptor+ is used to initialized the meta-data values.
+        def initialize(resource,database,descriptor=nil)
           super
-          Property::ClassMethods::ACCESSOR_MAPPING.each do |type,method|
-            property_type_data = {}
-            resource.send(method).each do |property|
-              next if property.to_hash.empty?
-              property_type_data[property.name] = property.to_hash
-            end
-            unless property_type_data.empty?
-              @data[type] = property_type_data
-            end
-          end
+          gather_property_metadata if descriptor.nil?
         end
 
         # Checks if the +other+ meta-data are compatible with these meta-data.
@@ -210,6 +210,20 @@ module Rod
               if dependency_tree.present?(options[:class_name])
                 @data[type][property][:class_name] = prefix + options[:class_name]
               end
+            end
+          end
+        end
+
+        private
+        def gather_property_metadata
+          Property::ClassMethods::ACCESSOR_MAPPING.each do |accessor_type,accessor_method|
+            property_group_data = {}
+            resource.send(accessor_method).each do |property|
+              next if property.to_hash.empty?
+              property_group_data[property.name] = property.to_hash
+            end
+            unless property_group_data.empty?
+              @data[accessor_type] = property_group_data
             end
           end
         end

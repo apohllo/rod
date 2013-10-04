@@ -1,26 +1,15 @@
+require 'bundler/setup'
 require 'minitest/autorun'
 require 'ostruct'
-require_relative '../../lib/rod/database/metadata'
-require_relative '../../lib/rod/database/resource_metadata'
+
+require 'rod/database/metadata'
+require 'rod/database/resource_metadata'
+require 'rod/exception'
 require_relative '../spec_helper'
 
 CREATION_TIME = Time.new(2012,1,1,10,20)
 UPDATE_TIME = CREATION_TIME + 10
 VERSION = "0.7.2"
-INPUT =<<-END
---- !<database>
-Rod:
-  :version: #{VERSION}
-  :created_at: #{CREATION_TIME.to_s}
-  :updated_at: #{UPDATE_TIME.to_s}
-RodTest::HisStruct: !<resource>
-  :name_hash: 994169277
-  :superclass: RodTest::Model
-  :count: 500
-  :field:
-    :some_field:
-      :type: :integer
-END
 
 module Rod
   module Database
@@ -41,16 +30,20 @@ module Rod
                               }
       let(:creation_time)     { CREATION_TIME }
       let(:resources )        { [resource1] }
-      let(:resource1)         { stub(resource = Object.new).name { "Klass1" }
+      let(:resource1)         { stub(resource = Object.new).name { resource1_name }
                                 resource
                               }
+      let(:resource1_name)    { "Klass1" }
       let(:resource_metadata1){ data=OpenStruct.new
                                 data.name = resource1.name
                                 stub(data).parent { Object }
                                 stub(data).add_prefix {|prefix| data.name = prefix + data.name }
+                                stub(data).to_hash { resource1_as_hash }
                                 data
                               }
+      let(:resource1_as_hash) { stub! }
       let(:metadata_factory)  { stub(factory = Object.new).build(resource1,database) { resource_metadata1 }
+                                stub(factory).new(nil,database,anything) { resource_metadata1 }
                                 factory
                               }
 
@@ -86,28 +79,28 @@ module Rod
         subject.resources.each{|name,data| data.database.must_equal alternative_db}
       end
 
-      it "loads itself from a YAML file" do
-        input_stream = StringIO.new(INPUT)
-        def input_stream.open(path)
-          yield self
-        end
-        metadata = Metadata.load(database,metadata_factory,input_stream)
+      it "converts hash to itself" do
+        hash = {
+          "Rod" => {
+            :version => VERSION,
+            :created_at => CREATION_TIME,
+            :updated_at => UPDATE_TIME
+          },
+          resource1_name => resource1_as_hash
+        }
+        metadata = Metadata.new(database,metadata_factory,creation_clock,hash)
         metadata.created_at.must_equal CREATION_TIME
         metadata.updated_at.must_equal UPDATE_TIME
         metadata.version.must_equal VERSION
         metadata.resources.size.must_equal 1
       end
 
-      it "stors itself to an output stream" do
-        output_stream = StringIO.new("")
-        def output_stream.open(path,mode)
-          yield self
-        end
-        subject.store(output_stream)
-        metadata = YAML::load(output_stream.string)
-        metadata.created_at.must_equal CREATION_TIME
-        metadata.updated_at.must_equal CREATION_TIME
-        metadata.version.must_equal VERSION
+      it "converts itself to a hash" do
+        hash = subject.to_hash
+        hash[Metadata::ROD_KEY][:created_at].must_equal CREATION_TIME
+        hash[Metadata::ROD_KEY][:updated_at].must_equal CREATION_TIME
+        hash[Metadata::ROD_KEY][:version].must_equal VERSION
+        hash[resource1_name].must_equal resource1_as_hash
       end
 
       it "returns proper read/write path" do
@@ -148,27 +141,19 @@ module Rod
         update_time = creation_time + 10
         stub(update_clock = Object.new).now {update_time}
         subject.clock = update_clock
-        subject.store(StringIO)
-        subject.updated_at.must_equal update_time
-        subject.created_at.must_equal creation_time
-        subject.updated_at.wont_equal creation_time
+        descriptor = subject.to_hash
+        descriptor[Metadata::ROD_KEY][:updated_at].must_equal update_time
+        descriptor[Metadata::ROD_KEY][:created_at].must_equal creation_time
+        descriptor[Metadata::ROD_KEY][:updated_at].wont_equal creation_time
 
         # "wait" 10 seconds
         update_time = update_time + 10
-        subject.store(StringIO)
-        subject.updated_at.must_equal update_time
-      end
-
-      it "configures the resources accroding to the data it contains" do
-        skip
-      end
-
-      it "generates the resources accroding to the data it contains" do
-        skip
+        descriptor = subject.to_hash
+        descriptor[Metadata::ROD_KEY][:updated_at].must_equal update_time
       end
 
       it "returns the resource meta-data that are connected with the described DB" do
-        skip
+        subject.resources[resource1.name].must_equal resource_metadata1
       end
 
       it "allows to add a prefix to the names of the classes that are represented" do
@@ -179,6 +164,50 @@ module Rod
         metadata.name.must_equal prefix + resource1.name
       end
 
+      describe "resource configuration" do
+        it "raises exception if there is a resource missing in runtime" do
+          metadata = subject # called, to create the subject with prvious DB config.
+          stub(database).classes { [] }
+          stub(database).configure_count { nil }
+          stub(resource_metadata1).check_compatibility { true }
+          (->{metadata.configure_resources}).must_raise DatabaseError
+        end
+
+        it "raises exception if resource configuration is incompatible" do
+          metadata = subject # called, to create the subject with prvious DB config.
+          stub(database).configure_count { nil }
+          stub(resource_metadata1).check_compatibility { raise IncompatibleClass.new("") }
+          (->{metadata.configure_resources}).must_raise IncompatibleClass
+        end
+
+        it "does not raise incompatibility exception if comp. check is not performetd" do
+          metadata = subject # called, to create the subject with prvious DB config.
+          stub(database).configure_count { nil }
+          stub(resource_metadata1).check_compatibility { raise IncompatibleClass.new("") }
+          (->{metadata.configure_resources(true)}).must_be_silent
+        end
+
+        it "configures count for the resources" do
+          metadata = subject # called, to create the subject with prvious DB config.
+          def database.configure_count(resource,count)
+            @count ||= {}
+            @count[resource] = count
+          end
+          def database.count(resource)
+            @count[resource]
+          end
+          stub(resource_metadata1).check_compatibility { true }
+          stub(resource_metadata1).count { 5 }
+          metadata.configure_resources
+          database.count(resource1).must_equal 5
+        end
+      end
+
+      describe "resource generation" do
+        it "generates the resources accroding to the data it contains" do
+          skip
+        end
+      end
     end
   end
 end

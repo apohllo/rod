@@ -13,9 +13,6 @@ module Rod
     # * convert the description to the resources
     # * convert the description to an external format (YAML)
     class Metadata
-      # The tag used to indicate this data in YAML dump.
-      yaml_tag "database"
-
       # The name of file containing the database meta-data.
       METADATA_FILE = "database.yml"
 
@@ -40,18 +37,17 @@ module Rod
       #
       # The creation time might be provided by the +clock+ option,
       # which is a factory for the time. By default this is a real clock.
-      def initialize(database,metadata_factory,clock=Time)
+      #
+      # The last argument is a descriptor that is used to initialize the
+      # fields of the metadata (if provided).
+      def initialize(database,metadata_factory,clock=Time,descriptor=nil)
         @database = database
         @metadata_factory = metadata_factory
         @clock = clock
-
-        @data = {}
-        @data[ROD_KEY] = {}
-        @data[ROD_KEY][:version] = VERSION
-        @data[ROD_KEY][:created_at] = @clock.now
-
-        @database.classes.each do |resource|
-          @data[resource.name] = metadata_factory.build(resource,@database)
+        if descriptor
+          from_hash(descriptor)
+        else
+          initialize_empty
         end
       end
 
@@ -98,30 +94,26 @@ module Rod
       # the individual resources that are connected with the DB.
       #
       # If the +input_factory+ is given, it is used
-      # to create the input stream used to load the meta-data. By defaul it is +File+.
+      # to create the input stream used to load the meta-data. By defaul it is a +File+.
       def self.load(database,metadata_factory,input_factory=File)
         metadata = nil
         input_factory.open(self.new(database,metadata_factory).path) do |input|
-          metadata = YAML::load(input)
+          metadata = self.new(database,metadata_factory,Time,input)
         end
         raise IncompatibleVersion.new("Incompatible versions - library #{VERSION} vs. " +
                                       "file #{metadata.version}") unless metadata.valid?
-        metadata.database = database
-        metadata.metadata_factory = metadata_factory
-        metadata.clock = Time
         metadata
       end
 
-      # Writes the meta-data to the meta-data file.
-      #
-      # If +output_facotry+ is given, the metadata is stored to the
-      # output stream created using this factory. By default this is a file.
-      def store(output_factory=File)
-        @data[ROD_KEY][:updated_at] = @clock.now
-        dumped = YAML::dump(self)
-        output_factory.open(self.path,"wb") do |out|
-          out.puts(dumped)
+      # Converts itself to hash.
+      def to_hash
+        copy = @data.clone
+        copy[ROD_KEY][:updated_at] = @clock.now
+        copy.each do |key,value|
+          next if key == ROD_KEY
+          copy[key] = value.to_hash
         end
+        copy
       end
 
       # The location of the meta-data file.
@@ -185,7 +177,7 @@ module Rod
       def resources
         special_names = @database.special_classes.map{|k| k.name}
         special_names << ROD_KEY
-        @data.reject{|r,o| special_names.include?(r)}
+        Hash[@data.reject{|r,o| special_names.include?(r)}]
       end
 
       # Returns the dependency tree of the resources in the
@@ -208,22 +200,33 @@ module Rod
         end
       end
 
-      # Used to dump the data into YAML format.
-      def encode_with(coder)
+
+      private
+      # Convert the +hash+ to the metadata.
+      def from_hash(hash)
+        @data = hash
         @data.each do |key,value|
-          coder[key] = value
+          next if key == ROD_KEY
+          value[:name] = key
+          @data[key] = metadata_factory.new(nil,@database,value)
         end
       end
 
-      # Used to load the data from YAML format.
-      def init_with(coder)
+      # Initialize default metadata.
+      def initialize_empty
         @data = {}
-        coder.map.each do |key,metadata|
-          @data[key] = metadata
-          unless key == ROD_KEY
-            metadata.name = key
-          end
+        @data[ROD_KEY] = {}
+        @data[ROD_KEY][:version] = VERSION
+        @data[ROD_KEY][:created_at] = @clock.now
+
+        @database.classes.each do |resource|
+          @data[resource.name] = metadata_factory.build(resource,@database)
         end
+      end
+
+      # Creates deep copy of the hash.
+      def deep_hash_copy(hash)
+        Marshal.load(Marshal.dump(hash))
       end
     end
   end

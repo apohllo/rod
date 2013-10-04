@@ -55,13 +55,13 @@ task :test do
   sh "ruby tests/missing_class_verify.rb"
   sh "ruby tests/properties_order_create.rb"
   sh "ruby tests/properties_order_verify.rb"
+
+  sh "ruby tests/unit/model_tests.rb"
+  sh "ruby tests/unit/abstract_database.rb"
 end
 
 desc "Run unit tests and model specs"
 task :spec do
-  sh "ruby tests/unit/model_tests.rb"
-  sh "ruby tests/unit/abstract_database.rb"
-
   sh "ruby spec/property/base.rb"
   sh "ruby spec/property/field.rb"
   sh "ruby spec/property/singular_association.rb"
@@ -70,9 +70,6 @@ task :spec do
   sh "ruby spec/berkeley/environment.rb"
   sh "ruby spec/berkeley/database.rb"
   sh "ruby spec/berkeley/transaction.rb"
-
-  sh "ruby spec/database/metadata.rb"
-  sh "ruby spec/database/resource_metadata/resource.rb"
 
   sh "ruby spec/native/fixed_database.rb"
   sh "ruby spec/native/flexible_database.rb"
@@ -84,6 +81,10 @@ task :spec do
   sh "ruby spec/database/accessor/string_accessor.rb"
   sh "ruby spec/database/accessor/json_accessor.rb"
   sh "ruby spec/database/accessor/ulong_accessor.rb"
+  
+  sh "ruby spec/database/metadata.rb"
+  sh "ruby spec/database/resource_metadata/resource.rb"
+
 end
 
 # Should be removed some time -- specs should cover all these cases
@@ -110,4 +111,10 @@ end
 desc "Show changelog from the last release"
 task :changelog do
   sh "git log v#{Rod::VERSION}.. --pretty=%s | tee"
+end
+
+desc "Initialize testing environemnt"
+task :init_tests do
+  sh "rm -rf tmp/*"
+  sh "touch tmp/.gitkeep"
 end
