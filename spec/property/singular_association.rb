@@ -1,7 +1,9 @@
 require 'bundler/setup'
 require 'minitest/autorun'
 require_relative '../spec_helper'
-require 'rod'
+
+require 'active_model/naming'
+require 'rod/property/singular_association'
 
 describe Rod::Property::SingularAssociation do
   before do

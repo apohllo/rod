@@ -1,7 +1,10 @@
 require 'bundler/setup'
 require 'minitest/autorun'
 require_relative '../spec_helper'
-require 'rod'
+
+require 'active_model/naming'
+require 'english/inflect'
+require 'rod/property/plural_association'
 
 describe Rod::Property::PluralAssociation do
   before do

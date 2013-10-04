@@ -1,6 +1,9 @@
 require 'bundler/setup'
 require 'minitest/autorun'
-require 'rod'
+
+require 'rod/exception'
+require 'rod/berkeley/environment'
+require 'rod/berkeley/transaction'
 
 describe Rod::Berkeley::Transaction do
   describe "a transaction" do

@@ -1,6 +1,10 @@
 require 'bundler/setup'
 require 'minitest/autorun'
-require 'rod'
+
+require 'rod/exception'
+require 'rod/berkeley/environment'
+require 'rod/berkeley/database'
+require 'rod/berkeley/transaction'
 
 describe Rod::Berkeley::Database do
   describe "a database" do

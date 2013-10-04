@@ -1,6 +1,8 @@
 require 'bundler/setup'
 require 'minitest/autorun'
-require 'rod'
+
+require 'rod/exception'
+require 'rod/berkeley/environment'
 
 describe Rod::Berkeley::Environment do
   describe "an environment" do

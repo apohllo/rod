@@ -1,7 +1,13 @@
 require 'bundler/setup'
 require 'minitest/autorun'
 require_relative "../spec_helper"
-require 'rod'
+
+require 'rod/property/base'
+require 'rod/index/base'
+require 'rod/index/flat_index'
+require 'rod/native/collection_proxy'
+require 'rod/property/field'
+require 'rod/model/resource'
 
 describe Rod::Property::Base do
   describe "a property" do

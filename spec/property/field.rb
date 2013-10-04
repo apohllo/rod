@@ -1,7 +1,8 @@
 require 'bundler/setup'
 require 'minitest/autorun'
 require_relative '../spec_helper'
-require 'rod'
+
+require 'rod/property/field'
 
 describe Rod::Property::Field do
   before do
