@@ -115,6 +115,9 @@ end
 
 desc "Initialize testing environemnt"
 task :init_tests do
-  sh "rm -rf tmp/*"
-  sh "touch tmp/.gitkeep"
+  if File.exist?("tmp")
+    sh "rm -rf tmp/*"
+  else
+    sh "mkdir tmp"
+  end
 end
