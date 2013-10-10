@@ -5,22 +5,22 @@ module Rod
   module Native
     # This class is reponsible for writing and reading fixed structures
     # consising of basic values (int, ulong, float) from/to the storage device.
-    class FixedDatabase < Base
+    class StructureStore < Base
       # The mapping of storage function names to the C types.
       TYPES = {"integer" => "int", "float" => "double", "ulong" => "unsigned long"}
 
-      # Initialize this database with given +path+, +element_size+
+      # Initialize this store with given +path+, +element_size+
       # and +element_count+.
       #
-      # The database consists of elements of the same size and the same
+      # The store consists of elements of the same size and the same
       # structure. These elements are indexed from 0. The internal
-      # structure of the elements is unknown to the database.
+      # structure of the elements is unknown to the store.
       #
       # The elements consists of fields converted to uint64_t type.
       # The size of an element and the offset of a property is
       # expressed using this type's size as a unit.
       #
-      # The +readonly+ option indicates if the database
+      # The +readonly+ option indicates if the store
       # is opened in readonly state.
       def initialize(path,element_size,element_count,readonly=true)
         unless Fixnum === element_size
@@ -39,7 +39,7 @@ module Rod
         _init(path,page_count,element_size,8,element_count)
       end
 
-      # Write the integer +value+ to the database at +element_offset+
+      # Write the integer +value+ to the store at +element_offset+
       # with +property_offset+.
       #
       # Storing of integers is limited by the architecture of the system.
@@ -53,7 +53,7 @@ module Rod
         _write_integer(element_offset,property_offset,value)
       end
 
-      # Read the integer +value+ from the database at +element_offset+
+      # Read the integer +value+ from the store at +element_offset+
       # with +property_offset+.
       def read_integer(element_offset,property_offset)
         check_read_state()
@@ -61,7 +61,7 @@ module Rod
         _read_integer(element_offset,property_offset)
       end
 
-      # Write the unsgined long +value+ to the database at +element_offset+
+      # Write the unsgined long +value+ to the store at +element_offset+
       # with +property_offset+.
       def write_ulong(element_offset,property_offset,value)
         raise InvalidArgument.new(value,"ulong") unless Integer === value
@@ -71,7 +71,7 @@ module Rod
         _write_ulong(element_offset,property_offset,value)
       end
 
-      # Read the unsigned long +value+ from the database at +element_offset+
+      # Read the unsigned long +value+ from the store at +element_offset+
       # with +property_offset+.
       def read_ulong(element_offset,property_offset)
         check_read_state()
@@ -79,7 +79,7 @@ module Rod
         _read_ulong(element_offset,property_offset)
       end
 
-      # Write the float +value+ to the database at +element_offset+
+      # Write the float +value+ to the store at +element_offset+
       # with +property_offset+.
       def write_float(element_offset,property_offset,value)
         raise InvalidArgument.new(value,"float") unless Numeric === value
@@ -88,7 +88,7 @@ module Rod
         _write_float(element_offset,property_offset,value)
       end
 
-      # Read the float +value+ from the database at +element_offset+
+      # Read the float +value+ from the store at +element_offset+
       # with +property_offset+.
       def read_float(element_offset,property_offset)
         check_read_state()
@@ -97,10 +97,10 @@ module Rod
       end
 
       class << self
-        # The definition of the database struct.
+        # The definition of the store struct.
         def struct
           str =<<-END
-          |typedef struct flexible_database_struct {
+          |typedef struct store_struct_struct {
           |  uint64_t *     data;
           |  char *         empty_data;
           |  int            file;
@@ -109,7 +109,7 @@ module Rod
           |  size_t         unit_size;
           |  unsigned long  element_count;
           |  char *         path;
-          |} database_struct;
+          |} store_struct;
           END
           Utils.remove_margin(str)
         end
@@ -129,7 +129,7 @@ module Rod
         builder.include '<stdint.h>'
 
         builder.prefix(struct)
-        builder.prefix(database_error)
+        builder.prefix(store_error)
         builder.prefix(open_file_definition)
         builder.prefix(close_file_definition)
         builder.prefix(allocated_pages_definition)
@@ -137,7 +137,7 @@ module Rod
         builder.prefix(map_data_definition)
         builder.prefix(unmap_data_definition)
         builder.prefix(grow_file_definition)
-        builder.prefix(free_database_definition)
+        builder.prefix(free_store_definition)
 
         builder.c_singleton(allocate_definition)
 
@@ -154,13 +154,13 @@ module Rod
 
         str =<<-END
         |/*
-        |* Returns the size of elements in the database.
+        |* Returns the size of elements in the stroe.
         |*/
         |unsigned long _element_size(){
-        |  database_struct * database;
+        |  store_struct * store;
         |
-        |  Data_Get_Struct(self,database_struct,database);
-        |  return database->element_size;
+        |  Data_Get_Struct(self,store_struct,store);
+        |  return store->element_size;
         |}
         END
         builder.c(Utils.remove_margin(str))
@@ -168,7 +168,7 @@ module Rod
         TYPES.each do |name,cname|
           str =<<-END
           |/*
-          |* Write a(n) #{name} to the database.
+          |* Write a(n) #{name} to the store.
           |*/
           |void _write_#{name}(unsigned long element_offset,unsigned long property_offset,
           |       #{cname} value){
@@ -176,8 +176,12 @@ module Rod
           |    uint64_t as_uint;
           |    #{cname} as_value;
           |  };
-          |  database_struct * database;
+          |  store_struct * store;
+          |#ifdef __BYTE_ORDER
+          |#  if __BYTE_ORDER == __BIG_ENDIAN
           |  uint64_t as_uint;
+          |#  endif
+          |#endif
           |  union data_union data;
           |
           |  data.as_uint = 0;
@@ -190,8 +194,8 @@ module Rod
           |#  endif
           |#endif
           |
-          |  Data_Get_Struct(self,database_struct,database);
-          |  database->data[element_offset*database->element_size+property_offset] =
+          |  Data_Get_Struct(self,store_struct,store);
+          |  store->data[element_offset*store->element_size+property_offset] =
           |    data.as_uint;
           |}
           END
@@ -199,7 +203,7 @@ module Rod
 
           str =<<-END
           |/*
-          |* Read a(n) #{name} from the database.
+          |* Read a(n) #{name} from the store.
           |*/
           |#{cname} _read_#{name}(unsigned long element_offset,
           |                       unsigned long property_offset){
@@ -207,13 +211,17 @@ module Rod
           |    uint64_t as_uint;
           |    #{cname} as_value;
           |  };
-          |  database_struct * database;
+          |  store_struct * store;
+          |#ifdef __BYTE_ORDER
+          |#  if __BYTE_ORDER == __BIG_ENDIAN
           |  uint64_t as_uint;
+          |#  endif
+          |#endif
           |  union data_union data;
           |
-          |  Data_Get_Struct(self,database_struct,database);
+          |  Data_Get_Struct(self,store_struct,store);
           |
-          |  data.as_uint = database->data[element_offset*database->element_size+property_offset];
+          |  data.as_uint = store->data[element_offset*store->element_size+property_offset];
           |#ifdef __BYTE_ORDER
           |#  if __BYTE_ORDER == __BIG_ENDIAN
           |  // TODO #220 #221

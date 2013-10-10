@@ -2,15 +2,15 @@
 
 require 'bundler/setup'
 require 'minitest/autorun'
-require_relative '../../lib/rod/native/flexible_database'
-require_relative '../../lib/rod/exception'
+require 'rod/native/sequence_store'
+require 'rod/exception'
 require_relative '../spec_helper'
 
 module Rod
   module Native
-    describe FlexibleDatabase do
-      subject                     { FlexibleDatabase.new(path,element_count,readonly) }
-      let(:path)                  { "tmp/native_flexible_database.rod" }
+    describe SequenceStore do
+      subject                     { SequenceStore.new(path,element_count,readonly) }
+      let(:path)                  { "tmp/native_sequence_store.rod" }
       let(:element_count)         { 100 }
       let(:readonly)              { false }
 
@@ -18,24 +18,28 @@ module Rod
         subject.wont_be :opened?
       end
 
+      it "returns its elements count" do
+        subject.element_count.must_equal element_count
+      end
+
       it "doesn't accept nil path" do
-        (->(){ FlexibleDatabase.new(nil,element_count,readonly)}).must_raise InvalidArgument
+        (->(){ SequenceStore.new(nil,element_count,readonly)}).must_raise InvalidArgument
       end
 
       it "doesn't accept non-string path" do
-        (->(){ FlexibleDatabase.new(10,element_count,readonly)}).must_raise InvalidArgument
+        (->(){ SequenceStore.new(10,element_count,readonly)}).must_raise InvalidArgument
       end
 
       it "doesn't accept nil element_count" do
-        (->(){ FlexibleDatabase.new(path,nil,readonly)}).must_raise InvalidArgument
+        (->(){ SequenceStore.new(path,nil,readonly)}).must_raise InvalidArgument
       end
 
       it "doesn't accept non-numeric element_count" do
-        (->(){ FlexibleDatabase.new(path,"abc",readonly)}).must_raise InvalidArgument
+        (->(){ SequenceStore.new(path,"abc",readonly)}).must_raise InvalidArgument
       end
 
       it "doesn't accept negative element_count" do
-        (->(){ FlexibleDatabase.new(path,-1,readonly)}).must_raise InvalidArgument
+        (->(){ SequenceStore.new(path,-1,readonly)}).must_raise InvalidArgument
       end
 
       it "must allow to open itself" do
@@ -132,6 +136,7 @@ module Rod
           subject.allocate_elements(new_elements_count)
           subject.write_bytes(new_elements_count + element_count - 1,"t")
           subject.read_bytes(new_elements_count + element_count - 1,1).must_equal "t"
+          subject.element_count.must_equal new_elements_count + element_count
         end
       end
 
@@ -141,6 +146,7 @@ module Rod
           subject.allocate_elements(new_elements_count)
           subject.write_bytes(new_elements_count + element_count - 1,"g")
           subject.read_bytes(new_elements_count + element_count - 1,1).must_equal "g"
+          subject.element_count.must_equal new_elements_count + element_count
         end
       end
     end
