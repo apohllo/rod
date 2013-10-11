@@ -71,8 +71,8 @@ task :spec do
   sh "ruby spec/berkeley/database.rb"
   sh "ruby spec/berkeley/transaction.rb"
 
-  sh "ruby spec/native/fixed_database.rb"
-  sh "ruby spec/native/flexible_database.rb"
+  sh "ruby spec/native/structure_store.rb"
+  sh "ruby spec/native/sequence_store.rb"
 
   sh "ruby spec/database/accessor/float_accessor.rb"
   sh "ruby spec/database/accessor/integer_accessor.rb"
@@ -81,6 +81,8 @@ task :spec do
   sh "ruby spec/database/accessor/string_accessor.rb"
   sh "ruby spec/database/accessor/json_accessor.rb"
   sh "ruby spec/database/accessor/ulong_accessor.rb"
+
+  sh "ruby spec/model/virtus_adapter.rb"
   
   sh "ruby spec/database/metadata.rb"
   sh "ruby spec/database/resource_metadata/resource.rb"
