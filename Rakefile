@@ -74,13 +74,13 @@ task :spec do
   sh "ruby spec/native/structure_store.rb"
   sh "ruby spec/native/sequence_store.rb"
 
-  sh "ruby spec/database/accessor/float_accessor.rb"
-  sh "ruby spec/database/accessor/integer_accessor.rb"
-  sh "ruby spec/database/accessor/object_accessor.rb"
-  sh "ruby spec/database/accessor/singular_accessor.rb"
-  sh "ruby spec/database/accessor/string_accessor.rb"
-  sh "ruby spec/database/accessor/json_accessor.rb"
-  sh "ruby spec/database/accessor/ulong_accessor.rb"
+  sh "ruby spec/accessor/float_accessor.rb"
+  sh "ruby spec/accessor/integer_accessor.rb"
+  sh "ruby spec/accessor/object_accessor.rb"
+  sh "ruby spec/accessor/singular_accessor.rb"
+  sh "ruby spec/accessor/string_accessor.rb"
+  sh "ruby spec/accessor/json_accessor.rb"
+  sh "ruby spec/accessor/ulong_accessor.rb"
 
   sh "ruby spec/model/virtus_adapter.rb"
   
@@ -122,4 +122,9 @@ task :init_tests do
   else
     sh "mkdir tmp"
   end
+end
+
+desc "Compute ctags for vim"
+task :ctags do
+  sh "ctags -R -h rb ."
 end
