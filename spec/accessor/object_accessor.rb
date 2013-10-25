@@ -7,11 +7,10 @@ require_relative '../spec_helper'
 module Rod
   module Accessor
     describe ObjectAccessor do
-      subject               { ObjectAccessor.new(property,database,bytes_database) }
+      subject               { ObjectAccessor.new(property,database,bytes_database,property_offset) }
       let(:database)        { Object.new }
       let(:bytes_database)  { Object.new }
       let(:property)        { stub(property=Object.new).name { property_name }
-                              stub(property).offset { property_offset }
                               stub(property).reader { property_name }
                               stub(property).writer { property_name_equals }
                               property

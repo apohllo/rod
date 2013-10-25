@@ -5,10 +5,12 @@ module Rod
     # given resource might be connected to many databasese. It abstracts
     # the data access method.
     class Base
-      # Creates an accessor for the +property+ connected with the +database+.
-      def initialize(property,database)
+      # Creates an accessor for the +property+ connected with the +database+
+      # with the given +offset+.
+      def initialize(property,database,offset)
         @property = property
         @database = database
+        @offset = offset
       end
 
       protected

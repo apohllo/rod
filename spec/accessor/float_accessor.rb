@@ -7,7 +7,7 @@ require_relative '../spec_helper'
 module Rod
   module Accessor
     describe FloatAccessor do
-      subject               { FloatAccessor.new(property,database) }
+      subject               { FloatAccessor.new(property,database,property_offset) }
       let(:database)        { Object.new }
       let(:float_value)     { 1.1 }
       let(:property_offset) { 0 }
@@ -16,7 +16,6 @@ module Rod
                               object
       }
       let(:property)        { stub(property=Object.new).name { property_name }
-                              stub(property).offset { property_offset }
                               stub(property).reader { property_name }
                               stub(property).writer { property_name_equals }
                               property

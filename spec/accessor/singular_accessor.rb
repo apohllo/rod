@@ -8,7 +8,7 @@ module Rod
   module Accessor
     describe SingularAccessor do
       subject               { SingularAccessor.new(property,database,
-                                                   resource_space,update_factory) }
+                                                   resource_space,update_factory,property_offset) }
       let(:resource_space)  { Object.new }
       let(:update_factory)  { Object.new }
       let(:object)          { mock(object=Object.new).rod_id.times(any_times) { rod_id }
@@ -16,7 +16,6 @@ module Rod
                               object
       }
       let(:property)        { stub(property=Object.new).name { property_name }
-                              stub(property).offset { property_offset }
                               stub(property).reader { property_name }
                               stub(property).writer { property_name_equals }
                               stub(property).polymorphic? { false }

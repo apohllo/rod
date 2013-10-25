@@ -11,8 +11,8 @@ module Rod
       # The +resource_space+ is used to retrieve polymorphic associations
       # while the +updater_factory+ is used to create updaters when
       # the associated object is not yet stored in the database.
-      def initialize(property,database,resource_space,updater_factory)
-        super(property,database)
+      def initialize(property,database,resource_space,updater_factory,offset)
+        super(property,database,offset)
         @resource_space = resource_space
         @updater_factory = updater_factory
       end
@@ -21,8 +21,7 @@ module Rod
       def save(object)
         other = read_property(object)
         rod_id = other.nil? ? 0 : other.rod_id
-        updater = ->(){ @database.write_ulong(object_offset(object),
-                                              @property.offset,rod_id) }
+        updater = ->(){ @database.write_ulong(object_offset(object),@offset,rod_id) }
         if other && other.new?
           @resource_space.database_for(other.resource,@database).
             register_updater(other,updater)
@@ -30,21 +29,20 @@ module Rod
           updater.call
         end
         if @property.polymorphic?
-          @database.write_ulong(object_offset(object),@property.offset+1,
+          @database.write_ulong(object_offset(object),@offset+1,
                                 @resource_space.name_hash(other.resource))
         end
       end
 
       # Load the value of the property of the +object+ from the database.
       def load(object)
-        rod_id = @database.read_ulong(object_offset(object),@property.offset)
+        rod_id = @database.read_ulong(object_offset(object),@offset)
         if rod_id == 0
           write_property(object,nil)
         else
           resource =
             if @property.polymorphic?
-              resource_hash = @database.
-                read_ulong(object_offset(object),@property.offset+1)
+              resource_hash = @database.read_ulong(object_offset(object),@offset+1)
               @resource_space.get(resource_hash)
             else
               @property.resource

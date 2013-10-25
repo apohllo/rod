@@ -20,14 +20,14 @@ module Rod
         collection = read_property(object)
         collection.save
         rod_id = other.nil? ? 0 : other.rod_id
-        @database.write_ulong(object_offset(object),@property.offset,collection.size)
-        @database.write_ulong(object_offset(object),@property.offset+1,collection.offset)
+        @database.write_ulong(object_offset(object),@offset,collection.size)
+        @database.write_ulong(object_offset(object),@offset+1,collection.offset)
       end
 
       # Load the value of the property of the +object+ from the database.
       def load(object)
-        size = @database.read_ulong(object_offset(object),@property.offset)
-        offset = @database.read_ulong(object_offset(object),@property.offset+1)
+        size = @database.read_ulong(object_offset(object),@offset)
+        offset = @database.read_ulong(object_offset(object),@offset+1)
         resource = @property.polymorphic? ? property.resource : nil
         @collection_factory.new(size,offset,database,resource)
       end
