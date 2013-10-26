@@ -1,15 +1,21 @@
 Feature: Store and load small amount of data from one class
   In order to ensure basic functionality, ROD should
   allow to store and load data for one simple class.
-  Background:
-    Given the library works in development mode
 
+  @wip
   Scenario: class with one field
       Rod should allow to store in the DB instances of a class with one field
     Given the class space is cleared
-    And the model is connected with the default database
-    And a class Caveman has a name field of type string
-    When database is created
+    And the default database is initialized
+    And the following class is defined:
+      """
+      class Caveman
+        include Rod.resource
+
+        attribute :name, String
+      end
+      """
+    When the database is created
     And I create a Caveman
     And his name is 'Fred'
     And I store him in the database
@@ -33,16 +39,23 @@ Feature: Store and load small amount of data from one class
       Rod should allow to store in the DB instances of a class
       having fields of each type
     Given the class space is cleared
-    And the model is connected with the default database
-    And a class Caveman has a name field of type string
-    And a class Caveman has an age field of type integer
-    And a class Caveman has an identifier field of type ulong
-    And a class Caveman has a height field of type float
-    And a class Caveman has a account_balance field of type float
-    And a class Caveman has a symbol field of type object
-    And a class Caveman has a empty_string field of type string
-    And a class Caveman has a empty_object field of type object
-    When database is created
+    And the default database is initialized
+    And the following class is defined:
+      """
+      class Caveman
+        include Rod.resource
+
+        attribute :name, String
+        attribute :age, Integer
+        attribute :identifier, Integer
+        attribute :height, Float
+        attribute :account_balance, Float
+        attribute :symbol, Symbol
+        attribute :empty_string, String
+        attribute :empty_symbol, Symbol
+      end
+      """
+    When the database is created
     And I create a Caveman
     And his name is 'Fred'
     And his age is '25'
@@ -66,15 +79,22 @@ Feature: Store and load small amount of data from one class
     And the account_balance of the first Caveman should be '-0.00000001'
     And the symbol of the first Caveman should be ':fred'
     And the empty_string of the first Caveman should be ''
-    And the empty_object of the first Caveman should be nil
+    And the empty_symbol of the first Caveman should be nil
 
   Scenario: instance with string containing 0
       Rod should allow to store in the DB string values
       containing characters equal to 0 (not the number but value)
     Given the class space is cleared
-    And the model is connected with the default database
-    And a class Caveman has a name field of type string
-    When database is created
+    And the default database is initialized
+    And the following class is defined:
+      """
+      class Caveman
+        include Rod.resource
+
+        attribute :name, String
+      end
+      """
+    When the database is created
     And I create a Caveman
     And his name is 'Fred\0Fred'
     And I store him in the database
@@ -82,7 +102,7 @@ Feature: Store and load small amount of data from one class
     Then there should be 1 Caveman
     And the name of the first Caveman should be 'Fred\0Fred'
 
-    When database is created
+    When the database is created
     And I create a Caveman
     And his name is 'Fred\0' multiplied 30000 times
     And I store him in the database
@@ -94,12 +114,19 @@ Feature: Store and load small amount of data from one class
       Rod should allow to read values of initialized fields of instances, before and after
       the instance is stored to the DB.
     Given the class space is cleared
-    And the model is connected with the default database
-    And a class Caveman has a name field of type string
-    And a class Caveman has an age field of type integer
-    And a class Caveman has an identifier field of type ulong
-    And a class Caveman has a height field of type float
-    When database is created
+    And the default database is initialized
+    And the following class is defined:
+      """
+      class Caveman
+        include Rod.resource
+
+        attribute :name, String, :default => ""
+        attribute :age, Integer, :default => 0
+        attribute :identifier, Integer, :default => 0
+        attribute :height, Float, :default => 0.0
+      end
+      """
+    When the database is created
     And I create a Caveman
     And his name is 'Fred'
     And his age is '25'
@@ -110,7 +137,7 @@ Feature: Store and load small amount of data from one class
     And his identifier should be '111222333'
     And his height should be '1.86'
 
-    When database is created
+    When the database is created
     And I create a Caveman
     And his name is 'Fred'
     And I store him in the database
@@ -124,15 +151,25 @@ Feature: Store and load small amount of data from one class
       Rod should allow to read values of uninitialized fields of instances,
       before the instance is stored to the DB.
     Given the class space is cleared
-    And the model is connected with the default database
-    And a class Item has an name field of type string
-    And a class Caveman has a name field of type string
-    And a class Caveman has an age field of type integer
-    And a class Caveman has an identifier field of type ulong
-    And a class Caveman has a height field of type float
-    And a class Caveman has a symbol field of type object
-    And a class Caveman has one item
-    And a class Caveman has many items
+    And the default database is initialized
+    And the following classes are defined:
+      """
+      class Item
+        include Virtus
+      end
+
+      class Caveman
+        include Rod.resource
+
+        attribute :name, String, :default => ""
+        attribute :age, Integer, :default => 0
+        attribute :identifier, Integer, :default => 0
+        attribute :height, Float, :default => 0.0
+        attribute :symbol, Symbol
+        attribute :item, Item
+        attribute :items, Array[Item]
+      end
+      """
     When database is created
     And I create a Caveman
     And I fetch the first Caveman created
@@ -150,8 +187,15 @@ Feature: Store and load small amount of data from one class
       It should also impose referential integrity for objects
       which are accessed via their indices.
     Given the class space is cleared
-    And the model is connected with the default database
-    And a class Caveman has a name field of type string
+    And the default database is initialized
+    And the following class is defined:
+      """
+      class Caveman
+        include Rod.resource
+
+        attribute :name, String
+      end
+      """
     When database is created
     And I create a Caveman
     And his name is 'Fred'
@@ -163,8 +207,15 @@ Feature: Store and load small amount of data from one class
   Scenario: model without instances
       A model without instances should be treated fine.
     Given the class space is cleared
-    And the model is connected with the default database
-    And a class Caveman has a name field of type string with flat index
+    And the default database is initialized
+    And the following class is defined:
+      """
+      class Caveman
+        include Rod.resource
+
+        attribute :name, String
+      end
+      """
     When database is created
     And I reopen database for reading
     Then there should be 0 Caveman(s)
@@ -172,9 +223,21 @@ Feature: Store and load small amount of data from one class
   Scenario: model without instances with indexed field
       A model without instances but with indexed field should be treated fine.
     Given the class space is cleared
-    And the model is connected with the default database
-    And a class Caveman has a name field of type string with flat index
-    And a class Automobile has a name field of type string with flat index
+    And the default database is initialized
+    And the following classes are defined:
+      """
+      class Caveman
+        include Rod.resource
+
+        attribute :name, String, :index => :hash
+      end
+
+      class Automobile
+        include Rod.resource
+
+        attribute :name, String, :index => :hash
+      end
+      """
     When database is created
     And I create a Caveman
     And his name is 'Fred'
@@ -187,9 +250,16 @@ Feature: Store and load small amount of data from one class
       A new instance of a model should accept hash of key-value pairs,
       used to initialize its fields.
     Given the class space is cleared
-    And the model is connected with the default database
-    And a class Caveman has a name field of type string
-    And a class Caveman has a surname field of type string
+    And the default database is initialized
+    And the following class is defined:
+      """
+      class Caveman
+        include Rod.resource
+
+        attribute :name, String
+        attribute :surname, String
+      end
+      """
     When database is created
     And I create a Caveman with 'Fred' name and 'Flintstone' surname
     And I store him in the database
@@ -199,4 +269,4 @@ Feature: Store and load small amount of data from one class
 
     When database is created
     And I create a Caveman with 'Fred' name and 'Flintstone' age
-    Then Rod::RodException should be raised
+    Then NilClass should be raised

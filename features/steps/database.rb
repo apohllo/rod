@@ -1,42 +1,38 @@
 require File.join(File.dirname(__FILE__),"test_helper")
 
-#$ROD_DEBUG = true
-
-Given /^the library works in development mode$/ do
-  Rod::Database::Base.development_mode = true
+def get_db(db_name)
+  @databases ||= {}
+  case db_name
+  when "database"
+    @databases[:default]
+  else
+    @databases[db_name]
+  end
 end
 
+def initialize_db(db_name)
+  raise "Database already created" if @databases[:db_name]
+  @databases ||= {}
+  @databases[db_name] = Rod::Database::Base.new
+end
+
+
+#$ROD_DEBUG = true
+
+# Given the first_database is created in tmp/tests
 Given /^(?:the )?(\w+) is created(?: in (\S+))?$/ do |db_name,location|
-  get_db(db_name).instance.close_database if get_db(db_name).instance.opened?
+  get_db(db_name).close if get_db(db_name).opened?
   if location
     db_location = location
   else
     db_location = "tmp/#{db_name}"
   end
-  get_db(db_name).instance.create_database(db_location)
+  get_db(db_name).create(db_location)
   @instances = {}
 end
 
-Given /^a class (\w+) is connected to (\w+)$/ do |class_name,db_name|
-  get_class(class_name).send(:database_class,get_class(db_name,:db))
-end
-
-Given /^the class space is cleared$/ do
-  #RodTest::Database.instance.close_database(true) if RodTest::Database.instance.opened?
-  RodTest.constants.each do |constant|
-    klass = RodTest.const_get(constant)
-    if constant.to_s =~ /Database/
-      if klass.instance.opened?
-        klass.instance.close_database(true)
-      end
-    end
-    RodTest.send(:remove_const,constant)
-  end
-  # TODO separate step?
-  default_db = Class.new(Rod::Native::Database)
-  RodTest.const_set("Database",default_db)
-  default_model = Class.new(Rod::Model::Base)
-  RodTest.const_set("TestModel",default_model)
+Given /^the default database is initialized$/ do
+  initialize_db(:default) unless get_db("database")
 end
 
 # Should be split
@@ -47,12 +43,12 @@ When /^I reopen (?:the )?(\w+)( for reading)?(?: in (\S+))?$/ do |db_name,readin
   else
     db_location = "tmp/#{db_name}"
   end
-  get_db(db_name).instance.close_database
-  get_db(db_name).instance.clear_cache
+  get_db(db_name).close
   readonly = reading.nil? ? false : true
-  get_db(db_name).instance.open_database(db_location,readonly)
+  get_db(db_name).open(db_location,readonly: readonly)
 end
 
+# I open the database for reading in tmp/location1
 When /^I open (?:the )?(\w+)( for reading)?(?: in (\S+))?$/ do |db_name,reading,location|
   if location
     db_location = location
