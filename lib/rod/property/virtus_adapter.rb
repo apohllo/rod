@@ -1,5 +1,5 @@
 module Rod
-  module Model
+  module Property
     class VirtusAdapter
       TYPE_MAPPING = Hash.new(:object).merge({
         Integer => :integer,
@@ -7,6 +7,7 @@ module Rod
         String => :string
       }).freeze
 
+      # Convert Virtus +attribute+ to appropriate call on the +resource+.
       def convert_attribute(attribute,resource)
         options = attribute.options
         if options[:primitive] < Virtus || options[:primitive] == Object

@@ -64,7 +64,7 @@ module Rod
 
       # Returns true if the property has an index.
       def has_index?
-        !@options[:index].nil?
+        !!@options[:index]
       end
 
       # Get rid of the index that is associated with this property.
@@ -96,13 +96,44 @@ module Rod
         end
       end
 
-      protected
-      # The name of the file or directory (for given +relative_path+), where
-      # the data of the property (e.g. index) is stored.
-      def path(relative_path)
-        "#{relative_path}#{@klass.model_path}_#{@name}"
+      # Returns the size of the property in basic units (byte octets).
+      # The size is the number of byte-octets that are require to store
+      # the information from the property or at least its meta-data (e.g. offset
+      # and length in case of strings).
+      def size
+        raise RodException.new("Implement #{__method__} for #{self.class}")
       end
 
+      # Returns the accessor object used to access the property values in the
+      # given +database+ with the given +offset+.
+      def accessor(database,offset)
+        raise RodException.new("Implement #{__method__} for #{self.class}")
+      end
+
+      # Returns the updater object used to update an index if the property
+      # changes.
+      def updater(database,offset)
+        raise RodException.new("Implement #{__method__} for #{self.class}")
+      end
+
+      # Returns the name of the method (i.e. symbol) that is used to read the
+      # property.
+      def reader
+        @reader ||= self.name.to_sym
+      end
+
+      # Returns the name of the method (i.e. symbol) that is used to write the
+      # property.
+      def writer
+        @writer ||= "#{self.name}=".to_sym
+      end
+
+      # Detailed string representation of the property.
+      def inspect
+        "#{self.class}<#{@klass}:#{self.name}:#{@options}>"
+      end
+
+      protected
       # Checks if the property +name+ is valid.
       def check_name(name)
         if !name.is_a?(Symbol) || name.to_s.empty? || INVALID_NAMES.has_key?(name)
@@ -113,84 +144,6 @@ module Rod
       # Checks if the +klass+ is valid class for the property.
       def check_class(klass)
         raise InvalidArgument.new(klass,"class") if klass.nil?
-      end
-
-      # Reads the value of a field +name+ of the C struct +struct_name+
-      # that corresponds to given Ruby object. The C +result_type+
-      # of the result has to be specified.
-      def field_reader(name,struct_name,result_type,builder)
-        str =<<-END
-        |#{result_type} _#{name}(unsigned long object_rod_id){
-	|  VALUE klass;
-	|  #{struct_name} * pointer;
-        |  uint64_t as_uint;
-        |  uint64_t result_swapped;
-        |
-        |  if(object_rod_id == 0){
-        |    rb_raise(rodException(), "Invalid object rod_id (0)");
-        |  }
-        |  klass = rb_funcall(self,rb_intern("class"),0);
-        |  pointer = (#{struct_name} *)
-        |    NUM2ULONG(rb_funcall(klass,rb_intern("rod_pointer"),0));
-        |#ifdef __BYTE_ORDER
-        |#  if __BYTE_ORDER == __BIG_ENDIAN
-        |  // This code assumes that all values are 64 bit wide. This is not true
-        |  // on 32-bit systems but is addressed in #221
-        |  as_uint = (pointer + object_rod_id - 1)->#{name};
-        |  result_swapped = bswap_64(*((uint64_t *)((char *)&as_uint)));
-        |  return *(#{result_type} *)((char *)&result_swapped);
-        |#  else
-        |  return (pointer + object_rod_id - 1)->#{name};
-        |#  endif
-        |#else
-        |  return (pointer + object_rod_id - 1)->#{name};
-        |#endif
-        |}
-        END
-        builder.c(Utils.remove_margin(str))
-      end
-
-      # Writes the value of a field +name+ of the C struct +struct_name+
-      # that corresponds to given Ruby object. The C +arg_type+
-      # of the argument has to be specified.
-      def field_writer(name,struct_name,arg_type,builder)
-        str =<<-END
-        |void _#{name}_equals(unsigned long object_rod_id,#{arg_type} value){
-        |  VALUE klass;
-        |  #{struct_name} * pointer;
-        |  uint64_t value_swapped;
-        |
-        |  if(object_rod_id == 0){
-        |    rb_raise(rodException(), "Invalid object rod_id (0)");
-        |  }
-        |  klass = rb_funcall(self,rb_intern("class"),0);
-        |  pointer = (#{struct_name} *)
-        |    NUM2ULONG(rb_funcall(klass,rb_intern("rod_pointer"),0));
-        |#ifdef __BYTE_ORDER
-        |#  if __BYTE_ORDER == __BIG_ENDIAN
-        |  // TODO #220 #221
-        |  value_swapped = bswap_64(*((uint64_t *)((char *)&value)));
-        |  (pointer + object_rod_id - 1)->#{name} = value_swapped;
-        |#  else
-        |  (pointer + object_rod_id - 1)->#{name} = value;
-        |#  endif
-        |#else
-        |  (pointer + object_rod_id - 1)->#{name} = value;
-        |#endif
-        |}
-        END
-        builder.c(Utils.remove_margin(str))
-      end
-
-      # Returns the size of the C type.
-      def sizeof(type)
-        # TODO implement
-        0
-      end
-
-      # Returns the C type for given Rod type.
-      def c_type(type)
-        TYPE_MAPPING[type]
       end
     end
   end

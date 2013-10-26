@@ -79,41 +79,6 @@ module Rod
         VARIABLE_TYPES.include?(@type)
       end
 
-      # Dumps the +value+ of the field according to its type.
-      def dump(value)
-        case @type
-        when :object
-          Marshal.dump(value)
-        when :json
-          JSON.dump([value])
-        when :string
-          # TODO the encoding should be stored in the DB
-          # or configured globally
-          value.encode("utf-8")
-        when :ulong
-          raise InvalidArgument.new(value,"ulong") if value < 0
-          value
-        else
-          value
-        end
-      end
-
-      # Loads the +value+ of the field according to its type.
-      def load(value)
-        return value unless variable_size?
-        case @type
-        when :object
-          value.force_encoding("ascii-8bit")
-          value = Marshal.load(value) rescue nil
-        when :json
-          value.force_encoding("ascii-8bit")
-          value = JSON.load(value).first rescue nil
-        when :string
-          value.force_encoding("utf-8")
-        end
-        value
-      end
-
       # Returns true if the field is used to identify the objects.
       def identifier?
         @name == IDENTIFIER
@@ -128,135 +93,39 @@ module Rod
         end
       end
 
-      # Converts the field to fields in a C struct.
-      def to_c_struct
-        unless variable_size?
-          str = <<-SUBEND
-          |#ifdef __BYTE_ORDER
-          |#  if __BYTE_ORDER == __BIG_ENDIAN
-          |  uint64_t #{@name};
-          |#  else
-          |  #{c_type(@type)} #{@name};
-          |#  endif
-          |#else
-          |  #{c_type(@type)} #{@name};
-          |#endif
-          SUBEND
-          Utils.remove_margin(str)
+      # The size of the filed data in byte-octets.
+      def size
+        if variable_size?
+          2
         else
-          "  #{c_type(:ulong)} #{@name}_length;\n" +
-            "  #{c_type(:ulong)} #{@name}_offset;\n"
+          1
         end
       end
 
-      # Defines the accessor of the field's constituents
-      # (C struct field/fields that hold the field data).
-      def define_c_accessors(builder)
-        unless variable_size?
-          field_reader(@name,@klass.struct_name,c_type(@type),builder)
-          field_writer(@name,@klass.struct_name,c_type(@type),builder)
+      # The accessor of the field associated with the given +container+.
+      def accessor(container,offset)
+        case self.type
+        when :integer
+          Accessor::IntegerAccessor.new(self,container.structures,offset)
+        when :ulong
+          Accessor::UlongAccessor.new(self,container.structures,offset)
+        when :float
+          Accessor::FloatAccessor.new(self,container.structures,offset)
+        when :string
+          Accessor::StringAccessor.new(self,container.structures,container.sequences,offset)
+        when :json
+          Accessor::JsonAccessor.new(self,container.structures,container.sequences,offset)
+        when :object
+          Accessor::ObjectAccessor.new(self,container.structures,container.sequences,offset)
         else
-          field_reader("#{@name}_length",@klass.struct_name,c_type(:ulong),builder)
-          field_reader("#{@name}_offset",@klass.struct_name,c_type(:ulong),builder)
-          field_writer("#{@name}_length",@klass.struct_name,c_type(:ulong),builder)
-          field_writer("#{@name}_offset",@klass.struct_name,c_type(:ulong),builder)
+          raise RodException.new("Type #{self.type} doesn't have an implementation of the accessor yet.")
         end
       end
 
-      # Make the C accessors private.
-      def seal_c_accessors
-        unless variable_size?
-          @klass.send(:private,"_#{@name}")
-          @klass.send(:private,"_#{@name}=")
-        else
-          @klass.send(:private,"_#{@name}_length")
-          @klass.send(:private,"_#{@name}_length=")
-          @klass.send(:private,"_#{@name}_offset")
-          @klass.send(:private,"_#{@name}_offset=")
-        end
-      end
-
-      # Defines the getter of the Ruby class which corresponds to this field.
-      def define_getter
-        field = @name.to_s
-        unless variable_size?
-          @klass.send(:define_method,field) do
-            value = instance_variable_get("@#{field}")
-            if value.nil?
-              if self.new?
-                value = nil
-              else
-                value = send("_#{field}",@rod_id)
-              end
-              instance_variable_set("@#{field}",value)
-            end
-            value
-          end
-        else
-          is_object = @type != :string
-          type = @type
-          property = self
-          database = @klass.database
-          @klass.send(:define_method,field) do
-            value = instance_variable_get("@#{field}")
-            if value.nil? # first call
-              if self.new?
-                return (is_object ? nil : "")
-              else
-                length = send("_#{field}_length", @rod_id)
-                if length == 0
-                  return (is_object ? nil : "")
-                end
-                offset = send("_#{field}_offset", @rod_id)
-                read_options = {}
-                if is_object
-                  read_options[:skip_encoding] = true
-                end
-                value = database.read_string(length, offset)
-                value = property.load(value)
-                # caching Ruby representation
-                # don't use setter - avoid change tracking
-                instance_variable_set("@#{field}",value)
-              end
-            end
-            value
-          end
-        end
-      end
-
-      # Defines the settor of the Ruby class which corresponds to this field.
-      def define_setter
-        # optimization
-        field = @name.to_s
-        @klass.send(:define_method,"#{field}=") do |value|
-          old_value = send(field)
-          send("#{field}_will_change!") unless old_value == value
-          instance_variable_set("@#{field}",value)
-          value
-        end
-      end
-
-      # Returns the memory layout of the C struct fields that
-      # correspond to this field.
-      def layout
-        unless variable_size?
-          "#{@name}[value:#{sizeof(@type)}]"
-        else
-          "#{@name}[length:#{sizeof(:ulong)}+" +
-            "offset:#{sizeof(:ulong)}]"
-        end
-      end
-
-      # Updates in the DB this field to the actual value of the +subject+.
-      def update(subject)
-        if self.variable_size?
-          value = self.dump(subject.__send__(self.name))
-          length, offset = subject.database.set_string(value)
-          subject.__send__("_#{self.name}_length=",subject.rod_id,length)
-          subject.__send__("_#{self.name}_offset=",subject.rod_id,offset)
-        else
-          subject.__send__("_#{self.name}=",subject.rod_id,subject.__send__(self.name))
-        end
+      # Returns the updater object used to update an index if the property
+      # changes.
+      def updater(index)
+        Index::FieldUpdater.new(self,index)
       end
 
       protected

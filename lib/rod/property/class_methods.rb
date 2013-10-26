@@ -60,7 +60,7 @@ module Rod
       def fields
         @fields ||= superclass.fields.map{|p| p.copy(self)}
       rescue NoMethodError
-        @fields = [Property::Field.new(self,:rod_id,:ulong)]
+        @fields = []
       end
 
       # Returns singular associations of this class.
@@ -92,6 +92,11 @@ module Rod
       # Returns (and caches) only properties which are indexed.
       def indexed_properties
         @indexed_properties ||= self.properties.select{|p| p.options[:index]}
+      end
+
+      # Returns the indices of the resource.
+      def indices
+        indexed_properties.map{|p| p.index}
       end
     end
   end

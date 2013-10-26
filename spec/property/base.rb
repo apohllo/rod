@@ -28,14 +28,6 @@ describe Rod::Property::Base do
       @field.to_hash.wont_be_nil
     end
 
-    it "must covert to C struct" do
-      @field.to_c_struct.wont_be_nil
-    end
-
-    it "must produce its layout" do
-      @field.layout.wont_be_nil
-    end
-
     it "must not have an index" do
       @field.has_index?.wont_equal true
     end
@@ -52,6 +44,7 @@ describe Rod::Property::Base do
     end
 
     it "must return an index" do
+      skip
       stub(database = Object.new).path {"path"}
       stub(@klass).database {database}
       stub(@klass).model_path {"model_path"}
@@ -59,6 +52,7 @@ describe Rod::Property::Base do
     end
 
     it "must define finders" do
+      skip
       database = stub
       stub(database).path {"path"}
       stub(@klass).database {database}
