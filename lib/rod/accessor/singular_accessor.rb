@@ -11,9 +11,10 @@ module Rod
       # The +resource_space+ is used to retrieve polymorphic associations
       # while the +updater_factory+ is used to create updaters when
       # the associated object is not yet stored in the database.
-      def initialize(property,database,resource_space,updater_factory,offset)
+      def initialize(property,database,offset,resource_space_factory: Model::ResourceSpace,
+                     updater_factory: Model::ReferenceUpdater)
         super(property,database,offset)
-        @resource_space = resource_space
+        @resource_space = resource_space_factory.instance
         @updater_factory = updater_factory
       end
 

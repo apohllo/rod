@@ -7,8 +7,10 @@ require_relative '../spec_helper'
 module Rod
   module Accessor
     describe SingularAccessor do
-      subject               { SingularAccessor.new(property,database,
-                                                   resource_space,update_factory,property_offset) }
+      subject               { SingularAccessor.new(property,database,property_offset,
+                                                   resource_space_factory: resource_space_factory,
+                                                   updater_factory: update_factory) }
+      let(:resource_space_factory)  { stub(space=Object.new).instance { resource_space }.subject }
       let(:resource_space)  { Object.new }
       let(:update_factory)  { Object.new }
       let(:object)          { mock(object=Object.new).rod_id.times(any_times) { rod_id }

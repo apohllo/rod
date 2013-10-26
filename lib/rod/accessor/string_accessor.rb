@@ -8,7 +8,7 @@ module Rod
       protected
       # Dump the value before string it in the database.
       def dump_value(value)
-        value.encode(UTF_8)
+        (value || "").encode(UTF_8)
       end
 
       # Convert back the value loaded from the database.

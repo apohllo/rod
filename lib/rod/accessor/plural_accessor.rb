@@ -10,8 +10,8 @@ module Rod
       #
       # The +collection_factory+ is used to create the collection
       # proxies, i.e. lazy collections of the referenced objects.
-      def initialize(property,database,collection_factory)
-        super(property,database)
+      def initialize(property,database,offset,collection_factory: Berkeley::CollectionProxy)
+        super(property,database,offset)
         @collection_factory = collection_factory
       end
 
@@ -19,7 +19,6 @@ module Rod
       def save(object)
         collection = read_property(object)
         collection.save
-        rod_id = other.nil? ? 0 : other.rod_id
         @database.write_ulong(object_offset(object),@offset,collection.size)
         @database.write_ulong(object_offset(object),@offset+1,collection.offset)
       end
