@@ -1,7 +1,8 @@
 $:.unshift "lib"
 require 'rod/constants'
 
-task :default => [:all_tests]
+#task :default => [:all_tests]
+task :default => [:init_tests,:spec,:features]
 
 $gem_name = "rod"
 
@@ -27,8 +28,7 @@ task :uninstall do
   sh "sudo gem uninstall #$gem_name"
 end
 
-task :all_tests => [:test,:spec,:regression_test,:features] do
-end
+task :all_tests => [:init_tests,:test,:spec,:regression_test,:features]
 
 desc "Run performence tests"
 task :perf do
@@ -66,6 +66,7 @@ task :spec do
   sh "ruby spec/property/field.rb"
   sh "ruby spec/property/singular_association.rb"
   sh "ruby spec/property/plural_association.rb"
+  sh "ruby spec/property/virtus_adapter.rb"
 
   sh "ruby spec/berkeley/environment.rb"
   sh "ruby spec/berkeley/database.rb"
@@ -82,10 +83,9 @@ task :spec do
   sh "ruby spec/accessor/json_accessor.rb"
   sh "ruby spec/accessor/ulong_accessor.rb"
 
-  sh "ruby spec/model/virtus_adapter.rb"
   
-  sh "ruby spec/database/metadata.rb"
-  sh "ruby spec/database/resource_metadata/resource.rb"
+  sh "ruby spec/metadata/metadata.rb"
+  sh "ruby spec/metadata/resource_metadata.rb"
 
 end
 
@@ -97,7 +97,8 @@ end
 
 desc "Run all cucumber features without the ignored ones"
 task :features do
-  sh "bundle exec cucumber --tags ~@ignore features/*"
+  #sh "bundle exec cucumber --tags ~@ignore features/*"
+  sh "bundle exec cucumber --tags ~@ignore features/basic.feature"
 end
 
 desc "Run only work-in-progress features"
