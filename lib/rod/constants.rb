@@ -1,5 +1,5 @@
 module Rod
-  VERSION = "0.7.2"
+  VERSION = "0.7.9"
 
   # Invalid names of fields.
   INVALID_NAMES = {"rod_id" => true}
