@@ -1,11 +1,12 @@
 # encoding: utf-8
-require 'rod/native/base'
+require 'rod/native/store'
 
 module Rod
   module Native
-    # This class is reponsible for writing and reading fixed structures
-    # consising of basic values (int, ulong, float) from/to the storage device.
-    class StructureStore < Base
+    # This class is reponsible for writing and reading structures consising of
+    # basic values (int, ulong, float) in fixed order from/to the storage
+    # device.
+    class StructureStore < Store
       # The mapping of storage function names to the C types.
       TYPES = {"integer" => "int", "float" => "double", "ulong" => "unsigned long"}
 
@@ -21,20 +22,10 @@ module Rod
       # expressed using this type's size as a unit.
       #
       # The +readonly+ option indicates if the store
-      # is opened in readonly state.
+      # is opened in readonly mode.
       def initialize(path,element_size,element_count,readonly=true)
-        unless Fixnum === element_size
-          raise InvalidArgument.new(element_size,"element_size")
-        end
-        if element_size < 0
-          raise InvalidArgument.new(element_size,"element_size")
-        end
-        unless Fixnum === element_count
-          raise InvalidArgument.new(element_count,"element_count")
-        end
-        if element_count < 0
-          raise InvalidArgument.new(element_count,"element_count")
-        end
+        check_element_size(element_size)
+        check_element_count(element_count)
         page_count = super(path,readonly)
         _init(path,page_count,element_size,8,element_count)
       end
@@ -240,10 +231,30 @@ module Rod
       # Throws invalid argument exception if they are not valid.
       def check_offsets(element_offset,property_offset)
         if element_offset >= _element_count || element_offset < 0
-          raise InvalidArgument.new(element_offset,"element offset")
+          raise IndexError.new("Element offset: #{element_offset} out of scope: #{_element_count}")
         end
         if property_offset >= _element_size || property_offset < 0
-          raise InvalidArgument.new(property_offset,"property offset")
+          raise IndexError.new("Property offset: #{property_offset} out of scope: #{_element_size}")
+        end
+      end
+
+      # Ensures +element_size+ is of valid type and value.
+      def check_element_size(element_size)
+        unless Fixnum === element_size
+          raise InvalidArgument.new(element_size,"element_size")
+        end
+        if element_size < 0
+          raise InvalidArgument.new(element_size,"element_size")
+        end
+      end
+
+      # Ensures +element_count+ is of valid type and value.
+      def check_element_count(element_count)
+        unless Fixnum === element_count
+          raise InvalidArgument.new(element_count,"element_count")
+        end
+        if element_count < 0
+          raise InvalidArgument.new(element_count,"element_count")
         end
       end
     end

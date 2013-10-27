@@ -165,23 +165,23 @@ module Rod
 
       it "doesn't store values with invalid element offset" do
         subject.open(:truncate => true) do
-          (->(){ subject.write_integer(element_count,0,1) }).must_raise InvalidArgument
-          (->(){ subject.write_float(element_count,0,1.0) }).must_raise InvalidArgument
-          (->(){ subject.write_ulong(element_count,0,1) }).must_raise InvalidArgument
-          (->(){ subject.write_integer(-1,0,1) }).must_raise InvalidArgument
-          (->(){ subject.write_float(-1,0,1.0) }).must_raise InvalidArgument
-          (->(){ subject.write_ulong(-1,0,1) }).must_raise InvalidArgument
+          (->(){ subject.write_integer(element_count,0,1) }).must_raise IndexError
+          (->(){ subject.write_float(element_count,0,1.0) }).must_raise IndexError
+          (->(){ subject.write_ulong(element_count,0,1) }).must_raise IndexError
+          (->(){ subject.write_integer(-1,0,1) }).must_raise IndexError
+          (->(){ subject.write_float(-1,0,1.0) }).must_raise IndexError
+          (->(){ subject.write_ulong(-1,0,1) }).must_raise IndexError
         end
       end
 
       it "doesn't store values with invalid property offset" do
         subject.open(:truncate => true) do
-          (->(){ subject.write_integer(0,element_size,1) }).must_raise InvalidArgument
-          (->(){ subject.write_float(0,element_size,1.0) }).must_raise InvalidArgument
-          (->(){ subject.write_ulong(0,element_size,1) }).must_raise InvalidArgument
-          (->(){ subject.write_integer(0,-1,1) }).must_raise InvalidArgument
-          (->(){ subject.write_float(0,-1,1.0) }).must_raise InvalidArgument
-          (->(){ subject.write_ulong(0,-1,1) }).must_raise InvalidArgument
+          (->(){ subject.write_integer(0,element_size,1) }).must_raise IndexError
+          (->(){ subject.write_float(0,element_size,1.0) }).must_raise IndexError
+          (->(){ subject.write_ulong(0,element_size,1) }).must_raise IndexError
+          (->(){ subject.write_integer(0,-1,1) }).must_raise IndexError
+          (->(){ subject.write_float(0,-1,1.0) }).must_raise IndexError
+          (->(){ subject.write_ulong(0,-1,1) }).must_raise IndexError
         end
       end
 

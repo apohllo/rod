@@ -1,11 +1,11 @@
 # encoding: utf-8
-require 'rod/native/base'
+require 'rod/native/store'
 
 module Rod
   module Native
-    # This class is reponsible for writing and reading flexible structures
-    # consising of unstructured byte sequences from/to the storage device.
-    class SequenceStore < Base
+    # This class is reponsible for writing and reading data
+    # consisting of unstructured byte sequences from/to the storage device.
+    class SequenceStore < Store
       # Initialize this store with given +path+
       # and +element_count+ (an element is one char).
       #
@@ -135,10 +135,10 @@ module Rod
       # Throws invalid argument exception if at least one of them is invalid.
       def check_offset_and_length(offset,length)
         if offset > _element_count || offset < 0
-          raise InvalidArgument.new(offset,"offset")
+          raise IndexError.new("Byte offset: #{offset} out of scope: #{_element_count}")
         end
         if offset + length > _element_count || length < 0
-          raise InvalidArgument.new(length,"length")
+          raise IndexError.new("Length: #{length} with offset #{offset} out of scope: #{_element_count}")
         end
       end
     end
