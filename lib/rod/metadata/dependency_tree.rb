@@ -1,5 +1,5 @@
 module Rod
-  module Database
+  module Metadata
     # The DependencyTree class represents the dependency
     # between the resources that are stored in a particular
     # database in terms of parent/child relationship

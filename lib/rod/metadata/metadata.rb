@@ -1,8 +1,8 @@
 # encoding: utf-8
-require 'rod/database/dependency_tree'
+require_relative 'dependency_tree'
 
 module Rod
-  module Database
+  module Metadata
     # The meta-data describing the database.
     # These meta-data cover info such as:
     # * the version of the ROD library
@@ -47,7 +47,7 @@ module Rod
         if descriptor
           from_hash(descriptor)
         else
-          initialize_empty
+          initialize_default(database.resources)
         end
       end
 
@@ -98,11 +98,17 @@ module Rod
       def self.load(database,metadata_factory,input_factory=File)
         metadata = nil
         input_factory.open(self.new(database,metadata_factory).path) do |input|
-          metadata = self.new(database,metadata_factory,Time,input)
+          metadata = self.new(database,metadata_factory,Time,YAML.load(input))
         end
         raise IncompatibleVersion.new("Incompatible versions - library #{VERSION} vs. " +
                                       "file #{metadata.version}") unless metadata.valid?
         metadata
+      end
+
+      # Stores the metadata in YAML using the +output_factory+ (File by
+      # default).
+      def store(output_factory=File)
+        File.open(path,"w"){|o| o.puts(YAML.dump(self.to_hash)) }
       end
 
       # Converts itself to hash.
@@ -111,7 +117,7 @@ module Rod
         copy[ROD_KEY][:updated_at] = @clock.now
         copy.each do |key,value|
           next if key == ROD_KEY
-          copy[key] = value.to_hash
+          copy[key] = value.to_hash(@database.container_for(key.constantize))
         end
         copy
       end
@@ -136,6 +142,7 @@ module Rod
         end
       end
 
+=begin
       # Configures the resources connected with the database using
       # the meta-data.
       #
@@ -153,7 +160,7 @@ module Rod
           end
           resource_data.resource = resource
           unless skip_resource_check
-            resource_data.check_compatibility(metadata_factory.build(resource,@database))
+            resource_data.check_compatibility(metadata_factory.new(resource: resource))
           end
           @database.configure_count(resource,resource_data.count)
         end
@@ -171,13 +178,17 @@ module Rod
         add_prefix(prefix) unless prefix.empty?
         dependency_tree.sorted.each{|r| @data[r].generate_resource}
       end
+=end
 
       # Returns the meta-data only for the regular resources
       # (excluding the DB and simple resources meta-data).
       def resources
-        special_names = @database.special_classes.map{|k| k.name}
-        special_names << ROD_KEY
-        Hash[@data.reject{|r,o| special_names.include?(r)}]
+        Hash[@data.reject{|r,o| r == ROD_KEY}]
+      end
+
+      # Returns the metadata for a given +resource+.
+      def resource_metadata(resource)
+        @data[resource.to_s]
       end
 
       # Returns the dependency tree of the resources in the
@@ -208,19 +219,18 @@ module Rod
         @data.each do |key,value|
           next if key == ROD_KEY
           value[:name] = key
-          @data[key] = metadata_factory.new(nil,@database,value)
+          @data[key] = metadata_factory.new(descriptor:value)
         end
       end
 
       # Initialize default metadata.
-      def initialize_empty
+      def initialize_default(resources)
         @data = {}
         @data[ROD_KEY] = {}
         @data[ROD_KEY][:version] = VERSION
         @data[ROD_KEY][:created_at] = @clock.now
-
-        @database.classes.each do |resource|
-          @data[resource.name] = metadata_factory.build(resource,@database)
+        resources.each do |resource|
+          @data[resource.name] = metadata_factory.new(resource:resource)
         end
       end
 
