@@ -75,7 +75,7 @@ module Rod
 
     # Converts the model +name+ to the C struct name.
     def self.struct_name_for(name)
-      name.underscore.gsub(/\//,"__")
+      ActiveSupport::Inflector.underscore(name).gsub(/\//,"__")
     end
   end
 end
