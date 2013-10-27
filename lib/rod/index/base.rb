@@ -105,7 +105,7 @@ module Rod
       # Returns an empty collection proxy. Might be changed
       # in subclasses to provie index-specific collection proxies.
       def empty_collection_proxy(key)
-        CollectionProxy.new(0,@klass.database,0,@klass)
+        proxy = @proxy_factory.new(0,@klass.database,0,@klass)
       end
 
       class << self
