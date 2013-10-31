@@ -82,6 +82,16 @@ module Rod
         _get_first(key)
       end
 
+      # Set the cache size of the index. By default it is 8MB.
+      # The size is given in bytes and have to be a power of 2.
+      def cache_size=(value)
+        raise RodException.new("Cache size cannot be lower than 1") if value < 1
+        if Math::log2(value).to_i != Math::lo2(value)
+          raise RodException.new("Cache size must be power of 2")
+        end
+        _set_cache_size(value)
+      end
+
 
       protected
       # Returns an empty BDB based collection proxy.
@@ -341,7 +351,7 @@ module Rod
         |    flags |= DB_TRUNCATE;
         |  }
         |
-        |  db_pointer->set_cachesize(db_pointer,0,5 * 1024 * 1024,0);
+        |  db_pointer->set_cachesize(db_pointer,0,8 * 1024 * 1024,0);
         |  return_value = db_pointer->open(db_pointer,NULL,path,
         |    NULL,DB_HASH,flags,0);
         |  if(return_value != 0){
@@ -558,6 +568,23 @@ module Rod
         |}
         END
         builder.c(Utils.remove_margin(str))
+
+        str =<<-END
+        |// Set the cache size (in bytes - must be power o 2!).
+        |void _set_cache_size(unsigned int size){
+        |  VALUE handle;
+        |  DB *db_pointer;
+        |
+        |  handle = rb_iv_get(self,"@handle");
+        |  Data_Get_Struct(handle,DB,db_pointer);
+        |  if(db_pointer != NULL){
+        |    db_pointer->set_cachesize(db_pointer,0,size,0);
+        |  } else {
+        |    rb_raise(rodException(),"DB handle is NULL\\n");
+        |  }
+        |}
+        END
+        builder.c(Utils.margin)
       end
     end
   end
