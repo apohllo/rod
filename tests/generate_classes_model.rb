@@ -8,9 +8,9 @@ class Model < Rod::Model
 end
 
 class User < Model
-  field :name, :string, :index => :hash, :cache_size => 10 * 1024 * 1024
-  has_one :account, :index => :hash
-  has_many :files, :index => :hash, :class_name => "UserFile"
+  field :name, :string, :index => :flat
+  has_one :account, :index => :flat
+  has_many :files, :index => :flat, :class_name => "UserFile"
 end
 
 class Account < Model

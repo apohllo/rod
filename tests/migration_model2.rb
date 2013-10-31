@@ -18,7 +18,7 @@ class User < Model
   field :city, :string, :index => :segmented
 
   # changed: index flat -> hash
-  field :street, :string, :index => :hash
+  field :street, :string, :index => :hash, :cache_size => 10 * 1024 * 1024
 
   # changed: index flat -> nil
   field :number, :integer
