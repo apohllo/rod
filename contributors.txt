@@ -3,3 +3,4 @@ People who contributed to Ruby Object Database:
 * Marcin Sieniek
 * Rafal Michalski
 * Marcin Iracki
+* Kacper Walanus
