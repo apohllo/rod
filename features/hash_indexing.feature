@@ -2,18 +2,23 @@ Feature: Access to objects with hash indices.
     ROD allows for accessing objects via fields with hash indices,
     which are useful for indices with millions of keys.
     These are split accross multiple files for faster load-time.
-  Background:
-    Given the library works in development mode
 
   Scenario: indexing with hash index
       Rod should allow to access objects via values of their fields,
       for which indices were built.
     Given the class space is cleared
-    And the model is connected with the default database
-    And a class Caveman has a name field of type string with hash index
-    And a class Caveman has an age field of type integer with hash index
-    And a class Caveman has an identifier field of type ulong with hash index
-    And a class Caveman has a height field of type float with hash index
+    And the default database is initialized
+    And the following class is defined:
+      """
+      class Caveman
+        include Rod.resource
+
+        attribute :name, String, :index => :hash
+        attribute :age, Integer, :index => :hash
+        attribute :identifier, Integer, :index => :hash
+        attribute :height, Float, :index => :hash
+      end
+      """
     When database is created
     And I create a Caveman
     And his name is 'Fred'

@@ -1,5 +1,3 @@
-require 'mocha'
-
 def create_item(index)
   rod_id = index + 1
   element = Rod::Model::Base.new

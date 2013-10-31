@@ -1,22 +1,45 @@
 Feature: Update of the database
     This feature defines the update model of ROD.
   Background:
-    Given the library works in development mode
-    And the class space is cleared
-    And the model is connected with the default database
-    And a class Book has a title field of type string with flat index
-    And a class Automobile has a name field of type string
+    Given the class space is cleared
+    And the default database is initialized
+    And the following classes are defined:
+      """
+      class Book
+        include Rod.resource
+
+        attribute :title, String, :index => :hash
+      end
+
+      class Automobile
+        include Rod.resource
+
+        attribute :name, String, :index => :hash
+      end
+
+      class Caveman
+        include Rod.resource
+
+        attribute :name, String, :index => :hash
+        attribute :surname, String, :index => :hash
+        attribute :login, String, :index => :hash
+        attribute :age, Integer, :index => :hash
+        attribute :identifier, Integer, :index => :hash
+        attribute :height, Float, :index => :hash
+      end
+      """
     And a class User has a name field of type string with flat index
     And a class User has a surname field of type string with flat index
     And a class User has a login field of type string with flat index
     And a class User has an age field of type integer with flat index
-    And a class User has an height field of type float with flat index
+    And a class User has a height field of type float with flat index
     And a class User has a sex field of type object with flat index
     And a class User has one automobile with flat index
     And a class User has many books with flat index
     And a class User has one polymorphic item with flat index
     And a class User has many polymorphic tools with flat index
 
+  @wip
   Scenario: update of fields
     When database is created
     And I create and store the following User(s):

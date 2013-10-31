@@ -2,7 +2,6 @@ Feature: Store and load small amount of data from one class
   In order to ensure basic functionality, ROD should
   allow to store and load data for one simple class.
 
-  @wip
   Scenario: class with one field
       Rod should allow to store in the DB instances of a class with one field
     Given the class space is cleared
