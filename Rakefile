@@ -87,6 +87,8 @@ task :spec do
   sh "ruby spec/metadata/metadata.rb"
   sh "ruby spec/metadata/resource_metadata.rb"
 
+  sh "ruby spec/index/hash_index.rb"
+  sh "ruby spec/index/btree_index.rb"
 end
 
 # Should be removed some time -- specs should cover all these cases

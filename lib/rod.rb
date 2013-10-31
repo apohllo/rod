@@ -50,10 +50,11 @@ require 'rod/native/container'
 #
 require 'rod/index/base'
 require 'rod/index/flat_index'
+require 'rod/index/berkeley_index'
+require 'rod/index/btree_index'
 require 'rod/index/hash_index'
 require 'rod/index/field_updater'
-#require 'rod/index/segmented_index'
-#
+
 require 'rod/property/base'
 require 'rod/property/field'
 require 'rod/property/singular_association'

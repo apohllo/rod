@@ -124,6 +124,8 @@ module Rod
             SegmentedIndex.new(path,klass,options)
           when :hash
             HashIndex.new(path,klass,options)
+          when :btree
+            BtreeIndex.new(path,klass,options)
           when true
             ActiveSupport::Deprecation.
               warn("Index type 'true' is deprecated. It will be removed in ROD 0.8.0")
