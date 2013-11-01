@@ -41,6 +41,7 @@ module Rod
       def convert_options(options)
         rod_options = {}
         rod_options[:index] = options[:index] if options[:index]
+        rod_options[:order] = options[:order] if options[:order]
         rod_options
       end
 

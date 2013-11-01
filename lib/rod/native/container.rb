@@ -83,7 +83,7 @@ module Rod
         end
 
         resource.indexed_properties.each do |property|
-          @indices[property] = index_factory.new(path + "_#{property.name}#{INDEX_SUFFIX}",resource)
+          @indices[property] = index_factory.new(path + "_#{property.name}#{INDEX_SUFFIX}",resource,property.options)
           @updaters << property.updater(@indices[property])
         end
         @counter = metadata.element_count

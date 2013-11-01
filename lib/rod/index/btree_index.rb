@@ -6,8 +6,19 @@ module Rod
     # This implementation of index is based on the
     # Berkeley DB Btree access method.
     class BtreeIndex < BerkeleyIndex
-      # The class given index is associated with.
-      attr_reader :klass
+      # Initializes the index with +path+, +class+ and +options+.
+      #
+      # Options:
+      # * +:proxy_factor+ - factory used to create collection proxies
+      #   (Rod::Berkeley::CollectionProxy by default).
+      # * +:order+ - lambda used to compare and sort the keys, by default
+      #   it's nil, which means that the keys have alphabetic order. The
+      #   returned value must reflect the semantics of <=> Ruby operator
+      #   (i.e. -1, 0, 1).
+      def initialize(path,klass,options={})
+        @key_comparison_lambda = options[:order]
+        super
+      end
 
       # Opens the index - initializes the index C structures
       # and the cache.
@@ -20,6 +31,13 @@ module Rod
         options[:type] = :btree
         _open(@path, options)
         @opened = true
+      end
+
+      protected
+      # Compares +key_a+ to +key_b+ according to the user-defined comparison
+      # function.
+      def compare_keys(key_a,key_b)
+        @key_comparison_lambda.call(Marshal.load(key_a),Marshal.load(key_b))
       end
     end
   end

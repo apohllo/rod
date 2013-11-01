@@ -126,6 +126,12 @@ module Rod
         # do nothing - the value is set in proxy#<< method
       end
 
+      # Returns the map that associates DB handles with their Ruby-level
+      # objects.
+      def self.index_map
+        @index_map ||= {}
+      end
+
       # C definition of the RodException.
       def self.rod_exception
         str =<<-END
@@ -287,6 +293,25 @@ module Rod
         Utils.remove_margin(str)
       end
 
+      # The key-comparison function.
+      def self.key_comparison_function
+        str =<<-END
+        |int key_comparison_function(DB* db_pointer, const DBT *key_a, const DBT *key_b){
+        |  VALUE map,index,ruby_key_a,ruby_key_b;
+        |  VALUE c = rb_cObject;
+        |  c = rb_const_get(c, rb_intern("Rod"));
+        |  c = rb_const_get(c, rb_intern("Index"));
+        |  c = rb_const_get(c, rb_intern("BerkeleyIndex"));
+        |  map = rb_funcall(c, rb_intern("index_map"),0);
+        |  index = rb_hash_aref(map,ULONG2NUM((unsigned long)db_pointer));
+        |  ruby_key_a = rb_str_new((char *)key_a->data,key_a->size);
+        |  ruby_key_b = rb_str_new((char *)key_b->data,key_b->size);
+        |  return FIX2INT(rb_funcall(index, rb_intern("compare_keys"),2,ruby_key_a,ruby_key_b));
+        |}
+        END
+        Utils.remove_margin(str)
+      end
+
       # You can set arbitrary ROD hash index link flags via
       # ROD_BDB_LINK_FLAGS env. variable.
       def self.rod_link_flags
@@ -308,6 +333,7 @@ module Rod
         builder.prefix(self.close_cursor)
         builder.prefix(self.iterate_over_values)
         builder.prefix(self.iterate_over_keys)
+        builder.prefix(self.key_comparison_function)
 
         str =<<-END
         |void _close(){
@@ -515,7 +541,7 @@ module Rod
         |  int return_value;
         |  VALUE handleClass;
         |  VALUE handle;
-        |  VALUE mod;
+        |  VALUE mod, map;
         |  unsigned long cache_size = 8 * 1024 * 1024;
         |
         |  db_pointer = ALLOC(DB);
@@ -534,6 +560,15 @@ module Rod
         |  } else {
         |    if(rb_hash_aref(options,ID2SYM(rb_intern("type"))) == ID2SYM(rb_intern("btree"))){
         |      index_type = DB_BTREE;
+        |      if(rb_iv_get(self,"@key_comparison_lambda") != Qnil){
+        |        db_pointer->set_bt_compare(db_pointer,&key_comparison_function);
+        |         mod = rb_cObject;
+        |         mod = rb_const_get(mod, rb_intern("Rod"));
+        |         mod = rb_const_get(mod, rb_intern("Index"));
+        |         mod = rb_const_get(mod, rb_intern("BerkeleyIndex"));
+        |         map = rb_funcall(mod, rb_intern("index_map"),0);
+        |         rb_hash_aset(map,ULONG2NUM((unsigned long)db_pointer),self);
+        |      }
         |    } else {
         |      rb_raise(rodException(),"Unknown index type %s",
         |        RSTRING_PTR(rb_any_to_s(rb_hash_aref(options,ID2SYM(rb_intern("type"))))));
