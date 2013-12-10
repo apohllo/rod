@@ -447,7 +447,7 @@ module Rod
           backup_path = self.property(property.name).index.path
           new_path = property.index.path
           puts "Copying #{backup_path} to #{new_path}" if $ROD_DEBUG
-          FileUtils.cp(backup_path,new_path)
+          FileUtils.cp(backup_path,new_path) if File.exist?(backup_path)
         end
         return
       end
