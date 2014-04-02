@@ -1,5 +1,6 @@
 $:.unshift "lib"
 require 'rod/constants'
+require 'fileutils'
 
 task :default => [:all_tests]
 
@@ -27,7 +28,7 @@ task :uninstall do
   sh "sudo gem uninstall #$gem_name"
 end
 
-task :all_tests => [:test,:unit_test,:regression_test,:features]
+task :all_tests => [:clean,:test,:unit_test,:regression_test,:features]
 
 desc "Run performence tests"
 task :perf do
@@ -86,9 +87,13 @@ task :wip do
   sh "bundle exec cucumber --tags @wip features/*"
 end
 
-desc "Clean all gems"
+desc "Clean tmp directory"
 task :clean do
-  sh "rm #$gem_name*.gem" 
+  if File.exist?("tmp")
+    sh "rm -rf tmp/*" 
+  else
+    FileUtils.mkdir("tmp")
+  end
 end
 
 desc "Show changelog from the last release"

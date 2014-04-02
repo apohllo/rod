@@ -116,8 +116,12 @@ module Rod
         |#{result_type} _#{name}(unsigned long object_rod_id){
 	|  VALUE klass;
 	|  #{struct_name} * pointer;
+        |#ifdef __BYTE_ORDER
+        |#  if __BYTE_ORDER == __BIG_ENDIAN
         |  uint64_t as_uint;
         |  uint64_t result_swapped;
+        |#  endif
+        |#endif
         |
         |  if(object_rod_id == 0){
         |    rb_raise(rodException(), "Invalid object rod_id (0)");
@@ -151,7 +155,11 @@ module Rod
         |void _#{name}_equals(unsigned long object_rod_id,#{arg_type} value){
         |  VALUE klass;
         |  #{struct_name} * pointer;
+        |#ifdef __BYTE_ORDER
+        |#  if __BYTE_ORDER == __BIG_ENDIAN
         |  uint64_t value_swapped;
+        |#  endif
+        |#endif
         |
         |  if(object_rod_id == 0){
         |    rb_raise(rodException(), "Invalid object rod_id (0)");
