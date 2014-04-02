@@ -42,11 +42,20 @@ describe Rod::Property::SingularAssociation do
 
     it "must define C accessors" do
       @klass.expect :struct_name, "struct_name"
+      @klass.expect :struct_name, "struct_name"
+      @klass.expect :struct_name, "struct_name"
+      @klass.expect :struct_name, "struct_name"
+      @builder.expect :c,nil,[String]
+      @builder.expect :c,nil,[String]
+      @builder.expect :c,nil,[String]
       @builder.expect :c,nil,[String]
       @association.define_c_accessors(@builder)
     end
 
     it "must seal C accessors" do
+      @klass.expect :send,nil,[:private,String]
+      @klass.expect :send,nil,[:private,String]
+      @klass.expect :send,nil,[:private,String]
       @klass.expect :send,nil,[:private,String]
       @association.seal_c_accessors
     end

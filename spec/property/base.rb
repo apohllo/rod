@@ -64,6 +64,7 @@ describe Rod::Property::Base do
       database.expect :nil?,false
       database.expect :path,"path"
       @klass.expect :database,database
+      @klass.expect :database,database
       @klass.expect :model_path,"model_path"
       @field.define_finders
       proc {@klass.find_by_user_name("Name")}.must_be_silent
