@@ -129,6 +129,9 @@ module Rod
         |  klass = rb_funcall(self,rb_intern("class"),0);
         |  pointer = (#{struct_name} *)
         |    NUM2ULONG(rb_funcall(klass,rb_intern("rod_pointer"),0));
+        |  if(pointer == 0){
+        |    rb_raise(rodException(), "Invalid model pointer (0). DB is closed.");
+        |  }
         |#ifdef __BYTE_ORDER
         |#  if __BYTE_ORDER == __BIG_ENDIAN
         |  // This code assumes that all values are 64 bit wide. This is not true
@@ -167,6 +170,9 @@ module Rod
         |  klass = rb_funcall(self,rb_intern("class"),0);
         |  pointer = (#{struct_name} *)
         |    NUM2ULONG(rb_funcall(klass,rb_intern("rod_pointer"),0));
+        |  if(pointer == 0){
+        |    rb_raise(rodException(), "Invalid model pointer (0). DB is closed.");
+        |  }
         |#ifdef __BYTE_ORDER
         |#  if __BYTE_ORDER == __BIG_ENDIAN
         |  // TODO #220 #221

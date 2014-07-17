@@ -619,6 +619,8 @@ module Rod
             |      page_size() * model_p->#{klass.struct_name}_page_count) == -1){
             |      rb_raise(rodException(),"Could not unmap #{klass.struct_name}.");
             |    }
+            |    model_p->#{klass.struct_name}_table = NULL;
+            |    #{update_pointer(klass) unless special_class?(klass)}
             |  }
             |  if(close(model_p->#{klass.struct_name}_lib_file) == -1){
             |    rb_raise(rodException(),"Could not close model file for #{klass}.");
