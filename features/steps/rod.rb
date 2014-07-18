@@ -30,6 +30,8 @@ Given /^the class space is cleared$/ do
         klass.instance.close_database(true)
       end
     end
+  end
+  RodTest.constants.each do |constant|
     RodTest.send(:remove_const,constant)
   end
   # TODO separate step?
