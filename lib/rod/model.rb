@@ -1,6 +1,7 @@
 require 'rod/constants'
 require 'rod/collection_proxy'
 require 'rod/abstract_model'
+require 'ref'
 
 module Rod
 
@@ -627,7 +628,7 @@ module Rod
 
     # The object cache of this class.
     def self.cache
-      @cache ||= Cache.new
+      @cache ||= Ref::SoftValueMap.new
     end
 
     # The module context of the class.
