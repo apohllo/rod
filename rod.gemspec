@@ -13,6 +13,7 @@ Gem::Specification.new do |s|
   s.homepage    = "http://github.com/apohllo/rod"
   s.summary = "Ruby Object Database"
   s.description = "Ruby Object Database is designed for large amounts of data, whose structure rarely changes."
+  s.license = "http://opensource.org/licenses/MIT"
 
   s.rubyforge_project = "rod"
   s.rdoc_options = ["--main", "README.rdoc"]
@@ -24,13 +25,13 @@ Gem::Specification.new do |s|
 
   s.add_dependency("RubyInline", [">= 3.10.0","< 4.0.0"])
   s.add_dependency("english", [">= 0.5.0","< 0.6.0"])
-  s.add_dependency("activemodel", ["~> 3.2.2"])
+  s.add_dependency("activemodel", ["~> 3.2",'>= 3.2.2'])
   s.add_dependency("bsearch", [">= 1.5.0","< 1.6.0"])
   s.add_dependency("ref", [">= 1.0.5","< 2.0.0"])
 
-  s.add_development_dependency("cucumber", "~> 1.0.0")
+  s.add_development_dependency("cucumber", "~> 1.0", ">= 1.0.0")
   s.add_development_dependency("rspec", [">= 2.2.0","< 2.3.0"])
   s.add_development_dependency("rake", [">= 0.9.0","< 1.0.0"])
-  s.add_development_dependency("minitest", "~> 4.0.0")
-  s.add_development_dependency("mocha", "~> 0.9.12")
+  s.add_development_dependency("minitest", "~> 4.0", ">= 4.0.0")
+  s.add_development_dependency("mocha", "~> 0.9", ">= 0.9.12")
 end
