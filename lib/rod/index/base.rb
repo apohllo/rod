@@ -99,9 +99,10 @@ module Rod
         # The +path+ is the path were the index is stored, while +index+ is the previous index instance.
         # The +klass+ is the class given index belongs to.
         # Options might include class-specific options.
-        def create(path,klass,options)
+        def create(path,klass,options,property_type)
           options = options.dup
           type = options.delete(:index)
+          options[:property_type] = property_type
           case type
           when :flat
             FlatIndex.new(path,klass,options)

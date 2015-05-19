@@ -19,6 +19,7 @@ module Rod
         @path = path + ".db"
         @klass = klass
         @options = options
+        @property_type = options[:property_type]
       end
 
       # Stores the index on disk.
@@ -39,7 +40,11 @@ module Rod
           open(@path, :create => true) unless opened?
           _each_key do |key|
             next if key.empty?
-            key = Marshal.load(key)
+            if @property_type == :string
+              key.force_encoding("UTF-8")
+            else
+              key = Marshal.load(key)
+            end
             yield key,self[key]
           end
         else
@@ -83,8 +88,16 @@ module Rod
       protected
       # Returns an empty BDB based collection proxy.
       def empty_collection_proxy(key)
-        key = key.encode("utf-8") if key.is_a?(String)
-        key = Marshal.dump(key)
+        if @property_type == :string
+          if key
+            key = key.encode("utf-8")
+          else
+            # TODO empty string should be different from nil
+            key = ""
+          end
+        else
+          key = Marshal.dump(key)
+        end
         Rod::Berkeley::CollectionProxy.new(self,key)
       end
 

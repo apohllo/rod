@@ -52,7 +52,7 @@ module Rod
 
       # Returns the index associated with the property.
       def index
-        @index ||= Index::Base.create(path(@klass.database.path),@klass,@options)
+        @index ||= Index::Base.create(path(@klass.database.path),@klass,@options,@type)
       end
 
       # Returns true if the property has an index.

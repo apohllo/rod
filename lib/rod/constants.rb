@@ -1,5 +1,5 @@
 module Rod
-  VERSION = "0.7.2.6"
+  VERSION = "0.7.3.0"
 
   # The name of file containing the data base.
   DATABASE_FILE = "database.yml"
