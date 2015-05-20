@@ -6,15 +6,13 @@ module Rod
       str = <<-END
       |typedef struct {
       |  unsigned long offset;
-      |  unsigned long index;
       |} _join_element;
       END
       str.margin
     end
 
     def self.layout
-      '  printf("  offset: %lu, index: %lu\n",' +
-        '(unsigned long)sizeof(unsigned long), ' +
+      '  printf("  offset: %lu' +
         '(unsigned long)sizeof(unsigned long));' + "\n"
     end
 
@@ -28,7 +26,6 @@ module Rod
       str = <<-END
       |typedef struct {
       |  unsigned long offset;
-      |  unsigned long index;
       |  unsigned long class;
       |} _polymorphic_join_element;
       END
@@ -40,8 +37,7 @@ module Rod
     end
 
     def self.layout
-      '  printf("  offset: %lu, index: %lu, class: %lu\n",' +
-        '(unsigned long)sizeof(unsigned long), ' +
+      '  printf("  offset: %lu, class: %lu\n",' +
         '(unsigned long)sizeof(unsigned long), ' +
         '(unsigned long)sizeof(unsigned long));' + "\n"
     end

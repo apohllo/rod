@@ -52,6 +52,11 @@ module Rod
       object
     end
 
+    # Return the ROD identifier of the object.
+    def rod_id
+      @rod_id
+    end
+
     #########################################################################
     # Public API
     #########################################################################
@@ -171,7 +176,6 @@ module Rod
     # Sets the default values for fields.
     def initialize_fields
       self.class.fields.each do |field|
-        next if field.name == :rod_id
         send("#{field.name}=",field.default_value)
       end
     end
@@ -365,7 +369,7 @@ module Rod
     # Returns the fields of this class.
     def self.fields
       if self == Rod::Model
-        @fields ||= [Property::Field.new(self,:rod_id,:ulong)]
+        @fields ||= []
       else
         @fields ||= superclass.fields.map{|p| p.copy(self)}
       end

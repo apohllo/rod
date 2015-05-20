@@ -249,7 +249,7 @@ module Rod
           END
           builder.c(str.margin)
 
-          str =<<-END
+          builder.c(<<-END.margin)
           |VALUE _polymorphic_join_element_index(unsigned long element_offset,
           |  unsigned long element_index, VALUE handler){
           |  #{model_struct} * model_p;
@@ -266,9 +266,8 @@ module Rod
           |  return ULONG2NUM(result);
           |}
           END
-          builder.c(str.margin)
 
-          str =<<-END
+          builder.c(<<-END.margin)
           |VALUE _polymorphic_join_element_class(unsigned long element_offset,
           |  unsigned long element_index, VALUE handler){
           |  #{model_struct} * model_p;
@@ -285,9 +284,8 @@ module Rod
           |  return ULONG2NUM(result);
           |}
           END
-          builder.c(str.margin)
 
-          str =<<-END
+          builder.c(<<-END.margin)
           |void _set_join_element_offset(unsigned long element_offset,
           |  unsigned long element_index, unsigned long offset,
           |  VALUE handler){
@@ -296,10 +294,6 @@ module Rod
           |
           |  Data_Get_Struct(handler,#{model_struct},model_p);
           |  element_p = model_p->_join_element_table + element_offset + element_index;
-          |  if(element_p->index != element_index){
-          |      rb_raise(rodException(), "Join element indices are inconsistent: %lu %lu!",
-          |        element_index, element_p->index);
-          |  }
           |#ifdef __BYTE_ORDER
           |#  if __BYTE_ORDER == __BIG_ENDIAN
           |  offset = bswap_64(offset);
@@ -308,9 +302,8 @@ module Rod
           |  element_p->offset = offset;
           |}
           END
-          builder.c(str.margin)
 
-          str =<<-END
+          builder.c(<<-END.margin)
           |void _set_polymorphic_join_element_offset(unsigned long element_offset,
           |  unsigned long element_index, unsigned long offset, unsigned long class_id,
           |  VALUE handler){
@@ -319,10 +312,6 @@ module Rod
           |
           |  Data_Get_Struct(handler,#{model_struct},model_p);
           |  element_p = model_p->_polymorphic_join_element_table + element_offset + element_index;
-          |  if(element_p->index != element_index){
-          |      rb_raise(rodException(), "Polymorphic join element indices are inconsistent: %lu %lu!",
-          |        element_index, element_p->index);
-          |  }
           |#ifdef __BYTE_ORDER
           |#  if __BYTE_ORDER == __BIG_ENDIAN
           |  offset = bswap_64(offset);
@@ -333,9 +322,8 @@ module Rod
           |  element_p->class = class_id;
           |}
           END
-          builder.c(str.margin)
 
-          str =<<-END
+          builder.c(<<-END.margin)
           |unsigned long _allocate_join_elements(unsigned long size, VALUE handler){
           |  _join_element * element;
           |  unsigned long index;
@@ -351,15 +339,13 @@ module Rod
           |    }
           |    element = model_p->_join_element_table + model_p->_join_element_count;
           |    model_p->_join_element_count++;
-          |    element->index = index;
           |    element->offset = 0;
           |  }
           |  return result;
           |}
           END
-          builder.c(str.margin)
 
-          str =<<-END
+          builder.c(<<-END.margin)
           |unsigned long _allocate_polymorphic_join_elements(unsigned long size, VALUE handler){
           |  _polymorphic_join_element * element;
           |  unsigned long index;
@@ -377,16 +363,14 @@ module Rod
           |    element = model_p->_polymorphic_join_element_table +
           |      model_p->_polymorphic_join_element_count;
           |    model_p->_polymorphic_join_element_count++;
-          |    element->index = index;
           |    element->offset = 0;
           |    element->class = 0;
           |  }
           |  return result;
           |}
           END
-          builder.c(str.margin)
 
-          str =<<-END
+          builder.c(<<-END.margin)
           |VALUE _fast_intersection_size(unsigned long first_offset,
           |  unsigned long first_length, unsigned long second_offset,
           |  unsigned long second_length, VALUE handler){
@@ -418,12 +402,11 @@ module Rod
           |  return ULONG2NUM(count);
           |}
           END
-          builder.c(str.margin)
 
           #########################################
           # Strings
           #########################################
-          str =<<-END
+          builder.c(<<-END.margin)
           |VALUE _read_string(unsigned long length, unsigned long offset, VALUE handler){
           |  #{model_struct} * model_p;
           |  char * str;
@@ -433,9 +416,8 @@ module Rod
           |  return rb_str_new(str, length);
           |}
           END
-          builder.c(str.margin)
 
-          str =<<-END
+          builder.c(<<-END.margin)
           |// The first argument is the string to be stored.
           |// The return value is a pair: length and offset.
           |VALUE _set_string(VALUE ruby_value, VALUE handler){
@@ -484,7 +466,6 @@ module Rod
           |  return result;
           |}
           END
-          builder.c(str.margin)
 
           #########################################
           # Object accessors
@@ -505,29 +486,24 @@ module Rod
           #########################################
           classes.each do |klass|
             next if special_class?(klass)
-            str =<<-END
+            builder.c(<<-END.margin)
             |// Store the object in the database.
             |void _store_#{klass.struct_name}(VALUE object, VALUE handler){
             |  #{model_struct} * model_p;
-            |  #{klass.struct_name} * struct_p;
             |
             |  Data_Get_Struct(handler,#{model_struct},model_p);
             |  if((model_p->#{klass.struct_name}_count+1) * sizeof(#{klass.struct_name}) >=
             |    model_p->#{klass.struct_name}_page_count * page_size()){
             |     \n#{mmap_class(klass)}
             |  }
-            |  struct_p = model_p->#{klass.struct_name}_table +
-            |    model_p->#{klass.struct_name}_count;
             |  //printf("struct assigned\\n");
             |  model_p->#{klass.struct_name}_count++;
             |
             |  //the number is incresed by 1, because 0 indicates that the
             |  //(referenced) object is nil
-            |  struct_p->rod_id = model_p->#{klass.struct_name}_count;
-            |  rb_iv_set(object, \"@rod_id\",ULONG2NUM(struct_p->rod_id));
+            |  rb_iv_set(object, \"@rod_id\",ULONG2NUM(model_p->#{klass.struct_name}_count));
             |}
             END
-            builder.c(str.margin)
           end
 
           #########################################
@@ -575,7 +551,7 @@ module Rod
           #########################################
           # open
           #########################################
-          str =<<-END
+          builder.c(<<-END.margin)
           |void _open(VALUE handler){
           |  #{model_struct} * model_p;
           |
@@ -600,12 +576,11 @@ module Rod
           end.join("\n")}
           |}
           END
-          builder.c(str.margin)
 
           #########################################
           # close
           #########################################
-          str =<<-END
+          builder.c(<<-END.margin)
           |// if +classes+ are Qnil, the DB was open in readonly mode.
           |void _close(VALUE handler){
           |  #{model_struct} * model_p;
@@ -629,7 +604,6 @@ module Rod
           end.join("\n")}
           |}
           END
-          builder.c(str.margin)
 
 
           #########################################
@@ -657,19 +631,17 @@ module Rod
           END
           builder.c(str.margin)
 
-          str =<<-END
+          builder.c(<<-END.margin)
           |void _print_system_error(){
           |  perror(NULL);
           |}
           END
-          builder.c(str.margin)
 
-          str =<<-END
+          builder.c(<<-END.margin)
           |unsigned int _page_size(){
           |  return page_size();
           |}
           END
-          builder.c(str.margin)
 
           if @@rod_development_mode
             # This method is created to force rebuild of the C code, since
@@ -687,7 +659,7 @@ module Rod
 
     # Reads the value of a specified field of the C-structure.
     def self.field_reader(name,result_type,builder,model_struct)
-      str =<<-END
+      builder.c(<<-END.margin)
       |#{result_type} _#{name}(VALUE handler){
       |  #{model_struct} * model_p;
       |
@@ -695,12 +667,11 @@ module Rod
       |  return model_p->#{name};
       |}
       END
-      builder.c(str.margin)
     end
 
     # Writes the value of a specified field of the C-structure.
     def self.field_writer(name,arg_type,builder,model_struct)
-      str =<<-END
+      builder.c(<<-END.margin)
       |void _#{name}_equals(VALUE handler,#{arg_type} value){
       |  #{model_struct} * model_p;
       |
@@ -708,11 +679,10 @@ module Rod
       |  model_p->#{name} = value;
       |}
       END
-      builder.c(str.margin)
     end
 
     def self.rod_exception
-      str =<<-END
+      <<-END.margin
       |VALUE rodException(){
       |  VALUE klass;
       |
@@ -721,7 +691,6 @@ module Rod
       |  return klass;
       |}
       END
-      str.margin
     end
   end
 end

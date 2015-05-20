@@ -58,15 +58,12 @@ module RodTest
         assert AStruct.property(:a2).options[:index]
         assert AStruct.property(:a2).options[:index] == :flat
 
-        assert AStruct.property(:rod_id)
-
         assert AStruct.property(:b_structs)
         assert AStruct.property(:b_structs).options[:class_name]
         assert AStruct.property(:b_structs).options[:class_name] == "RodTest::BStruct"
 
         # B
         assert BStruct.property(:a_struct)
-        assert BStruct.property(:rod_id)
       end
     end
 
