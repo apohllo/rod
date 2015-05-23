@@ -140,7 +140,6 @@ module Rod
         |void _open(const char * path, VALUE method, VALUE options){
         |  DB_ENV * env_pointer;
         |  DB * db_pointer;
-        |  DBTYPE access_method;
         |  u_int32_t flags;
         |  int return_value;
         |  VALUE environment;
@@ -222,7 +221,6 @@ module Rod
         |*/
         |void _close(){
         |  DB * db_pointer;
-        |  int return_value;
         |
         |  Data_Get_Struct(self,DB,db_pointer);
         |  db_free(db_pointer);
@@ -323,7 +321,6 @@ module Rod
         |*/
         |VALUE _get_strings(VALUE key, VALUE transaction){
         |  char buffer[1024];
-        |  VALUE result;
         |  unsigned int size;
         |
         |  size = _get(self,RSTRING_PTR(key),RSTRING_LEN(key),buffer,1024,transaction);

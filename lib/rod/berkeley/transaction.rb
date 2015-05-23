@@ -219,7 +219,6 @@ module Rod
         |*/
         |void _abort(){
         |  DB_TXN * txn_pointer;
-        |  int return_value;
         |
         |  Data_Get_Struct(self,DB_TXN,txn_pointer);
         |  txn_free(txn_pointer);

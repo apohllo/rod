@@ -195,7 +195,6 @@ module Rod
         |*/
         |void _close(){
         |  DB_ENV * env_pointer;
-        |  int return_value;
         |
         |  Data_Get_Struct(self,DB_ENV,env_pointer);
         |  env_free(env_pointer);

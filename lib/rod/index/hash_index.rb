@@ -164,8 +164,6 @@ module Rod
       def self.convert_key
         str =<<-END
         |void _convert_key(VALUE key, DBT *db_key_p){
-        |  long int_key;
-        |  double float_key;
         |  DBT db_key;
         |
         |  db_key = *db_key_p;
@@ -232,7 +230,7 @@ module Rod
         |  DBT db_key, db_value;
         |  DBC *cursor;
         |  unsigned long rod_id, index;
-        |  VALUE key, result, cursor_object;
+        |  VALUE key, cursor_object;
         |  int return_value;
         |
         |  index = 0;
@@ -280,7 +278,6 @@ module Rod
         |  DBT db_key, db_value;
         |  DBC *cursor;
         |  int return_value;
-        |  rod_entry_struct *entry;
         |  VALUE key;
         |
         |  Data_Get_Struct(cursor_object,DBC,cursor);
@@ -399,7 +396,7 @@ module Rod
         |  VALUE handle;
         |  DB *db_pointer;
         |  DBC *cursor;
-        |  VALUE key, cursor_object;
+        |  VALUE cursor_object;
         |
         |  handle = rb_iv_get(self,"@handle");
         |  Data_Get_Struct(handle,DB,db_pointer);
@@ -450,7 +447,6 @@ module Rod
         |  DB *db_pointer;
         |  DBT db_key, db_value;
         |  unsigned long rod_id;
-        |  VALUE result;
         |  int return_value;
         |
         |  handle = rb_iv_get(self,"@handle");
