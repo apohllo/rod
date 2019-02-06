@@ -34,4 +34,5 @@ Gem::Specification.new do |s|
   s.add_development_dependency("rake", [">= 0.9.0","< 1.0.0"])
   s.add_development_dependency("minitest", "~> 4.0", ">= 4.0.0")
   s.add_development_dependency("mocha", "~> 0.9", ">= 0.9.12")
+  s.add_development_dependency("test-unit", "~> 3.3.0", ">= 3.3.0")
 end
