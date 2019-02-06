@@ -79,6 +79,9 @@ number of disk reads was designed. The Ruby interface facilitates it's usage.
 
 == TROUBLESHOOTING
 
+
+=== db.h problem
+
 If you get the following error:
 
   error: db.h: No such file or directory
@@ -86,6 +89,9 @@ If you get the following error:
 then you don't have Berkeley DB installed or its header fiels are not available
 on the default path. Make sure that the library is installed and the headers
 are available.
+
+
+=== symbol lookup error related to Berkeley DB
 
 If you get the following error:
 
@@ -99,6 +105,18 @@ environment variable, e.g.
    export ROD_BDB_LINK_FLAGS
 
 This configuration option will select the libdb-4.8.so library.
+
+=== symbol lookup error not related to Berkeley DB
+
+If you get the follwing error (or other lookup error):
+
+  symbol lookup error:
+  /net/people/plgapohl/.ruby_inline/...  undefined symbol: __intel_avx_rep_memcpy
+
+then make sure that you don't have any compiled shared objects linking to objects that are no longer
+available in your system. Remove any libraries from the .ruby_inline by:
+
+  rm -f /net/people/plgapohl/.ruby_inline/*
 
 == BASIC USAGE:
 
