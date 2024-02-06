@@ -178,7 +178,6 @@ module Rod
         |unsigned long _next(VALUE transaction,int delta,VALUE options){
         |  DB_SEQUENCE *seq_pointer;
         |  DB_TXN *txn_pointer;
-        |  int return_value;
         |  db_seq_t next_value;
         |  u_int32_t flags;
         |
@@ -192,10 +191,10 @@ module Rod
         |    flags |= DB_TXN_NOSYNC;
         |  }
         |  if(NIL_P(transaction)){
-        |    return_value = seq_pointer->get(seq_pointer,NULL,(int32_t)delta,&next_value,flags);
+        |    seq_pointer->get(seq_pointer,NULL,(int32_t)delta,&next_value,flags);
         |  } else {
         |    Data_Get_Struct(transaction,DB_TXN,txn_pointer);
-        |    return_value = seq_pointer->get(seq_pointer,txn_pointer,(int32_t)delta,&next_value,flags);
+        |    seq_pointer->get(seq_pointer,txn_pointer,(int32_t)delta,&next_value,flags);
         |  }
         |  return (unsigned long)next_value;
         |}
@@ -208,7 +207,6 @@ module Rod
         |*/
         |void _close(){
         |  DB_SEQUENCE * seq_pointer;
-        |  int return_value;
         |
         |  Data_Get_Struct(self,DB_SEQUENCE,seq_pointer);
         |  seq_free(seq_pointer);

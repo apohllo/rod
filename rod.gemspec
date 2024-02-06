@@ -24,7 +24,7 @@ Gem::Specification.new do |s|
   s.require_path = "lib"
 
   s.add_dependency("RubyInline", [">= 3.10.0","< 4.0.0"])
-  s.add_dependency("english", [">= 0.7.0","< 0.8.0"])
+  s.add_dependency("strings-inflection", [">= 0.1.0","< 0.2.0"])
   s.add_dependency("activemodel", ["~> 3.2",'>= 3.2.2'])
   s.add_dependency("bsearch", [">= 1.5.0","< 1.6.0"])
   s.add_dependency("ref", [">= 1.0.5","< 2.0.0"])

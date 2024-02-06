@@ -1,5 +1,5 @@
 require 'inline'
-require 'english/inflect'
+require 'strings-inflection'
 require 'active_support/deprecation'
 require 'active_model/validator'
 require 'active_model/naming'

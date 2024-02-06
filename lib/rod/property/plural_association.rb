@@ -80,7 +80,7 @@ module Rod
           if options[:class_name]
             options[:class_name]
           else
-            "#{@klass.scope_name}::#{::English::Inflect.singular(name).camelcase}"
+            "#{@klass.scope_name}::#{::Strings::Inflection.singularize(name).camelcase}"
           end
         klass = options[:polymorphic] ? nil : class_name.constantize
         database = @klass.database
